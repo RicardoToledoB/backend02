@@ -1,0 +1,256 @@
+package com.cosam.project01.service.impl;
+
+import com.cosam.project01.dto.*;
+import com.cosam.project01.entity.*;
+import com.cosam.project01.repository.PostulantRepository;
+import com.cosam.project01.service.IPostulantService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+public class PostulantServiceImpl implements IPostulantService {
+
+    @Autowired
+    private PostulantRepository repository;
+
+
+    private PostulantDTO mapToDTO(PostulantEntity entity) {
+
+
+        return PostulantDTO.builder()
+                .id(entity.getId())
+                .user(mapToUserDTO(entity.getUser()))
+                .commune(mapToCommuneDTO(entity.getCommune()))
+                .address(entity.getAddress())
+                .sex(mapToSexDTO(entity.getSex()))
+                .email(entity.getEmail())
+                .phone(entity.getPhone())
+                .rut(entity.getRut())
+                .firstName(entity.getFirstName())
+                .lastName(entity.getLastName())
+                .secondLastName(entity.getSecondLastName())
+                .firstLastName(entity.getFirstLastName())
+                .birthdate(entity.getBirthdate())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .deletedAt(entity.getDeletedAt())
+                .build();
+    }
+
+    private PostulantEntity mapToEntity(PostulantDTO dto) {
+        return PostulantEntity.builder()
+                .id(dto.getId())
+                .user(mapToUserEntity(dto.getUser()))
+                .commune(mapToCommuneEntity(dto.getCommune()))
+                .address(dto.getAddress())
+                .sex(mapToSexEntity(dto.getSex()))
+                .email(dto.getEmail())
+                .phone(dto.getPhone())
+                .rut(dto.getRut())
+                .firstName(dto.getFirstName())
+                .lastName(dto.getLastName())
+                .secondLastName(dto.getSecondLastName())
+                .firstLastName(dto.getFirstLastName())
+                .birthdate(dto.getBirthdate())
+                .createdAt(dto.getCreatedAt())
+                .updatedAt(dto.getUpdatedAt())
+                .deletedAt(dto.getDeletedAt())
+                .build();
+    }
+
+    private SexEntity mapToSexEntity(SexDTO dto) {
+        return SexEntity.builder()
+                .id(dto.getId())
+                .name(dto.getName())
+                .createdAt(dto.getCreatedAt())
+                .updatedAt(dto.getUpdatedAt())
+                .deletedAt(dto.getDeletedAt())
+                .build();
+    }
+
+
+    private SexDTO mapToSexDTO(SexEntity entity) {
+
+
+        return SexDTO.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .deletedAt(entity.getDeletedAt())
+                .build();
+    }
+
+
+
+
+
+    private CommuneDTO mapToCommuneDTO(CommuneEntity entity) {
+
+
+        return CommuneDTO.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .deletedAt(entity.getDeletedAt())
+                .build();
+    }
+
+    private CommuneEntity mapToCommuneEntity(CommuneDTO dto) {
+        return CommuneEntity.builder()
+                .id(dto.getId())
+                .name(dto.getName())
+                .createdAt(dto.getCreatedAt())
+                .updatedAt(dto.getUpdatedAt())
+                .deletedAt(dto.getDeletedAt())
+                .build();
+    }
+
+
+
+    private UserDTO mapToUserDTO(UserEntity entity) {
+
+
+        return UserDTO.builder()
+                .id(entity.getId())
+                .rut(entity.getRut())
+                .email(entity.getEmail())
+                .program(mapToProgramDTO(entity.getProgram()))
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .deletedAt(entity.getDeletedAt())
+                .build();
+    }
+
+    private UserEntity mapToUserEntity(UserDTO dto) {
+        return UserEntity.builder()
+                .id(dto.getId())
+                .program(mapToProgramEntity(dto.getProgram()))
+                .createdAt(dto.getCreatedAt())
+                .updatedAt(dto.getUpdatedAt())
+                .deletedAt(dto.getDeletedAt())
+                .build();
+    }
+
+    private ProgramDTO mapToProgramDTO(ProgramEntity entity) {
+
+
+        return ProgramDTO.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .deletedAt(entity.getDeletedAt())
+                .build();
+    }
+
+    private ProgramEntity mapToProgramEntity(ProgramDTO dto) {
+        return ProgramEntity.builder()
+                .id(dto.getId())
+                .name(dto.getName())
+                .createdAt(dto.getCreatedAt())
+                .updatedAt(dto.getUpdatedAt())
+                .deletedAt(dto.getDeletedAt())
+                .build();
+    }
+
+
+
+
+
+
+    public PostulantDTO create(PostulantDTO dto) {
+        PostulantEntity entity = repository.save(mapToEntity(dto));
+        return mapToDTO(entity);
+    }
+
+    @Override
+    public PostulantDTO update(Integer id, PostulantDTO dto) {
+        PostulantEntity entity = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+
+                entity.setAddress(dto.getAddress());
+                entity.setEmail(dto.getEmail());
+                entity.setPhone(dto.getPhone());
+                entity.setRut(dto.getRut());
+                entity.setFirstName(dto.getFirstName());
+                entity.setLastName(dto.getLastName());
+                entity.setBirthdate(dto.getBirthdate());
+                entity.setUser(mapToUserEntity(dto.getUser()));
+                entity.setCommune(mapToCommuneEntity(dto.getCommune()));
+                entity.setFirstLastName(dto.getFirstLastName());
+                entity.setSecondLastName(dto.getSecondLastName());
+                entity.setSex(mapToSexEntity(dto.getSex()));
+
+        return mapToDTO(repository.save(entity));
+    }
+
+    @Override
+    public PostulantDTO getById(Integer id) {
+        PostulantEntity entity = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+        return mapToDTO(entity);
+    }
+
+    @Override
+    public List<PostulantDTO> getAll() {
+        return repository.findAll().stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public void delete(Integer id) {
+        repository.deleteById(id);
+    }
+
+
+    public Page<PostulantDTO> getAllPaginated(Pageable pageable) {
+        return repository.findAllPaginated(pageable)
+                .map(this::mapToDTO);
+    }
+
+    public Page<PostulantDTO> getAllPaginated(String name, Pageable pageable) {
+        return repository.search(name, pageable).map(this::mapToDTO);
+    }
+
+
+
+
+
+    /*Listar communas activas*/
+    public List<PostulantDTO> listAll() {
+        return repository.findAllIncludingDeleted().stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+
+    public List<PostulantDTO> listActive() {
+        return repository.findAllActive().stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+
+
+    public List<PostulantDTO> listDeleted() {
+        return repository.findAllDeleted().stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public void restore(Integer id) {
+        PostulantEntity entity = repository.findAnyById(id)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+        entity.setDeletedAt(null);
+        repository.save(entity);
+    }
+
+}
