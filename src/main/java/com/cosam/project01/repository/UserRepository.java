@@ -40,4 +40,6 @@ public interface UserRepository extends JpaRepository<UserEntity,Integer> {
               OR LOWER(c.username) LIKE LOWER(CONCAT('%', :username, '%')))
     """)
     Page<UserEntity> search(@Param("username") String username, Pageable pageable);
+
+    Optional<UserEntity> findByUsername(String username);
 }
