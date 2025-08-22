@@ -39,4 +39,11 @@ public interface UserRoleRepository extends JpaRepository<UserRoleEntity,Integer
        WHERE (:id IS NULL OR c.id = :id)
     """)
     Page<UserRoleEntity> search(@Param("id") Integer id, Pageable pageable);
+
+    @Query("""
+           select ur.role.name
+           from UserRoleEntity ur
+           where ur.user.id = :userId
+           """)
+    List<String> findRoleNamesByUserId(Integer userId);
 }

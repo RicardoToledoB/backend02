@@ -130,33 +130,7 @@ INSERT INTO not_relevants(name,created_at,updated_at,deleted_at) VALUES('POR PRE
 
 
 
-INSERT INTO roles(name,created_at,updated_at,deleted_at) VALUES('administrador',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null);
-INSERT INTO roles(name,created_at,updated_at,deleted_at) VALUES('administrativo',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null);
 
--- Usuario Administrador
-INSERT INTO users (
-    first_name, second_name, first_last_name, second_last_name,
-    email, username, password, rut,
-    created_at, updated_at, deleted_at, program_id
-) VALUES (
-             'Ricardo', 'Ignacio', 'Toledo', 'Barria',
-             'ricardo.toledo.b@redsalud.gob.cl', 'admin', '$2a$10$9QwWkzO/rEj0nLjx2DqkJOfdM7v31vA4kR9b8G.yvThsN8Qt8s1bK', '15.582.517-0',
-             CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL, 1
-         );
-
--- Usuario Administrativo
-INSERT INTO users (
-    first_name, second_name, first_last_name, second_last_name,
-    email, username, password, rut,
-    created_at, updated_at, deleted_at, program_id
-) VALUES (
-             'María', 'José', 'Pérez', 'López',
-             'user@cosam.cl', 'user', '$2a$10$9QwWkzO/rEj0nLjx2DqkJOfdM7v31vA4kR9b8G.yvThsN8Qt8s1bK', '98.765.432-1',
-             CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL, 1
-         );
-
-INSERT INTO users_roles(user_id,role_id,created_at,updated_at,deleted_at) values(1,1,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                                (2,2,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null);
 
 
 INSERT INTO communes (name, created_at, updated_at, deleted_at)
