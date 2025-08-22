@@ -26,11 +26,12 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest req) {
-        Authentication auth = new UsernamePasswordAuthenticationToken(req.username(), req.password());
-        authenticationManager.authenticate(auth); // lanza excepción si credenciales inválidas
+        // Aquí el principal es el EMAIL
+        Authentication auth = new UsernamePasswordAuthenticationToken(req.email(), req.password());
+        authenticationManager.authenticate(auth);
 
-        UserDetails user = userDetailsService.loadUserByUsername(req.username());
-        String token = jwtService.generateToken(user);
+        UserDetails user = userDetailsService.loadUserByUsername(req.email());
+        String token = jwtService.generateToken(user); // sub = email
 
         return ResponseEntity.ok(new AuthResponse(token));
     }

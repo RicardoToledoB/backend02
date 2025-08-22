@@ -41,4 +41,8 @@ public interface UserRepository extends JpaRepository<UserEntity,Integer> {
     Page<UserEntity> search(@Param("username") String username, Pageable pageable);
 
     Optional<UserEntity> findByUsername(String username);
+
+    Optional<UserEntity> findByEmail(String email);
+    Optional<UserEntity> findByEmailIgnoreCase(String email);
+
 }
