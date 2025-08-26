@@ -19,7 +19,7 @@ public class CorsConfig {
         config.setAllowedOriginPatterns(List.of(
                 "http://localhost:4200",
                 "https://*.up.railway.app",
-                "https://tu-frontend.example"
+                "https://*"
         ));
 
         // ✅ Métodos permitidos
