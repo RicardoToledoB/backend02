@@ -1,8 +1,5 @@
 package com.cosam.project01.controller;
 import com.cosam.project01.dto.SubstanceDTO;
-import com.cosam.project01.dto.SubstanceDTO;
-import com.cosam.project01.dto.SubstanceDTO;
-import com.cosam.project01.service.impl.SexServiceImpl;
 import com.cosam.project01.service.impl.SubstanceServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;

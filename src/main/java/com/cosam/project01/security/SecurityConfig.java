@@ -1,4 +1,3 @@
-// src/main/java/com/cosam/project01/security/SecurityConfig.java
 package com.cosam.project01.security;
 
 import lombok.RequiredArgsConstructor;

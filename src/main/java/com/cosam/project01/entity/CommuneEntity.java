@@ -1,5 +1,4 @@
 package com.cosam.project01.entity;
-import com.cosam.project01.dto.CommuneDTO;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

@@ -1,7 +1,5 @@
 package com.cosam.project01.controller;
 import com.cosam.project01.dto.ProgramDTO;
-import com.cosam.project01.dto.ProgramDTO;
-import com.cosam.project01.dto.ProgramDTO;
 import com.cosam.project01.service.impl.ProgramServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;

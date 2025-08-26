@@ -1,8 +1,6 @@
 package com.cosam.project01.controller;
 
 import com.cosam.project01.dto.NotRelevantDTO;
-import com.cosam.project01.dto.NotRelevantDTO;
-import com.cosam.project01.dto.NotRelevantDTO;
 import com.cosam.project01.service.impl.NotRelevantServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;

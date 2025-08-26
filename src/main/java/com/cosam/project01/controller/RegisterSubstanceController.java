@@ -1,8 +1,5 @@
 package com.cosam.project01.controller;
 import com.cosam.project01.dto.RegisterSubstanceDTO;
-import com.cosam.project01.dto.RegisterSubstanceDTO;
-import com.cosam.project01.dto.RegisterSubstanceDTO;
-import com.cosam.project01.service.impl.RegisterServiceImpl;
 import com.cosam.project01.service.impl.RegisterSubstanceServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;

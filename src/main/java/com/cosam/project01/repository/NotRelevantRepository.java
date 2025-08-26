@@ -1,7 +1,4 @@
 package com.cosam.project01.repository;
-
-import com.cosam.project01.entity.CommuneEntity;
-import com.cosam.project01.entity.NotRelevantEntity;
 import com.cosam.project01.entity.NotRelevantEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

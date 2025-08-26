@@ -1,5 +1,4 @@
 package com.cosam.project01.dto;
-import com.cosam.project01.entity.NotRelevantEntity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

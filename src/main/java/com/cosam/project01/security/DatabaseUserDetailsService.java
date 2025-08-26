@@ -1,4 +1,4 @@
-// src/main/java/com/cosam/project01/security/DatabaseUserDetailsService.java
+
 package com.cosam.project01.security;
 
 import com.cosam.project01.entity.UserEntity;
@@ -8,12 +8,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.*;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class DatabaseUserDetailsService implements UserDetailsService {
+
 
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;

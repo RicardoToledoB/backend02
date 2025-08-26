@@ -1,7 +1,5 @@
 package com.cosam.project01.controller;
 import com.cosam.project01.dto.ContactTypeDTO;
-import com.cosam.project01.dto.ContactTypeDTO;
-import com.cosam.project01.dto.ContactTypeDTO;
 import com.cosam.project01.service.impl.ContactTypeServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;

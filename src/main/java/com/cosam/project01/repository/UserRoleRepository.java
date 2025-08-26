@@ -1,7 +1,6 @@
 package com.cosam.project01.repository;
 
 import com.cosam.project01.entity.UserRoleEntity;
-import com.cosam.project01.entity.UserRoleEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
