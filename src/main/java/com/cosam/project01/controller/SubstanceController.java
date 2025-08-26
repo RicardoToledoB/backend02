@@ -15,7 +15,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/substances")
-@CrossOrigin("*")
+//@CrossOrigin("*")
 @PreAuthorize("hasRole('ADMIN')")
 public class SubstanceController {
 

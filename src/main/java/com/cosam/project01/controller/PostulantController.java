@@ -15,7 +15,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/postulants")
-@CrossOrigin("*")
+//@CrossOrigin("*")
 @PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO')")
 public class PostulantController {
 

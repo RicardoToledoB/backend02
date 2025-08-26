@@ -16,7 +16,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/not_revelants")
-@CrossOrigin("*")
+//@CrossOrigin("*")
 @PreAuthorize("hasRole('ADMIN')")
 public class NotRelevantController {
 

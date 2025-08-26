@@ -15,7 +15,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/contacts")
-@CrossOrigin("*")
+//@CrossOrigin("*")
 @PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO')")
 public class ContactController {
 
