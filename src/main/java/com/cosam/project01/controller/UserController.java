@@ -46,7 +46,7 @@ public class UserController {
     }
 
     @GetMapping("/findByEmail/{email}")
-    public ResponseEntity<List<UserDTO>> findByEmail(@RequestParam String email) {
+    public ResponseEntity<List<UserDTO>> findByEmail(@PathVariable  String email) {
         return ResponseEntity.ok(service.findByEmail(email));
     }
 
