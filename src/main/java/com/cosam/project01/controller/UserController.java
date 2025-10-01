@@ -58,9 +58,8 @@ public class UserController {
 
     @GetMapping("/getAllPaginated")
     public ResponseEntity<Page<UserDTO>> getAllPaginated(
-            @RequestParam(required = false) String name,
             @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(service.getAllPaginated(name, pageable));
+        return ResponseEntity.ok(service.getAllPaginated(pageable));
     }
 
 

@@ -123,9 +123,9 @@ public class UserServiceImpl implements IUserService {
                 .map(this::mapToDTO);
     }
 
-    public Page<UserDTO> getAllPaginated(String name, Pageable pageable) {
+   /* public Page<UserDTO> getAllPaginated(String name, Pageable pageable) {
         return repository.search(name, pageable).map(this::mapToDTO);
-    }
+    }*/
 
 
 
