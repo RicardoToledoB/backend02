@@ -106,6 +106,12 @@ public class UserServiceImpl implements IUserService {
                 .collect(Collectors.toList());
     }
 
+    public List<UserDTO> findByEmail(String name) {
+        return repository.findByEmail(name).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
     @Override
     public void delete(Integer id) {
         repository.deleteById(id);
