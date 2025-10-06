@@ -45,4 +45,7 @@ public interface UserRoleRepository extends JpaRepository<UserRoleEntity,Integer
            where ur.user.id = :userId
            """)
     List<String> findRoleNamesByUserId(Integer userId);
+
+    // Busca todos los UserRoleEntity por el ID del usuario
+    List<UserRoleEntity> findByUserId(Integer userId);
 }

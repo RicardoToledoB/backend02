@@ -176,5 +176,10 @@ public class UserRoleServiceImpl implements IUserRoleService {
         entity.setDeletedAt(null);
         repository.save(entity);
     }
-    
+
+    public List<UserRoleDTO> getRolesByUser(Integer userId) {
+        return repository.findByUserId(userId).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
 }

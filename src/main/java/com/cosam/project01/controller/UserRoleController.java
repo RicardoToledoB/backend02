@@ -70,9 +70,17 @@ public class UserRoleController {
 
 
 
+
     @PostMapping("/{id}/restore")
     public ResponseEntity<Void> restore(@PathVariable Integer id) {
         service.restore(id);
         return ResponseEntity.noContent().build();
     }
+
+
+    @GetMapping("/user/{id}")
+    public ResponseEntity<List<UserRoleDTO>> findByUserId(@PathVariable Integer id) {
+        return ResponseEntity.ok(service.getRolesByUser(id));
+    }
+
 }
