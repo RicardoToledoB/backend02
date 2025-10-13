@@ -19,8 +19,8 @@ import java.time.LocalDateTime;
 @Builder
 public class UserProgramDTO {
     private Integer id;
-    private UserEntity user;
-    private ProgramEntity program;
+    private UserDTO user;
+    private ProgramDTO program;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
