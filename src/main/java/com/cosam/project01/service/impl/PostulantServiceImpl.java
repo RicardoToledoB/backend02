@@ -121,7 +121,7 @@ public class PostulantServiceImpl implements IPostulantService {
                 .id(entity.getId())
                 .rut(entity.getRut())
                 .email(entity.getEmail())
-                .program(mapToProgramDTO(entity.getProgram()))
+
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
@@ -131,7 +131,7 @@ public class PostulantServiceImpl implements IPostulantService {
     private UserEntity mapToUserEntity(UserDTO dto) {
         return UserEntity.builder()
                 .id(dto.getId())
-                .program(mapToProgramEntity(dto.getProgram()))
+
                 .createdAt(dto.getCreatedAt())
                 .updatedAt(dto.getUpdatedAt())
                 .deletedAt(dto.getDeletedAt())
