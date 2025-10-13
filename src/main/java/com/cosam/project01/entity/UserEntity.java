@@ -34,9 +34,9 @@ public class UserEntity implements Serializable {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
-    @ManyToOne(fetch = FetchType.LAZY)
+    /*@ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="program_id")
-    private ProgramEntity program;
+    private ProgramEntity program;*/
 
     @PrePersist
     private void createdAt(){

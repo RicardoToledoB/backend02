@@ -25,5 +25,5 @@ public class UserDTO {
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
 
-    private ProgramDTO program;
+   // private ProgramDTO program;
 }
