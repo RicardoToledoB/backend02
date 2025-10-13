@@ -99,7 +99,7 @@ public class UserProgramServiceImpl implements IUserProgramService {
 
     @Override
     public UserProgramDTO getById(Integer id) {
-        return repository.findById(id)
+        return repository.findAnyById(id)
                 .map(this::mapToDTO)
                 .orElseThrow(() -> new RuntimeException("Relation not found"));
     }

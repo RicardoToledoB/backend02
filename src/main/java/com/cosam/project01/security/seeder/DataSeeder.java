@@ -19,7 +19,6 @@ public class DataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        // Crea roles si no existen
         RoleEntity admin = roleRepo.save(RoleEntity.builder().name("ADMIN").build());
         RoleEntity administrativo = roleRepo.save(RoleEntity.builder().name("ADMINISTRATIVO").build());
 
