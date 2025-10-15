@@ -1,5 +1,6 @@
 package com.cosam.project01.controller;
 import com.cosam.project01.dto.UserProgramDTO;
+import com.cosam.project01.dto.UserRoleDTO;
 import com.cosam.project01.service.impl.UserProgramServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -65,6 +66,11 @@ public class UserProgramController {
     public ResponseEntity<Void> restore(@PathVariable Integer id) {
         service.restore(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/user/{id}")
+    public ResponseEntity<List<UserProgramDTO>> findByUserId(@PathVariable Integer id) {
+        return ResponseEntity.ok(service.getUserProgramByUser(id));
     }
 
 

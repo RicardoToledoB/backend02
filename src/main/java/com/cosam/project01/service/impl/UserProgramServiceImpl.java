@@ -3,6 +3,7 @@ package com.cosam.project01.service.impl;
 import com.cosam.project01.dto.ProgramDTO;
 import com.cosam.project01.dto.UserDTO;
 import com.cosam.project01.dto.UserProgramDTO;
+import com.cosam.project01.dto.UserRoleDTO;
 import com.cosam.project01.entity.ProgramEntity;
 import com.cosam.project01.entity.UserEntity;
 import com.cosam.project01.entity.UserProgramEntity;
@@ -144,5 +145,11 @@ public class UserProgramServiceImpl implements IUserProgramService {
                 .orElseThrow(() -> new RuntimeException("Relation not found"));
         entity.setDeletedAt(null);
         repository.save(entity);
+    }
+
+    public List<UserProgramDTO> getUserProgramByUser(Integer userId) {
+        return repository.findByUserId(userId).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
     }
 }
