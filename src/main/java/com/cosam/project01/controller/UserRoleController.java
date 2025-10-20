@@ -83,4 +83,10 @@ public class UserRoleController {
         return ResponseEntity.ok(service.getRolesByUser(id));
     }
 
+    @DeleteMapping("/user/{userId}")
+    public ResponseEntity<Void> deleteByUserId(@PathVariable Integer userId) {
+        service.deleteByUserId(userId);
+        return ResponseEntity.noContent().build();
+    }
+
 }
