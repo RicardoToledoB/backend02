@@ -23,6 +23,12 @@ public class UserProgramController {
         return ResponseEntity.ok(service.create(dto));
     }
 
+    @DeleteMapping("/user/{userId}")
+    public ResponseEntity<Void> deleteByUserId(@PathVariable Integer userId) {
+        service.deleteByUserId(userId);
+        return ResponseEntity.noContent().build();
+    }
+
     
 
     @GetMapping("/{id}")

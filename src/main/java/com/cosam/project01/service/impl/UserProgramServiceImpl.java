@@ -11,6 +11,7 @@ import com.cosam.project01.repository.ProgramRepository;
 import com.cosam.project01.repository.UserProgramRepository;
 import com.cosam.project01.repository.UserRepository;
 import com.cosam.project01.service.IUserProgramService;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -151,5 +152,10 @@ public class UserProgramServiceImpl implements IUserProgramService {
         return repository.findByUserId(userId).stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void deleteByUserId(Integer userId) {
+        repository.deleteByUserId(userId);
     }
 }
