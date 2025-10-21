@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
-
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Service
 public class UserServiceImpl implements IUserService {
@@ -37,6 +37,8 @@ public class UserServiceImpl implements IUserService {
     @Autowired
     private UserRepository repository;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     private UserDTO mapToDTO(UserEntity entity) {
         return UserDTO.builder()
@@ -73,22 +75,35 @@ public class UserServiceImpl implements IUserService {
     }
 
     public UserDTO create(UserDTO dto) {
-        UserEntity entity = repository.save(mapToEntity(dto));
+        // ⚠️ Validar que la contraseña no venga vacía ni nula
+        if (dto.getPassword() == null || dto.getPassword().isBlank()) {
+            throw new RuntimeException("La contraseña no puede estar vacía");
+        }
+
+        UserEntity entity = mapToEntity(dto);
+        entity.setPassword(passwordEncoder.encode(dto.getPassword())); // 🔒 Encripta
+        entity = repository.save(entity);
         return mapToDTO(entity);
     }
 
     @Override
     public UserDTO update(Integer id, UserDTO dto) {
         UserEntity entity = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Task not found"));
-                entity.setFirstName(dto.getFirstName());
-                entity.setSecondName(dto.getSecondName());
-                entity.setFirstLastName(dto.getFirstLastName());
-                entity.setSecondLastName(dto.getSecondLastName());
-                entity.setEmail(dto.getEmail());
-                entity.setUsername(dto.getUsername());
-                entity.setPassword(dto.getPassword());
-                entity.setRut(dto.getRut());
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        entity.setFirstName(dto.getFirstName());
+        entity.setSecondName(dto.getSecondName());
+        entity.setFirstLastName(dto.getFirstLastName());
+        entity.setSecondLastName(dto.getSecondLastName());
+        entity.setEmail(dto.getEmail());
+        entity.setUsername(dto.getUsername());
+        entity.setRut(dto.getRut());
+
+        // 🔒 Solo cambia la contraseña si se envía una nueva y válida
+        if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
+            entity.setPassword(passwordEncoder.encode(dto.getPassword()));
+        }
+
         return mapToDTO(repository.save(entity));
     }
 
