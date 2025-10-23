@@ -1,12 +1,8 @@
 package com.cosam.project01.service.impl;
 
 import com.cosam.project01.dto.UserDTO;
-import com.cosam.project01.dto.UserDTO;
 import com.cosam.project01.entity.UserEntity;
-import com.cosam.project01.entity.UserEntity;
-import com.cosam.project01.repository.CommuneRepository;
 import com.cosam.project01.repository.UserRepository;
-import com.cosam.project01.service.ICommuneService;
 import com.cosam.project01.service.IUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;

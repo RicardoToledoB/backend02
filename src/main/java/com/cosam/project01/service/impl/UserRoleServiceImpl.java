@@ -13,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -185,5 +186,13 @@ public class UserRoleServiceImpl implements IUserRoleService {
     @Transactional
     public void deleteByUserId(Integer userId) {
         repository.softDeleteByUserId(userId);
+    }
+
+    @Transactional
+    public void deleteByUserAndRole(Integer userId, Integer roleId) {
+        UserRoleEntity entity = repository.findByUserIdAndRoleId(userId, roleId)
+                .orElseThrow(() -> new RuntimeException("La relación usuario-rol no existe o ya fue eliminada."));
+        entity.setDeletedAt(LocalDateTime.now());
+        repository.save(entity);
     }
 }

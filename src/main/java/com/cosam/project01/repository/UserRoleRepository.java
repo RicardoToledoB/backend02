@@ -56,4 +56,12 @@ public interface UserRoleRepository extends JpaRepository<UserRoleEntity,Integer
     @Query("UPDATE UserRoleEntity ur SET ur.deletedAt = CURRENT_TIMESTAMP WHERE ur.user.id = :userId")
     void softDeleteByUserId(@Param("userId") Integer userId);
 
+
+    @Query("SELECT ur FROM UserRoleEntity ur WHERE ur.user.id = :userId AND ur.role.id = :roleId AND ur.deletedAt IS NULL")
+    Optional<UserRoleEntity> findByUserIdAndRoleId(@Param("userId") Integer userId, @Param("roleId") Integer roleId);
+
+    @Transactional
+    @Query("UPDATE UserRoleEntity ur SET ur.deletedAt = CURRENT_TIMESTAMP WHERE ur.user.id = :userId AND ur.role.id = :roleId")
+    void softDeleteByUserAndRole(@Param("userId") Integer userId, @Param("roleId") Integer roleId);
+
 }
