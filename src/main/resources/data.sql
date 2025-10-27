@@ -133,13 +133,3 @@ INSERT INTO not_relevants(name,created_at,updated_at,deleted_at) VALUES('POR PRE
 
 
 
-INSERT INTO communes (name, created_at, updated_at, deleted_at)
-SELECT 'Commune ' || x, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP,
-       CASE WHEN MOD(x, 20)=0 THEN CURRENT_TIMESTAMP ELSE NULL END
-FROM SYSTEM_RANGE(1, 100000) AS t(x);
-
--- 100001..200000
-INSERT INTO communes (name, created_at, updated_at, deleted_at)
-SELECT 'Commune ' || x, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP,
-       CASE WHEN MOD(x, 20)=0 THEN CURRENT_TIMESTAMP ELSE NULL END
-FROM SYSTEM_RANGE(100001, 200000) AS t(x);
