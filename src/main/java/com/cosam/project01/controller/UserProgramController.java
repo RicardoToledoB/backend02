@@ -79,5 +79,11 @@ public class UserProgramController {
         return ResponseEntity.ok(service.getUserProgramByUser(id));
     }
 
+    @DeleteMapping("/user/{userId}/program/{programId}")
+    public ResponseEntity<Void> deleteByUserAndProgram(@PathVariable Integer userId, @PathVariable Integer programId) {
+        service.deleteByUserAndProgram(userId, programId);
+        return ResponseEntity.noContent().build();
+    }
+
 
 }

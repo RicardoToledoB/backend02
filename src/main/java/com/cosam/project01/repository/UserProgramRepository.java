@@ -50,4 +50,14 @@ public interface UserProgramRepository extends JpaRepository<UserProgramEntity, 
     @Modifying
     @Query("DELETE FROM UserProgramEntity up WHERE up.user.id = :userId")
     void deleteByUserId(@Param("userId") Integer userId);
+
+
+    @Query("SELECT up FROM UserProgramEntity up WHERE up.user.id = :userId AND up.program.id = :programId AND up.deletedAt IS NULL")
+    Optional<UserProgramEntity> findByUserIdAndProgramId(@Param("userId") Integer userId, @Param("programId") Integer programId);
+
+    @Transactional
+    @Modifying
+    @Query("UPDATE UserProgramEntity up SET up.deletedAt = CURRENT_TIMESTAMP WHERE up.user.id = :userId AND up.program.id = :programId")
+    void softDeleteByUserAndProgram(@Param("userId") Integer userId, @Param("programId") Integer programId);
+
 }

@@ -17,6 +17,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -158,4 +159,13 @@ public class UserProgramServiceImpl implements IUserProgramService {
     public void deleteByUserId(Integer userId) {
         repository.deleteByUserId(userId);
     }
+
+    @Transactional
+    public void deleteByUserAndProgram(Integer userId, Integer programId) {
+        UserProgramEntity entity = repository.findByUserIdAndProgramId(userId, programId)
+                .orElseThrow(() -> new RuntimeException("La relación usuario-programa no existe o ya fue eliminada."));
+        entity.setDeletedAt(LocalDateTime.now());
+        repository.save(entity);
+    }
+
 }
