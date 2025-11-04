@@ -58,6 +58,10 @@ public class RegisterEntity implements Serializable {
 
     private String description;
 
+    private String state;
+
+    private String is_history;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;

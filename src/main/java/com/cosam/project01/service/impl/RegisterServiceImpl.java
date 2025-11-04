@@ -29,6 +29,8 @@ public class RegisterServiceImpl implements IRegisterService {
                 .user(mapToUserDTO(entity.getUser()))
                 .date_attention(entity.getDate_attention())
                 .description(entity.getDescription())
+                .state(entity.getState())
+                .is_history(entity.getIs_history())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
@@ -46,6 +48,8 @@ public class RegisterServiceImpl implements IRegisterService {
                 .user(mapToUserEntity(dto.getUser()))
                 .date_attention(dto.getDate_attention())
                 .description(dto.getDescription())
+                .state(dto.getState())
+                .is_history(dto.getIs_history())
                 .createdAt(dto.getCreatedAt())
                 .updatedAt(dto.getUpdatedAt())
                 .deletedAt(dto.getDeletedAt())
@@ -315,7 +319,8 @@ public class RegisterServiceImpl implements IRegisterService {
         entity.setUser(mapToUserEntity(dto.getUser()));
         entity.setDate_attention(dto.getDate_attention());
         entity.setDescription(dto.getDescription());
-
+        entity.setState(dto.getState());
+        entity.setIs_history(dto.getIs_history());
         return mapToDTO(repository.save(entity));
     }
 
