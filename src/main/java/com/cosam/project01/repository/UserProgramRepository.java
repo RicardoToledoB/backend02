@@ -60,4 +60,22 @@ public interface UserProgramRepository extends JpaRepository<UserProgramEntity, 
     @Query("UPDATE UserProgramEntity up SET up.deletedAt = CURRENT_TIMESTAMP WHERE up.user.id = :userId AND up.program.id = :programId")
     void softDeleteByUserAndProgram(@Param("userId") Integer userId, @Param("programId") Integer programId);
 
+
+
+    @Query("""
+   SELECT p.name
+   FROM UserProgramEntity up
+   JOIN up.program p
+   WHERE up.user.id = :userId AND up.deletedAt IS NULL
+""")
+    List<String> findProgramNamesByUserId(@Param("userId") Integer userId);
+
+    @Query("""
+   SELECT p.id
+   FROM UserProgramEntity up
+   JOIN up.program p
+   WHERE up.user.id = :userId AND up.deletedAt IS NULL
+""")
+    List<Integer> findProgramIdsByUserId(@Param("userId") Integer userId);
+
 }
