@@ -16,7 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/senders")
 //@CrossOrigin("*")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO')")
 public class SenderController {
 
     @Autowired

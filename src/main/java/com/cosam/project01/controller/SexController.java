@@ -16,7 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/sexs")
 //@CrossOrigin("*")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO')")
 public class SexController {
 
     @Autowired

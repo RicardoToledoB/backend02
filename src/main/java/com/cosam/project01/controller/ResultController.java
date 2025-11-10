@@ -18,7 +18,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/results")
 //@CrossOrigin("*")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO')")
 public class ResultController {
 
     @Autowired
