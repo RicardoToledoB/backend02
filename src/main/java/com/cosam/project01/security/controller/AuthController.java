@@ -8,6 +8,7 @@ import com.cosam.project01.repository.UserProgramRepository;
 import com.cosam.project01.security.JwtService;
 import com.cosam.project01.security.dto.AuthRequest;
 import com.cosam.project01.security.dto.AuthResponse;
+import com.cosam.project01.security.service.RefreshTokenService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -32,47 +33,39 @@ public class AuthController {
     private final UserRoleRepository userRoleRepository;
     private final UserProgramRepository userProgramRepository;
 
+    private final RefreshTokenService refreshTokenService;
+
+
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest req) {
-        // autenticar (username=email)
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(req.email(), req.password())
         );
 
-        // cargar principal para firmar el JWT
         UserDetails principal = userDetailsService.loadUserByUsername(req.email());
-
-        // cargar usuario + roles + programs desde DB
         UserEntity u = userRepository.findByEmailIgnoreCase(req.email())
                 .orElseThrow(() -> new UsernameNotFoundException("Email no encontrado"));
 
-        List<String> roles = userRoleRepository.findRoleNamesByUserId(u.getId()).stream()
-                .filter(Objects::nonNull)
-                .map(String::trim)
-                .map(String::toUpperCase)
-                .collect(Collectors.toList());
+        List<String> roles = userRoleRepository.findRoleNamesByUserId(u.getId())
+                .stream().filter(Objects::nonNull)
+                .map(String::trim).map(String::toUpperCase).toList();
 
         List<String> programs = userProgramRepository.findProgramNamesByUserId(u.getId());
-
-        // armar fullName
         String fullName = String.join(" ",
-                safe(u.getFirstName()),
-                safe(u.getSecondName()),
-                safe(u.getFirstLastName()),
-                safe(u.getSecondLastName())
+                safe(u.getFirstName()), safe(u.getSecondName()),
+                safe(u.getFirstLastName()), safe(u.getSecondLastName())
         ).replaceAll("\\s+", " ").trim();
 
-        // claims extra al JWT
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("roles", roles);
-        claims.put("programs", programs);
-        claims.put("username", u.getUsername());
-        claims.put("email", u.getEmail());
-        claims.put("fullName", fullName);
-        // Si necesitas IDs también:
-        // claims.put("programIds", userProgramRepository.findProgramIdsByUserId(u.getId()));
+        Map<String, Object> claims = Map.of(
+                "roles", roles,
+                "programs", programs,
+                "username", u.getUsername(),
+                "email", u.getEmail(),
+                "fullName", fullName
+        );
 
         String token = jwtService.generateToken(principal, claims);
+        String refreshToken = refreshTokenService.generateRefreshToken(u.getEmail());
 
         AuthResponse body = new AuthResponse(
                 token,
@@ -81,15 +74,56 @@ public class AuthController {
                 roles,
                 programs,
                 Map.of(
-                        "id", u.getId(),
                         "email", u.getEmail(),
                         "username", u.getUsername(),
                         "fullName", fullName
-                )
+                ),
+                refreshToken
         );
 
         return ResponseEntity.ok(body);
     }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refreshToken(@RequestBody Map<String, String> body) {
+        String refreshToken = body.get("refreshToken");
+
+        if (refreshToken == null || !refreshTokenService.validateRefreshToken(refreshToken)) {
+            return ResponseEntity.status(401).body(null);
+        }
+
+        String email = refreshTokenService.extractUsername(refreshToken);
+        UserDetails user = userDetailsService.loadUserByUsername(email);
+        UserEntity u = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new UsernameNotFoundException("Email no encontrado"));
+
+        List<String> roles = userRoleRepository.findRoleNamesByUserId(u.getId());
+        List<String> programs = userProgramRepository.findProgramNamesByUserId(u.getId());
+
+        Map<String, Object> claims = Map.of(
+                "roles", roles,
+                "programs", programs,
+                "username", u.getUsername(),
+                "email", u.getEmail()
+        );
+
+        String newAccessToken = jwtService.generateToken(user, claims);
+        String newRefreshToken = refreshTokenService.generateRefreshToken(email); // opcionalmente renueva
+
+        return ResponseEntity.ok(new AuthResponse(
+                newAccessToken,
+                "Bearer",
+                jwtService.getExpirationMs(),
+                roles,
+                programs,
+                Map.of(
+                        "email", u.getEmail(),
+                        "username", u.getUsername()
+                ),
+                newRefreshToken
+        ));
+    }
+
 
     private static String safe(String s) { return s == null ? "" : s; }
 }

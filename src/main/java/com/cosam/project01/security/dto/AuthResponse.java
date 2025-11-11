@@ -9,5 +9,6 @@ public record AuthResponse(
         long   expiresIn,     // en ms
         List<String> roles,
         List<String> programs,
-        Map<String, Object> profile // id, email, username, fullName
+        Map<String, Object> profile,
+        String refreshToken   // nuevo campo
 ) {}
