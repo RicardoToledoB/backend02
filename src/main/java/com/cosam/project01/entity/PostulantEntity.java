@@ -35,6 +35,10 @@ public class PostulantEntity implements Serializable {
     @JoinColumn(name="sex_id")
     private SexEntity sex;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name="conv_prev_id")
+    private ConvPrevEntity convPrev;
+
     private String firstName;
     private String lastName;
     private String firstLastName;

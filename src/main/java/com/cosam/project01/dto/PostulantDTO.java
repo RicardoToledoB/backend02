@@ -1,4 +1,5 @@
 package com.cosam.project01.dto;
+import com.cosam.project01.entity.ConvPrevEntity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,6 +20,8 @@ public class PostulantDTO {
     private CommuneDTO commune;
 
     private SexDTO sex;
+
+    private ConvPrevDTO convPrev;
 
     private String firstName;
     private String lastName;

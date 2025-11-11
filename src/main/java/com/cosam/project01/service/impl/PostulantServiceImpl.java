@@ -28,6 +28,7 @@ public class PostulantServiceImpl implements IPostulantService {
                 .commune(mapToCommuneDTO(entity.getCommune()))
                 .address(entity.getAddress())
                 .sex(mapToSexDTO(entity.getSex()))
+                .convPrev(mapToConvPrevDTO(entity.getConvPrev()))
                 .email(entity.getEmail())
                 .phone(entity.getPhone())
                 .rut(entity.getRut())
@@ -49,6 +50,7 @@ public class PostulantServiceImpl implements IPostulantService {
                 .commune(mapToCommuneEntity(dto.getCommune()))
                 .address(dto.getAddress())
                 .sex(mapToSexEntity(dto.getSex()))
+                .convPrev(mapToConvPrevEntity(dto.getConvPrev()))
                 .email(dto.getEmail())
                 .phone(dto.getPhone())
                 .rut(dto.getRut())
@@ -184,11 +186,54 @@ public class PostulantServiceImpl implements IPostulantService {
                 entity.setBirthdate(dto.getBirthdate());
                 entity.setUser(mapToUserEntity(dto.getUser()));
                 entity.setCommune(mapToCommuneEntity(dto.getCommune()));
+                entity.setConvPrev(mapToConvPrevEntity(dto.getConvPrev()));
                 entity.setFirstLastName(dto.getFirstLastName());
                 entity.setSecondLastName(dto.getSecondLastName());
                 entity.setSex(mapToSexEntity(dto.getSex()));
 
         return mapToDTO(repository.save(entity));
+    }
+
+    private ConvPrevDTO mapToConvPrevDTO(ConvPrevEntity entity) {
+        return ConvPrevDTO.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .intPrev(mapToIntPrevDTO(entity.getIntPrev()))
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .deletedAt(entity.getDeletedAt())
+                .build();
+    }
+
+    private ConvPrevEntity mapToConvPrevEntity(ConvPrevDTO dto) {
+        return ConvPrevEntity.builder()
+                .id(dto.getId())
+                .name(dto.getName())
+                .intPrev(mapToIntPrevEntity(dto.getIntPrev()))
+                .createdAt(dto.getCreatedAt())
+                .updatedAt(dto.getUpdatedAt())
+                .deletedAt(dto.getDeletedAt())
+                .build();
+    }
+
+    private IntPrevDTO mapToIntPrevDTO(IntPrevEntity entity) {
+        return IntPrevDTO.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .deletedAt(entity.getDeletedAt())
+                .build();
+    }
+
+    private IntPrevEntity mapToIntPrevEntity(IntPrevDTO dto) {
+        return IntPrevEntity.builder()
+                .id(dto.getId())
+                .name(dto.getName())
+                .createdAt(dto.getCreatedAt())
+                .updatedAt(dto.getUpdatedAt())
+                .deletedAt(dto.getDeletedAt())
+                .build();
     }
 
     @Override
