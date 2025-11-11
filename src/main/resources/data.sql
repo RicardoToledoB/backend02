@@ -125,39 +125,23 @@ INSERT INTO not_relevants(name,created_at,updated_at,deleted_at) VALUES('POR PRE
 
 
 INSERT INTO int_prevs(name,created_at,updated_at,deleted_at) VALUES('Fonasa',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('Banmedica S.A',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('Capredena',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('Chuquicamata Ltda.',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('Cigna Salud',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('Colmena Golden Cross S.A',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('Consalud S.A',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('Cooperativa de Servicios de Proteccion Medica',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('Cruz del Norte Ltda',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('Ctc Istel',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('Dipreca',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('Ferrosalud S.A',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('Alemana Salud S.A',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('Fusat Ltda',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('Cruz Blanca S.A.(Ex ING)',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('Isapre Fundacion',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('Linksalud Vida',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('Master Salud',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('MasVida S.A',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('Nortmedica S.A',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('Promepart',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('Rio Blanco Ltda.',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('San Lorenzo Ltda.',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('Sfera S.A.',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('Vida Tres S.A',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('Jeafosale',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('Seguros obligatorios contra terceros',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('Seguro escolar public',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('Seguro escolar privado',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                                   ('ISAPRE',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                                   ('CAPREDENA',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
                                                                    ('Desconocido',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
                                                                    ('Particular',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
                                                                    ('Ninguna',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null);
 
 
+INSERT INTO conv_prevs(name,int_prev_id,created_at,updated_at,deleted_at) VALUES('Fonasa A',1,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                                                ('Fonasa B',1,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                                                ('Fonasa C',1,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                                                ('Fonasa D',1,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                                                ('Fonasa E',1,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                                                ('Banmedica',2,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                                                ('Colmena Golden Cross',2,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                                                ('Capredena',3,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                                                ('Particular',4,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                                                ('Ninguna',5,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null);
 
 
 
