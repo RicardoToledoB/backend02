@@ -1,4 +1,5 @@
 package com.cosam.project01.dto;
+import com.cosam.project01.entity.StateEntity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -30,6 +31,7 @@ public class RegisterDTO {
 
     private ProgramDTO program;
 
+    private String number_tto;
 
     private UserDTO user;
 
@@ -39,7 +41,7 @@ public class RegisterDTO {
 
     private String description;
 
-    private String state;
+    private StateDTO state;
     private String is_history;
 
     private LocalDateTime createdAt;

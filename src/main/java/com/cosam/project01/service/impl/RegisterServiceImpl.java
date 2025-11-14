@@ -29,13 +29,16 @@ public class RegisterServiceImpl implements IRegisterService {
                 .user(mapToUserDTO(entity.getUser()))
                 .date_attention(entity.getDate_attention())
                 .description(entity.getDescription())
-                .state(entity.getState())
+                .state(mapToStateDTO(entity.getState()))
                 .is_history(entity.getIs_history())
+                .number_tto(entity.getNumber_tto())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
                 .build();
     }
+
+
 
     private RegisterEntity mapToEntity(RegisterDTO dto) {
         return RegisterEntity.builder()
@@ -48,7 +51,8 @@ public class RegisterServiceImpl implements IRegisterService {
                 .user(mapToUserEntity(dto.getUser()))
                 .date_attention(dto.getDate_attention())
                 .description(dto.getDescription())
-                .state(dto.getState())
+                .state(mapToStateEntity(dto.getState()))
+                .number_tto(dto.getNumber_tto())
                 .is_history(dto.getIs_history())
                 .createdAt(dto.getCreatedAt())
                 .updatedAt(dto.getUpdatedAt())
@@ -57,6 +61,26 @@ public class RegisterServiceImpl implements IRegisterService {
     }
 
     /*FIN MAPEO PRINCIPAL*/
+
+    private StateDTO mapToStateDTO(StateEntity entity) {
+        return StateDTO.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .deletedAt(entity.getDeletedAt())
+                .build();
+    }
+
+    private StateEntity mapToStateEntity(StateDTO dto) {
+        return StateEntity.builder()
+                .id(dto.getId())
+                .name(dto.getName())
+                .createdAt(dto.getCreatedAt())
+                .updatedAt(dto.getUpdatedAt())
+                .deletedAt(dto.getDeletedAt())
+                .build();
+    }
 
     private PostulantDTO mapToPostulantDTO(PostulantEntity entity) {
 
@@ -319,7 +343,8 @@ public class RegisterServiceImpl implements IRegisterService {
         entity.setUser(mapToUserEntity(dto.getUser()));
         entity.setDate_attention(dto.getDate_attention());
         entity.setDescription(dto.getDescription());
-        entity.setState(dto.getState());
+        entity.setState(mapToStateEntity(dto.getState()));
+        entity.setNumber_tto(dto.getNumber_tto());
         entity.setIs_history(dto.getIs_history());
         return mapToDTO(repository.save(entity));
     }

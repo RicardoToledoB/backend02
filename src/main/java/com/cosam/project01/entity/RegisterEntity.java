@@ -54,13 +54,19 @@ public class RegisterEntity implements Serializable {
     @JoinColumn(name="not_relevant_id")
     private NotRelevantEntity notRelevant;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name="state_id")
+    private StateEntity state;
+
     private String date_attention;
 
     private String description;
 
-    private String state;
+
 
     private String is_history;
+
+    private String number_tto;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
