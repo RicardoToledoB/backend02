@@ -17,6 +17,7 @@ public class ContactDTO {
     private Integer id;
     private String name;
     private String description;
+    private String email;
     private PostulantDTO postulant;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

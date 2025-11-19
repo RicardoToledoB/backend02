@@ -28,7 +28,7 @@ public class ContactEntity implements Serializable {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="postulant_id")
     private PostulantEntity postulant;
-
+    private String email;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;

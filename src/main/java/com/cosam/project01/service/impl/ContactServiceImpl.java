@@ -24,6 +24,7 @@ public class ContactServiceImpl implements IContactService {
         return ContactDTO.builder()
                 .id(entity.getId())
                 .name(entity.getName())
+                .email(entity.getEmail())
                 .description(entity.getDescription())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
@@ -35,6 +36,7 @@ public class ContactServiceImpl implements IContactService {
         return ContactEntity.builder()
                 .id(dto.getId())
                 .name(dto.getName())
+                .email(dto.getEmail())
                 .description(dto.getDescription())
                 .createdAt(dto.getCreatedAt())
                 .updatedAt(dto.getUpdatedAt())
@@ -52,6 +54,7 @@ public class ContactServiceImpl implements IContactService {
         ContactEntity entity = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
         entity.setName(dto.getName());
+        entity.setEmail(dto.getEmail());
         return mapToDTO(repository.save(entity));
     }
 
