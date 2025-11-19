@@ -163,37 +163,6 @@ public class PostulantServiceImpl implements IPostulantService {
     }
 
 
-
-
-
-
-    public PostulantDTO create(PostulantDTO dto) {
-        PostulantEntity entity = repository.save(mapToEntity(dto));
-        return mapToDTO(entity);
-    }
-
-    @Override
-    public PostulantDTO update(Integer id, PostulantDTO dto) {
-        PostulantEntity entity = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Task not found"));
-
-                entity.setAddress(dto.getAddress());
-                entity.setEmail(dto.getEmail());
-                entity.setPhone(dto.getPhone());
-                entity.setRut(dto.getRut());
-                entity.setFirstName(dto.getFirstName());
-                entity.setLastName(dto.getLastName());
-                entity.setBirthdate(dto.getBirthdate());
-                entity.setUser(mapToUserEntity(dto.getUser()));
-                entity.setCommune(mapToCommuneEntity(dto.getCommune()));
-                entity.setConvPrev(mapToConvPrevEntity(dto.getConvPrev()));
-                entity.setFirstLastName(dto.getFirstLastName());
-                entity.setSecondLastName(dto.getSecondLastName());
-                entity.setSex(mapToSexEntity(dto.getSex()));
-
-        return mapToDTO(repository.save(entity));
-    }
-
     private ConvPrevDTO mapToConvPrevDTO(ConvPrevEntity entity) {
         return ConvPrevDTO.builder()
                 .id(entity.getId())
@@ -235,6 +204,39 @@ public class PostulantServiceImpl implements IPostulantService {
                 .deletedAt(dto.getDeletedAt())
                 .build();
     }
+
+
+
+
+
+    public PostulantDTO create(PostulantDTO dto) {
+        PostulantEntity entity = repository.save(mapToEntity(dto));
+        return mapToDTO(entity);
+    }
+
+    @Override
+    public PostulantDTO update(Integer id, PostulantDTO dto) {
+        PostulantEntity entity = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+
+                entity.setAddress(dto.getAddress());
+                entity.setEmail(dto.getEmail());
+                entity.setPhone(dto.getPhone());
+                entity.setRut(dto.getRut());
+                entity.setFirstName(dto.getFirstName());
+                entity.setLastName(dto.getLastName());
+                entity.setBirthdate(dto.getBirthdate());
+                entity.setUser(mapToUserEntity(dto.getUser()));
+                entity.setCommune(mapToCommuneEntity(dto.getCommune()));
+                entity.setConvPrev(mapToConvPrevEntity(dto.getConvPrev()));
+                entity.setFirstLastName(dto.getFirstLastName());
+                entity.setSecondLastName(dto.getSecondLastName());
+                entity.setSex(mapToSexEntity(dto.getSex()));
+
+        return mapToDTO(repository.save(entity));
+    }
+
+
 
     @Override
     public PostulantDTO getById(Integer id) {

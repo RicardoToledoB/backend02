@@ -1,8 +1,8 @@
 package com.cosam.project01.service.impl;
 
+import com.cosam.project01.dto.*;
 import com.cosam.project01.dto.ContactDTO;
-import com.cosam.project01.dto.ContactDTO;
-import com.cosam.project01.entity.ContactEntity;
+import com.cosam.project01.entity.*;
 import com.cosam.project01.entity.ContactEntity;
 import com.cosam.project01.repository.ContactRepository;
 import com.cosam.project01.service.IContactService;
@@ -26,6 +26,7 @@ public class ContactServiceImpl implements IContactService {
                 .name(entity.getName())
                 .email(entity.getEmail())
                 .description(entity.getDescription())
+                .postulant(mapToPostulantDTO(entity.getPostulant()))
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
@@ -37,12 +38,201 @@ public class ContactServiceImpl implements IContactService {
                 .id(dto.getId())
                 .name(dto.getName())
                 .email(dto.getEmail())
+                .postulant(mapToPostulantEntity(dto.getPostulant()))
                 .description(dto.getDescription())
                 .createdAt(dto.getCreatedAt())
                 .updatedAt(dto.getUpdatedAt())
                 .deletedAt(dto.getDeletedAt())
                 .build();
     }
+
+    private PostulantDTO mapToPostulantDTO(PostulantEntity entity) {
+
+
+        return PostulantDTO.builder()
+                .id(entity.getId())
+                .user(mapToUserDTO(entity.getUser()))
+                .commune(mapToCommuneDTO(entity.getCommune()))
+                .address(entity.getAddress())
+                .sex(mapToSexDTO(entity.getSex()))
+                .convPrev(mapToConvPrevDTO(entity.getConvPrev()))
+                .email(entity.getEmail())
+                .phone(entity.getPhone())
+                .rut(entity.getRut())
+                .firstName(entity.getFirstName())
+                .lastName(entity.getLastName())
+                .secondLastName(entity.getSecondLastName())
+                .firstLastName(entity.getFirstLastName())
+                .birthdate(entity.getBirthdate())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .deletedAt(entity.getDeletedAt())
+                .build();
+    }
+
+    private PostulantEntity mapToPostulantEntity(PostulantDTO dto) {
+        return PostulantEntity.builder()
+                .id(dto.getId())
+                .user(mapToUserEntity(dto.getUser()))
+                .commune(mapToCommuneEntity(dto.getCommune()))
+                .address(dto.getAddress())
+                .sex(mapToSexEntity(dto.getSex()))
+                .convPrev(mapToConvPrevEntity(dto.getConvPrev()))
+                .email(dto.getEmail())
+                .phone(dto.getPhone())
+                .rut(dto.getRut())
+                .firstName(dto.getFirstName())
+                .lastName(dto.getLastName())
+                .secondLastName(dto.getSecondLastName())
+                .firstLastName(dto.getFirstLastName())
+                .birthdate(dto.getBirthdate())
+                .createdAt(dto.getCreatedAt())
+                .updatedAt(dto.getUpdatedAt())
+                .deletedAt(dto.getDeletedAt())
+                .build();
+    }
+
+    private SexEntity mapToSexEntity(SexDTO dto) {
+        return SexEntity.builder()
+                .id(dto.getId())
+                .name(dto.getName())
+                .createdAt(dto.getCreatedAt())
+                .updatedAt(dto.getUpdatedAt())
+                .deletedAt(dto.getDeletedAt())
+                .build();
+    }
+
+
+    private SexDTO mapToSexDTO(SexEntity entity) {
+
+
+        return SexDTO.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .deletedAt(entity.getDeletedAt())
+                .build();
+    }
+
+
+
+
+
+    private CommuneDTO mapToCommuneDTO(CommuneEntity entity) {
+
+
+        return CommuneDTO.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .deletedAt(entity.getDeletedAt())
+                .build();
+    }
+
+    private CommuneEntity mapToCommuneEntity(CommuneDTO dto) {
+        return CommuneEntity.builder()
+                .id(dto.getId())
+                .name(dto.getName())
+                .createdAt(dto.getCreatedAt())
+                .updatedAt(dto.getUpdatedAt())
+                .deletedAt(dto.getDeletedAt())
+                .build();
+    }
+
+
+
+    private UserDTO mapToUserDTO(UserEntity entity) {
+
+
+        return UserDTO.builder()
+                .id(entity.getId())
+                .rut(entity.getRut())
+                .email(entity.getEmail())
+
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .deletedAt(entity.getDeletedAt())
+                .build();
+    }
+
+    private UserEntity mapToUserEntity(UserDTO dto) {
+        return UserEntity.builder()
+                .id(dto.getId())
+
+                .createdAt(dto.getCreatedAt())
+                .updatedAt(dto.getUpdatedAt())
+                .deletedAt(dto.getDeletedAt())
+                .build();
+    }
+
+    private ProgramDTO mapToProgramDTO(ProgramEntity entity) {
+
+
+        return ProgramDTO.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .deletedAt(entity.getDeletedAt())
+                .build();
+    }
+
+    private ProgramEntity mapToProgramEntity(ProgramDTO dto) {
+        return ProgramEntity.builder()
+                .id(dto.getId())
+                .name(dto.getName())
+                .createdAt(dto.getCreatedAt())
+                .updatedAt(dto.getUpdatedAt())
+                .deletedAt(dto.getDeletedAt())
+                .build();
+    }
+
+
+    private ConvPrevDTO mapToConvPrevDTO(ConvPrevEntity entity) {
+        return ConvPrevDTO.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .intPrev(mapToIntPrevDTO(entity.getIntPrev()))
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .deletedAt(entity.getDeletedAt())
+                .build();
+    }
+
+    private ConvPrevEntity mapToConvPrevEntity(ConvPrevDTO dto) {
+        return ConvPrevEntity.builder()
+                .id(dto.getId())
+                .name(dto.getName())
+                .intPrev(mapToIntPrevEntity(dto.getIntPrev()))
+                .createdAt(dto.getCreatedAt())
+                .updatedAt(dto.getUpdatedAt())
+                .deletedAt(dto.getDeletedAt())
+                .build();
+    }
+
+    private IntPrevDTO mapToIntPrevDTO(IntPrevEntity entity) {
+        return IntPrevDTO.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .deletedAt(entity.getDeletedAt())
+                .build();
+    }
+
+    private IntPrevEntity mapToIntPrevEntity(IntPrevDTO dto) {
+        return IntPrevEntity.builder()
+                .id(dto.getId())
+                .name(dto.getName())
+                .createdAt(dto.getCreatedAt())
+                .updatedAt(dto.getUpdatedAt())
+                .deletedAt(dto.getDeletedAt())
+                .build();
+    }
+
+
 
     public ContactDTO create(ContactDTO dto) {
         ContactEntity entity = repository.save(mapToEntity(dto));
@@ -55,6 +245,7 @@ public class ContactServiceImpl implements IContactService {
                 .orElseThrow(() -> new RuntimeException("Task not found"));
         entity.setName(dto.getName());
         entity.setEmail(dto.getEmail());
+        entity.setPostulant(mapToPostulantEntity(dto.getPostulant()));
         return mapToDTO(repository.save(entity));
     }
 
