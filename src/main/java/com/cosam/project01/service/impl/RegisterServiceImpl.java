@@ -31,6 +31,7 @@ public class RegisterServiceImpl implements IRegisterService {
                 .description(entity.getDescription())
                 .state(mapToStateDTO(entity.getState()))
                 .is_history(entity.getIs_history())
+                .result(mapToResultDTO(entity.getResult()))
                 .number_tto(entity.getNumber_tto())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
@@ -54,6 +55,7 @@ public class RegisterServiceImpl implements IRegisterService {
                 .state(mapToStateEntity(dto.getState()))
                 .number_tto(dto.getNumber_tto())
                 .is_history(dto.getIs_history())
+                .result(mapToResultEntity(dto.getResult()))
                 .createdAt(dto.getCreatedAt())
                 .updatedAt(dto.getUpdatedAt())
                 .deletedAt(dto.getDeletedAt())
@@ -309,7 +311,26 @@ public class RegisterServiceImpl implements IRegisterService {
     private String description;
 
     */
-    
+
+    private ResultDTO mapToResultDTO(ResultEntity entity) {
+        return ResultDTO.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .deletedAt(entity.getDeletedAt())
+                .build();
+    }
+
+    private ResultEntity mapToResultEntity(ResultDTO dto) {
+        return ResultEntity.builder()
+                .id(dto.getId())
+                .name(dto.getName())
+                .createdAt(dto.getCreatedAt())
+                .updatedAt(dto.getUpdatedAt())
+                .deletedAt(dto.getDeletedAt())
+                .build();
+    }
     
 
     public RegisterDTO create(RegisterDTO dto) {
@@ -346,6 +367,7 @@ public class RegisterServiceImpl implements IRegisterService {
         entity.setState(mapToStateEntity(dto.getState()));
         entity.setNumber_tto(dto.getNumber_tto());
         entity.setIs_history(dto.getIs_history());
+        entity.setResult(mapToResultEntity(dto.getResult()));
         return mapToDTO(repository.save(entity));
     }
 

@@ -51,6 +51,10 @@ public class RegisterEntity implements Serializable {
     private UserEntity user;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name="result_id")
+    private ResultEntity result;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="not_relevant_id")
     private NotRelevantEntity notRelevant;
 

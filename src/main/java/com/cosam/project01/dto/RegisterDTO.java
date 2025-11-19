@@ -1,4 +1,5 @@
 package com.cosam.project01.dto;
+import com.cosam.project01.entity.ResultEntity;
 import com.cosam.project01.entity.StateEntity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -40,6 +41,8 @@ public class RegisterDTO {
     private String date_attention;
 
     private String description;
+
+    private ResultDTO result;
 
     private StateDTO state;
     private String is_history;
