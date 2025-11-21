@@ -1,5 +1,6 @@
 package com.cosam.project01.repository;
 
+import com.cosam.project01.entity.RoleEntity;
 import com.cosam.project01.entity.UserRoleEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -64,4 +65,13 @@ public interface UserRoleRepository extends JpaRepository<UserRoleEntity,Integer
     @Query("UPDATE UserRoleEntity ur SET ur.deletedAt = CURRENT_TIMESTAMP WHERE ur.user.id = :userId AND ur.role.id = :roleId")
     void softDeleteByUserAndRole(@Param("userId") Integer userId, @Param("roleId") Integer roleId);
 
+
+
+
+    @Query("""
+   SELECT ur.role
+   FROM UserRoleEntity ur
+   WHERE ur.user.id = :userId AND ur.deletedAt IS NULL
+""")
+    List<RoleEntity> findRolesByUserIdFull(@Param("userId") Integer userId);
 }

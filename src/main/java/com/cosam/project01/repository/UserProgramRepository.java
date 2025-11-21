@@ -1,5 +1,6 @@
 package com.cosam.project01.repository;
 
+import com.cosam.project01.entity.ProgramEntity;
 import com.cosam.project01.entity.UserProgramEntity;
 import com.cosam.project01.entity.UserRoleEntity;
 import org.springframework.data.domain.Page;
@@ -77,5 +78,14 @@ public interface UserProgramRepository extends JpaRepository<UserProgramEntity, 
    WHERE up.user.id = :userId AND up.deletedAt IS NULL
 """)
     List<Integer> findProgramIdsByUserId(@Param("userId") Integer userId);
+
+
+    @Query("""
+   SELECT up.program
+   FROM UserProgramEntity up
+   WHERE up.user.id = :userId AND up.deletedAt IS NULL
+""")
+    List<ProgramEntity> findProgramsByUserIdFull(@Param("userId") Integer userId);
+
 
 }

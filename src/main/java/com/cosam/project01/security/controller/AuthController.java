@@ -1,6 +1,8 @@
 // com.cosam.project01.security.controller.AuthController
 package com.cosam.project01.security.controller;
 
+import com.cosam.project01.dto.ProgramDTO;
+import com.cosam.project01.dto.RoleDTO;
 import com.cosam.project01.entity.UserEntity;
 import com.cosam.project01.repository.UserRepository;
 import com.cosam.project01.repository.UserRoleRepository;
@@ -8,17 +10,16 @@ import com.cosam.project01.repository.UserProgramRepository;
 import com.cosam.project01.security.JwtService;
 import com.cosam.project01.security.dto.AuthRequest;
 import com.cosam.project01.security.dto.AuthResponse;
+import com.cosam.project01.security.dto.ProfileDTO;
 import com.cosam.project01.security.service.RefreshTokenService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.*;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.*;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/auth")
@@ -36,6 +37,9 @@ public class AuthController {
     private final RefreshTokenService refreshTokenService;
 
 
+    // =======================================================
+    // LOGIN
+    // =======================================================
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest req) {
         authenticationManager.authenticate(
@@ -46,19 +50,48 @@ public class AuthController {
         UserEntity u = userRepository.findByEmailIgnoreCase(req.email())
                 .orElseThrow(() -> new UsernameNotFoundException("Email no encontrado"));
 
-        List<String> roles = userRoleRepository.findRoleNamesByUserId(u.getId())
-                .stream().filter(Objects::nonNull)
-                .map(String::trim).map(String::toUpperCase).toList();
+        // ROLES con ID
+        List<RoleDTO> roles = userRoleRepository.findRolesByUserIdFull(u.getId())
+                .stream()
+                .map(r -> new RoleDTO(
+                        r.getId(),
+                        r.getName(),
+                        r.getCreatedAt(),
+                        r.getUpdatedAt(),
+                        r.getDeletedAt()
+                ))
+                .toList();
 
-        List<String> programs = userProgramRepository.findProgramNamesByUserId(u.getId());
+        // PROGRAMAS con ID
+        List<ProgramDTO> programs = userProgramRepository.findProgramsByUserIdFull(u.getId())
+                .stream()
+                .map(p -> new ProgramDTO(
+                        p.getId(),
+                        p.getName(),
+                        p.getCreatedAt(),
+                        p.getUpdatedAt(),
+                        p.getDeletedAt()
+                ))
+                .toList();
+
+        // FULLNAME
         String fullName = String.join(" ",
                 safe(u.getFirstName()), safe(u.getSecondName()),
                 safe(u.getFirstLastName()), safe(u.getSecondLastName())
         ).replaceAll("\\s+", " ").trim();
 
+        // PROFILE con ID
+        ProfileDTO profile = new ProfileDTO(
+                u.getId(),
+                u.getEmail(),
+                u.getUsername(),
+                fullName
+        );
+
+        // CLAIMS → aquí va SOLO TEXTO, no DTO
         Map<String, Object> claims = Map.of(
-                "roles", roles,
-                "programs", programs,
+                "roles", roles.stream().map(RoleDTO::getName).toList(),   // <-- CORREGIDO
+                "programs", programs.stream().map(ProgramDTO::getName).toList(), // <-- CORREGIDO
                 "username", u.getUsername(),
                 "email", u.getEmail(),
                 "fullName", fullName
@@ -73,17 +106,18 @@ public class AuthController {
                 jwtService.getExpirationMs(),
                 roles,
                 programs,
-                Map.of(
-                        "email", u.getEmail(),
-                        "username", u.getUsername(),
-                        "fullName", fullName
-                ),
+                profile,
                 refreshToken
         );
 
         return ResponseEntity.ok(body);
     }
 
+
+
+    // =======================================================
+    // REFRESH TOKEN
+    // =======================================================
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refreshToken(@RequestBody Map<String, String> body) {
         String refreshToken = body.get("refreshToken");
@@ -97,18 +131,54 @@ public class AuthController {
         UserEntity u = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new UsernameNotFoundException("Email no encontrado"));
 
-        List<String> roles = userRoleRepository.findRoleNamesByUserId(u.getId());
-        List<String> programs = userProgramRepository.findProgramNamesByUserId(u.getId());
+        // ROLES
+        List<RoleDTO> roles = userRoleRepository.findRolesByUserIdFull(u.getId())
+                .stream()
+                .map(r -> new RoleDTO(
+                        r.getId(),
+                        r.getName(),
+                        r.getCreatedAt(),
+                        r.getUpdatedAt(),
+                        r.getDeletedAt()
+                ))
+                .toList();
 
+        // PROGRAMAS
+        List<ProgramDTO> programs = userProgramRepository.findProgramsByUserIdFull(u.getId())
+                .stream()
+                .map(p -> new ProgramDTO(
+                        p.getId(),
+                        p.getName(),
+                        p.getCreatedAt(),
+                        p.getUpdatedAt(),
+                        p.getDeletedAt()
+                ))
+                .toList();
+
+        // FULLNAME
+        String fullName = String.join(" ",
+                safe(u.getFirstName()), safe(u.getSecondName()),
+                safe(u.getFirstLastName()), safe(u.getSecondLastName())
+        ).replaceAll("\\s+", " ").trim();
+
+        // PROFILE
+        ProfileDTO profile = new ProfileDTO(
+                u.getId(),
+                u.getEmail(),
+                u.getUsername(),
+                fullName
+        );
+
+        // CLAIMS → SOLO NOMBRES
         Map<String, Object> claims = Map.of(
-                "roles", roles,
-                "programs", programs,
+                "roles", roles.stream().map(RoleDTO::getName).toList(), // <-- CORREGIDO
+                "programs", programs.stream().map(ProgramDTO::getName).toList(), // <-- CORREGIDO
                 "username", u.getUsername(),
                 "email", u.getEmail()
         );
 
         String newAccessToken = jwtService.generateToken(user, claims);
-        String newRefreshToken = refreshTokenService.generateRefreshToken(email); // opcionalmente renueva
+        String newRefreshToken = refreshTokenService.generateRefreshToken(email);
 
         return ResponseEntity.ok(new AuthResponse(
                 newAccessToken,
@@ -116,14 +186,12 @@ public class AuthController {
                 jwtService.getExpirationMs(),
                 roles,
                 programs,
-                Map.of(
-                        "email", u.getEmail(),
-                        "username", u.getUsername()
-                ),
+                profile,
                 newRefreshToken
         ));
     }
 
-
-    private static String safe(String s) { return s == null ? "" : s; }
+    private static String safe(String s) {
+        return s == null ? "" : s;
+    }
 }
