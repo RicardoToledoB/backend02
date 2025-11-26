@@ -2,6 +2,7 @@ package com.cosam.project01.security;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.*;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
@@ -12,7 +13,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.*;
+import org.springframework.security.web.access.AccessDeniedHandlerImpl;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
@@ -26,27 +28,25 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-
                 .csrf(csrf -> csrf.disable())
-                // Si prefieres mantener CSRF pero ignorar /auth/**, usa:
-                // .csrf(csrf -> csrf.ignoringRequestMatchers("/auth/**", "/docs/**", "/api-docs/**"))
-
-                // ✅ CORS habilitado (usa tu bean CorsConfigurationSource)
                 .cors(Customizer.withDefaults())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+                        .accessDeniedHandler(new AccessDeniedHandlerImpl())
+                )
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/auth/**",
-                                "/docs/**", "/api-docs/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html"
+                                "/docs/**", "/api-docs/**", "/v3/api-docs/**",
+                                "/swagger-ui/**", "/swagger-ui.html"
                         ).permitAll()
-                        // H2 console (opcional para pruebas):
                         .requestMatchers("/h2-console/**").permitAll()
                         .anyRequest().authenticated()
                 );
 
-        // H2 console (opcional):
         http.headers(headers -> headers.frameOptions(frame -> frame.disable()));
 
         return http.build();
