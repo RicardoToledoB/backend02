@@ -26,7 +26,7 @@ public class RegisterMovementServiceImpl implements IRegisterMovementService {
                 .full_name(entity.getFull_name())
                 .date_attention(entity.getDate_attention())
                 .hour_attention(entity.getHour_attention())
-
+                .state(entity.getState())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
@@ -41,6 +41,7 @@ public class RegisterMovementServiceImpl implements IRegisterMovementService {
                 .full_name(dto.getFull_name())
                 .date_attention(dto.getDate_attention())
                 .hour_attention(dto.getHour_attention())
+                .state(dto.getState())
                 .createdAt(dto.getCreatedAt())
                 .updatedAt(dto.getUpdatedAt())
                 .deletedAt(dto.getDeletedAt())
@@ -359,6 +360,7 @@ public class RegisterMovementServiceImpl implements IRegisterMovementService {
         entity.setFull_name(dto.getFull_name());
         entity.setDate_attention(dto.getDate_attention());
         entity.setHour_attention(dto.getHour_attention());
+        entity.setState(dto.getState());
         return mapToDTO(repository.save(entity));
     }
 

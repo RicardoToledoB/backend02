@@ -41,7 +41,7 @@ public class RegisterMovementEntity implements Serializable {
     private String date_attention;
     private String hour_attention;
 
-
+    private String state;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

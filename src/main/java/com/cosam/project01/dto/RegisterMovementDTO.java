@@ -23,6 +23,9 @@ public class RegisterMovementDTO {
     private String full_name;
     private String date_attention;
     private String hour_attention;
+
+    private String state;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
