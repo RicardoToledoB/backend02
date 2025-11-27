@@ -15,7 +15,7 @@ public class SubstanceDTO {
 
     private Integer id;
     private String name;
-    private String level;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;

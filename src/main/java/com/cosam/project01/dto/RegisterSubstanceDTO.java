@@ -21,6 +21,8 @@ public class RegisterSubstanceDTO {
 
     private RegisterDTO register;
 
+    private String level;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;

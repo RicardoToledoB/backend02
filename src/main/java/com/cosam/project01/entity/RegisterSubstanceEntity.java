@@ -34,6 +34,8 @@ public class RegisterSubstanceEntity implements Serializable {
     @JoinColumn(name="register_id")
     private RegisterEntity register;
 
+    private String level;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;

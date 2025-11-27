@@ -30,6 +30,7 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
                 .register(mapToRegisterDTO(entity.getRegister()))
                 .substance(mapToSubstanceDTO(entity.getSubstance()))
                 .createdAt(entity.getCreatedAt())
+                .level(entity.getLevel())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
                 .build();
@@ -40,6 +41,7 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
                 .id(dto.getId())
                 .register(mapToRegisterEntity(dto.getRegister()))
                 .substance(mapToSubstanceEntity(dto.getSubstance()))
+                .level(dto.getLevel())
                 .createdAt(dto.getCreatedAt())
                 .updatedAt(dto.getUpdatedAt())
                 .deletedAt(dto.getDeletedAt())
@@ -327,6 +329,7 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
 
                 entity.setRegister(mapToRegisterEntity(dto.getRegister()));
                 entity.setSubstance(mapToSubstanceEntity(dto.getSubstance()));
+                entity.setLevel(dto.getLevel());
 
         return mapToDTO(repository.save(entity));
     }
