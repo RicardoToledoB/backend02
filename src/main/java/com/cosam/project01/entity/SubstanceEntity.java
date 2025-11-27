@@ -25,6 +25,7 @@ public class SubstanceEntity implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
     private String name;
+    private String level;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

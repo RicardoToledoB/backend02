@@ -26,6 +26,7 @@ public class RegisterMovementServiceImpl implements IRegisterMovementService {
                 .full_name(entity.getFull_name())
                 .date_attention(entity.getDate_attention())
                 .hour_attention(entity.getHour_attention())
+
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())

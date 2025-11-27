@@ -26,6 +26,7 @@ public class SubstanceServiceImpl implements ISubstanceService {
         return SubstanceDTO.builder()
                 .id(entity.getId())
                 .name(entity.getName())
+                .level(entity.getLevel())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
@@ -36,6 +37,7 @@ public class SubstanceServiceImpl implements ISubstanceService {
         return SubstanceEntity.builder()
                 .id(dto.getId())
                 .name(dto.getName())
+                .level(dto.getLevel())
                 .createdAt(dto.getCreatedAt())
                 .updatedAt(dto.getUpdatedAt())
                 .deletedAt(dto.getDeletedAt())
@@ -52,6 +54,7 @@ public class SubstanceServiceImpl implements ISubstanceService {
         SubstanceEntity entity = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
         entity.setName(dto.getName());
+        entity.setLevel(dto.getLevel());
         return mapToDTO(repository.save(entity));
     }
 
