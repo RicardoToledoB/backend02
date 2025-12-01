@@ -300,4 +300,9 @@ public class PostulantServiceImpl implements IPostulantService {
         repository.save(entity);
     }
 
+    public Page<PostulantDTO> searchByRut(String rut, Pageable pageable) {
+        return repository.searchByRut(rut, pageable)
+                .map(this::mapToDTO);
+    }
+
 }

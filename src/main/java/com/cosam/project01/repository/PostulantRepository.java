@@ -39,4 +39,11 @@ public interface PostulantRepository extends JpaRepository<PostulantEntity,Integ
     """)
     Page<PostulantEntity> search(@Param("rut") String rut, Pageable pageable);
 
+    @Query("""
+        SELECT p FROM PostulantEntity p
+        WHERE (:rut IS NULL OR TRIM(:rut) = '' 
+               OR LOWER(p.rut) LIKE LOWER(CONCAT('%', :rut, '%')))
+    """)
+    Page<PostulantEntity> searchByRut(@Param("rut") String rut, Pageable pageable);
+
 }
