@@ -394,4 +394,10 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
         entity.setDeletedAt(null);
         repository.save(entity);
     }
+
+    public Page<RegisterSubstanceDTO> searchByRegisterId(Integer registerId, Pageable pageable) {
+        return repository.searchByRegisterId(registerId, pageable)
+                .map(this::mapToDTO);
+    }
+
 }

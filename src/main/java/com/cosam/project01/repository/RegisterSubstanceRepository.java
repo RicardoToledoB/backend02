@@ -39,5 +39,13 @@ public interface RegisterSubstanceRepository extends JpaRepository<RegisterSubst
     """)
     Page<RegisterSubstanceEntity> search(@Param("id") Integer id, Pageable pageable);
 
+    @Query("""
+    SELECT c FROM RegisterSubstanceEntity c
+    WHERE (:registerId IS NULL OR c.register.id = :registerId)
+      AND c.deletedAt IS NULL
+""")
+    Page<RegisterSubstanceEntity> searchByRegisterId(@Param("registerId") Integer registerId, Pageable pageable);
+
+
 }
 

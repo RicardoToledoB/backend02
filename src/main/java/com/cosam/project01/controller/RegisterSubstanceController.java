@@ -77,4 +77,12 @@ public class RegisterSubstanceController {
         service.restore(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/searchByRegisterId")
+    public ResponseEntity<Page<RegisterSubstanceDTO>> searchByRegisterId(
+            @RequestParam(required = false) Integer registerId,
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(service.searchByRegisterId(registerId, pageable));
+    }
+
 }
