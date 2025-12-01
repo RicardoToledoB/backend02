@@ -423,4 +423,10 @@ public class RegisterMovementServiceImpl implements IRegisterMovementService {
         entity.setDeletedAt(null);
         repository.save(entity);
     }
+
+    public Page<RegisterMovementDTO> searchByRegisterId(Integer registerId, Pageable pageable) {
+        return repository.searchByRegisterId(registerId, pageable)
+                .map(this::mapToDTO);
+    }
+
 }

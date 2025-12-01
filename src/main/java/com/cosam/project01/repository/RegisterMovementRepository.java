@@ -39,4 +39,12 @@ public interface RegisterMovementRepository extends JpaRepository<RegisterMoveme
               OR LOWER(c.full_name) LIKE LOWER(CONCAT('%', :full_name, '%')))
     """)
     Page<RegisterMovementEntity> search(@Param("full_name") String full_name, Pageable pageable);
+
+    @Query("""
+    SELECT c FROM RegisterMovementEntity c
+    WHERE (:registerId IS NULL OR c.register.id = :registerId)
+      AND c.deletedAt IS NULL
+""")
+    Page<RegisterMovementEntity> searchByRegisterId(@Param("registerId") Integer registerId, Pageable pageable);
+
 }
