@@ -27,8 +27,6 @@ public class RegisterSubstanceController {
         return ResponseEntity.ok(service.create(dto));
     }
 
-    
-
     @GetMapping("/{id}")
     public ResponseEntity<RegisterSubstanceDTO> getById(@PathVariable Integer id) {
         return ResponseEntity.ok(service.getById(id));

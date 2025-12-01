@@ -76,4 +76,14 @@ public class RegisterController {
         service.restore(id);
         return ResponseEntity.noContent().build();
     }
+
+
+    @GetMapping("/searchByRut")
+    public ResponseEntity<Page<RegisterDTO>> searchByRut(
+            @RequestParam(required = false) String rut,
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC)
+            Pageable pageable) {
+
+        return ResponseEntity.ok(service.searchByRut(rut, pageable));
+    }
 }

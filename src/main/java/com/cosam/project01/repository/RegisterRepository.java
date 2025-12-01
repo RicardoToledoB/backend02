@@ -39,4 +39,12 @@ public interface RegisterRepository extends JpaRepository<RegisterEntity,Integer
     """)
     Page<RegisterEntity> search(@Param("description") String description, Pageable pageable);
 
+    @Query("""
+        SELECT r FROM RegisterEntity r
+        LEFT JOIN r.postulant p
+        WHERE (:rut IS NULL OR TRIM(:rut) = '' 
+               OR LOWER(p.rut) LIKE LOWER(CONCAT('%', :rut, '%')))
+    """)
+    Page<RegisterEntity> searchByRut(@Param("rut") String rut, Pageable pageable);
+
 }

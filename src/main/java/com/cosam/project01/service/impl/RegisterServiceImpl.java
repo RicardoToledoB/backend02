@@ -432,4 +432,9 @@ public class RegisterServiceImpl implements IRegisterService {
         entity.setDeletedAt(null);
         repository.save(entity);
     }
+
+    public Page<RegisterDTO> searchByRut(String rut, Pageable pageable) {
+        return repository.searchByRut(rut, pageable)
+                .map(this::mapToDTO);
+    }
 }
