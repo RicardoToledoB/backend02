@@ -121,9 +121,12 @@ public class PostulantServiceImpl implements IPostulantService {
 
         return UserDTO.builder()
                 .id(entity.getId())
+                .firstName(entity.getFirstName())
+                .secondLastName(entity.getSecondLastName())
+                .firstLastName(entity.getFirstLastName())
+                .secondLastName(entity.getSecondLastName())
                 .rut(entity.getRut())
                 .email(entity.getEmail())
-
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
@@ -133,7 +136,12 @@ public class PostulantServiceImpl implements IPostulantService {
     private UserEntity mapToUserEntity(UserDTO dto) {
         return UserEntity.builder()
                 .id(dto.getId())
-
+                .firstName(dto.getFirstName())
+                .secondLastName(dto.getSecondLastName())
+                .firstLastName(dto.getFirstLastName())
+                .secondLastName(dto.getSecondLastName())
+                .rut(dto.getRut())
+                .email(dto.getEmail())
                 .createdAt(dto.getCreatedAt())
                 .updatedAt(dto.getUpdatedAt())
                 .deletedAt(dto.getDeletedAt())
