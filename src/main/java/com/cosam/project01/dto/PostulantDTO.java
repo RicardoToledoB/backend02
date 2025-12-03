@@ -1,5 +1,9 @@
 package com.cosam.project01.dto;
 import com.cosam.project01.entity.ConvPrevEntity;
+import com.cosam.project01.entity.NotRelevantEntity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -32,6 +36,9 @@ public class PostulantDTO {
     private String email;
     private String phone;
     private String address;
+
+
+    private NotRelevantDTO notRelevant;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
