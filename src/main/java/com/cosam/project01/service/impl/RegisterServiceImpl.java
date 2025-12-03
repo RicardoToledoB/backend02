@@ -98,6 +98,7 @@ public class RegisterServiceImpl implements IRegisterService {
                 .rut(entity.getRut())
                 .firstName(entity.getFirstName())
                 .lastName(entity.getLastName())
+                .convPrev(mapToConvPrevDTO(entity.getConvPrev()))
                 .secondLastName(entity.getSecondLastName())
                 .firstLastName(entity.getFirstLastName())
                 .birthdate(entity.getBirthdate())
@@ -119,6 +120,7 @@ public class RegisterServiceImpl implements IRegisterService {
                 .rut(dto.getRut())
                 .firstName(dto.getFirstName())
                 .lastName(dto.getLastName())
+                .convPrev(mapToConvPrevEntity(dto.getConvPrev()))
                 .secondLastName(dto.getSecondLastName())
                 .firstLastName(dto.getFirstLastName())
                 .birthdate(dto.getBirthdate())
@@ -127,6 +129,51 @@ public class RegisterServiceImpl implements IRegisterService {
                 .deletedAt(dto.getDeletedAt())
                 .build();
     }
+
+
+    private ConvPrevDTO mapToConvPrevDTO(ConvPrevEntity entity) {
+        return ConvPrevDTO.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .intPrev(mapToIntPrevDTO(entity.getIntPrev()))
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .deletedAt(entity.getDeletedAt())
+                .build();
+    }
+
+    private ConvPrevEntity mapToConvPrevEntity(ConvPrevDTO dto) {
+        return ConvPrevEntity.builder()
+                .id(dto.getId())
+                .name(dto.getName())
+                .intPrev(mapToIntPrevEntity(dto.getIntPrev()))
+                .createdAt(dto.getCreatedAt())
+                .updatedAt(dto.getUpdatedAt())
+                .deletedAt(dto.getDeletedAt())
+                .build();
+    }
+
+
+    private IntPrevDTO mapToIntPrevDTO(IntPrevEntity entity) {
+        return IntPrevDTO.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .deletedAt(entity.getDeletedAt())
+                .build();
+    }
+
+    private IntPrevEntity mapToIntPrevEntity(IntPrevDTO dto) {
+        return IntPrevEntity.builder()
+                .id(dto.getId())
+                .name(dto.getName())
+                .createdAt(dto.getCreatedAt())
+                .updatedAt(dto.getUpdatedAt())
+                .deletedAt(dto.getDeletedAt())
+                .build();
+    }
+
 
     private SexEntity mapToSexEntity(SexDTO dto) {
         return SexEntity.builder()

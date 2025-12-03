@@ -126,6 +126,7 @@ public class PostulantServiceImpl implements IPostulantService {
                 .secondLastName(entity.getSecondLastName())
                 .firstLastName(entity.getFirstLastName())
                 .secondLastName(entity.getSecondLastName())
+                .username(entity.getUsername())
                 .rut(entity.getRut())
                 .email(entity.getEmail())
                 .createdAt(entity.getCreatedAt())
@@ -133,6 +134,10 @@ public class PostulantServiceImpl implements IPostulantService {
                 .deletedAt(entity.getDeletedAt())
                 .build();
     }
+
+
+
+
 
     private UserEntity mapToUserEntity(UserDTO dto) {
         return UserEntity.builder()
@@ -142,6 +147,7 @@ public class PostulantServiceImpl implements IPostulantService {
                 .secondLastName(dto.getSecondLastName())
                 .firstLastName(dto.getFirstLastName())
                 .secondLastName(dto.getSecondLastName())
+                .username(dto.getUsername())
                 .rut(dto.getRut())
                 .email(dto.getEmail())
                 .createdAt(dto.getCreatedAt())
