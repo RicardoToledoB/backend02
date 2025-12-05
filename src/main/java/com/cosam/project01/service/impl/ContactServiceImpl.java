@@ -25,6 +25,7 @@ public class ContactServiceImpl implements IContactService {
                 .id(entity.getId())
                 .name(entity.getName())
                 .email(entity.getEmail())
+                .cellphone(entity.getCellphone())
                 .description(entity.getDescription())
                 .postulant(mapToPostulantDTO(entity.getPostulant()))
                 .createdAt(entity.getCreatedAt())
@@ -38,6 +39,7 @@ public class ContactServiceImpl implements IContactService {
                 .id(dto.getId())
                 .name(dto.getName())
                 .email(dto.getEmail())
+                .cellphone(dto.getCellphone())
                 .postulant(mapToPostulantEntity(dto.getPostulant()))
                 .description(dto.getDescription())
                 .createdAt(dto.getCreatedAt())
@@ -245,6 +247,7 @@ public class ContactServiceImpl implements IContactService {
                 .orElseThrow(() -> new RuntimeException("Task not found"));
         entity.setName(dto.getName());
         entity.setEmail(dto.getEmail());
+        entity.setCellphone(dto.getCellphone());
         entity.setPostulant(mapToPostulantEntity(dto.getPostulant()));
         return mapToDTO(repository.save(entity));
     }

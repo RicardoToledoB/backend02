@@ -29,6 +29,8 @@ public class ContactEntity implements Serializable {
     @JoinColumn(name="postulant_id")
     private PostulantEntity postulant;
     private String email;
+
+    private String cellphone;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
