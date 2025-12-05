@@ -9,6 +9,7 @@ import org.hibernate.annotations.Where;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name="postulants")
@@ -42,6 +43,9 @@ public class PostulantEntity implements Serializable {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="not_relevant_id")
     private NotRelevantEntity notRelevant;
+
+    @OneToMany(mappedBy = "postulant", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<ContactEntity> contacts;
 
     private String firstName;
     private String lastName;

@@ -10,6 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -37,6 +38,7 @@ public class PostulantDTO {
     private String phone;
     private String address;
 
+    private List<ContactDTO> contacts;
 
     private NotRelevantDTO notRelevant;
 
