@@ -50,6 +50,7 @@ public class PostulantServiceImpl implements IPostulantService {
     private ContactDTO mapToContactDTO(ContactEntity entity) {
         return ContactDTO.builder()
                 .id(entity.getId())
+                .cellphone(entity.getCellphone())
                 .name(entity.getName())
                 .email(entity.getEmail())
                 .description(entity.getDescription())
