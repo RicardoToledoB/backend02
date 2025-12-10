@@ -90,8 +90,25 @@ INSERT INTO conv_prevs(name,int_prev_id,created_at,updated_at,deleted_at) VALUES
                                                                                 ('Particular',4,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
                                                                                 ('Ninguna',5,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null);
 
+INSERT INTO results(name,created_at,updated_at,deleted_at) VALUES('Ingreso a tratamiento',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                                                ('Lista de espera	',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                                                ('Referencia',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                                                ('Historico',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                                                ('Aun sin Resultado',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null);
+
+INSERT INTO professions(name,created_at,updated_at,deleted_at) VALUES('Psiquiatra',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                       ('Psicólogo',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null);
 
 
+INSERT INTO states(name,created_at,updated_at,deleted_at) VALUES('En Tramite',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                      ('Aceptado',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                      ('No Aceptado',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null);
+
+INSERT INTO contacts_types(name,created_at,updated_at,deleted_at) VALUES('PRESENCIAL',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                      ('TELEFONICA',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                      ('CORREO POSTAL',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                      ('DIGITAL',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                      ('OTRO',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null);
 
 
 
