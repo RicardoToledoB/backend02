@@ -115,6 +115,7 @@ public class RegisterServiceImpl implements IRegisterService {
         return ContactDTO.builder()
                 .id(entity.getId())
                 .name(entity.getName())
+                .cellphone(entity.getCellphone())
                 .email(entity.getEmail())
                 .description(entity.getDescription())
                 .createdAt(entity.getCreatedAt())
