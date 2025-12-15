@@ -2,9 +2,11 @@ package com.cosam.project01.repository;
 
 import com.cosam.project01.entity.RegisterMovementEntity;
 import com.cosam.project01.entity.RegisterMovementEntity;
+import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -46,5 +48,20 @@ public interface RegisterMovementRepository extends JpaRepository<RegisterMoveme
       AND c.deletedAt IS NULL
 """)
     Page<RegisterMovementEntity> searchByRegisterId(@Param("registerId") Integer registerId, Pageable pageable);
+
+
+    // Soft delete masivo por register_id
+    @Modifying
+    @Transactional
+    @Query("""
+       UPDATE RegisterMovementEntity c
+          SET c.deletedAt = CURRENT_TIMESTAMP
+        WHERE c.register.id = :registerId
+          AND c.deletedAt IS NULL
+    """)
+    int softDeleteByRegisterId(@Param("registerId") Integer registerId);
+
+
+
 
 }

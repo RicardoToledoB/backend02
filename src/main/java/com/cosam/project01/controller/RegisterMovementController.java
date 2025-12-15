@@ -84,4 +84,10 @@ public class RegisterMovementController {
         return ResponseEntity.ok(service.searchByRegisterId(registerId, pageable));
     }
 
+    @DeleteMapping("/by-register/{registerId}")
+    public ResponseEntity<?> softDeleteByRegister(@PathVariable Integer registerId) {
+        int affected = service.deleteByRegisterId(registerId);
+        return ResponseEntity.ok("Movimientos marcados como eliminados: " + affected);
+    }
+
 }

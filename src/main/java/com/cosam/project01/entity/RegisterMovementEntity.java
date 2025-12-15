@@ -34,9 +34,6 @@ public class RegisterMovementEntity implements Serializable {
     @JoinColumn(name="profession_id")
     private ProfessionEntity profession;
 
-
-
-
     private String full_name;
     private String date_attention;
     private String hour_attention;

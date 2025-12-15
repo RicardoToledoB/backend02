@@ -4,6 +4,7 @@ import com.cosam.project01.dto.*;
 import com.cosam.project01.entity.*;
 import com.cosam.project01.repository.RegisterMovementRepository;
 import com.cosam.project01.service.IRegisterMovementService;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -427,6 +428,12 @@ public class RegisterMovementServiceImpl implements IRegisterMovementService {
     public Page<RegisterMovementDTO> searchByRegisterId(Integer registerId, Pageable pageable) {
         return repository.searchByRegisterId(registerId, pageable)
                 .map(this::mapToDTO);
+    }
+
+
+    @Transactional
+    public int deleteByRegisterId(Integer registerId) {
+        return repository.softDeleteByRegisterId(registerId);
     }
 
 }
