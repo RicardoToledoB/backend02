@@ -83,4 +83,10 @@ public class RegisterSubstanceController {
         return ResponseEntity.ok(service.searchByRegisterId(registerId, pageable));
     }
 
+    @DeleteMapping("/by-register/{registerId}")
+    public ResponseEntity<String> softDeleteByRegister(@PathVariable Integer registerId) {
+        int affected = service.deleteByRegisterId(registerId);
+        return ResponseEntity.ok("Substances marcadas como eliminadas: " + affected);
+    }
+
 }

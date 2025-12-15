@@ -4,6 +4,7 @@ import com.cosam.project01.dto.*;
 import com.cosam.project01.entity.*;
 import com.cosam.project01.repository.RegisterSubstanceRepository;
 import com.cosam.project01.service.IRegisterSubstanceService;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -398,6 +399,11 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
     public Page<RegisterSubstanceDTO> searchByRegisterId(Integer registerId, Pageable pageable) {
         return repository.searchByRegisterId(registerId, pageable)
                 .map(this::mapToDTO);
+    }
+
+    @Transactional
+    public int deleteByRegisterId(Integer registerId) {
+        return repository.softDeleteByRegisterId(registerId);
     }
 
 }

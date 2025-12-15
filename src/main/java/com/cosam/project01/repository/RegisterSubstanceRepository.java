@@ -1,9 +1,11 @@
 package com.cosam.project01.repository;
 
 import com.cosam.project01.entity.RegisterSubstanceEntity;
+import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -46,6 +48,16 @@ public interface RegisterSubstanceRepository extends JpaRepository<RegisterSubst
 """)
     Page<RegisterSubstanceEntity> searchByRegisterId(@Param("registerId") Integer registerId, Pageable pageable);
 
+
+    @Modifying
+    @Transactional
+    @Query("""
+        UPDATE RegisterSubstanceEntity c
+           SET c.deletedAt = CURRENT_TIMESTAMP
+         WHERE c.register.id = :registerId
+           AND c.deletedAt IS NULL
+    """)
+    int softDeleteByRegisterId(@Param("registerId") Integer registerId);
 
 }
 
