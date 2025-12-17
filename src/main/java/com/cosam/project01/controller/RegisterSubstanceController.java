@@ -15,7 +15,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/registers_substances")
-//@CrossOrigin("*")
 @PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO')")
 public class RegisterSubstanceController {
 

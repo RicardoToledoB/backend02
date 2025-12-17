@@ -17,7 +17,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/registers_movements")
-//@CrossOrigin("*")
 @PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO')")
 public class RegisterMovementController {
 

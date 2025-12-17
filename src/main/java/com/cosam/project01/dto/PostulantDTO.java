@@ -17,17 +17,11 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 public class PostulantDTO {
-
     private Integer id;
-
     private UserDTO user;
-
     private CommuneDTO commune;
-
     private SexDTO sex;
-
     private ConvPrevDTO convPrev;
-
     private String firstName;
     private String lastName;
     private String firstLastName;
