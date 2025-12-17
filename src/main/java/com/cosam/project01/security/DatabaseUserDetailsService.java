@@ -30,7 +30,7 @@ public class DatabaseUserDetailsService implements UserDetailsService {
                 .map(name -> {
                     String n = name == null ? "" : name.trim().toUpperCase();
                     if (n.startsWith("ROLE_")) n = n.substring(5);
-                    return new SimpleGrantedAuthority(n);
+                    return new SimpleGrantedAuthority("ROLE_" + n);
                 })
                 .toList();
 
