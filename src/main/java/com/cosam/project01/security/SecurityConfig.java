@@ -2,6 +2,7 @@ package com.cosam.project01.security;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.*;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.*;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -27,27 +28,56 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
         http
                 .csrf(csrf -> csrf.disable())
+
+                // 🔑 CORS habilitado
                 .cors(Customizer.withDefaults())
-                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                .sessionManagement(s ->
+                        s.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+
                 .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+                        .authenticationEntryPoint(
+                                new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)
+                        )
                         .accessDeniedHandler(new AccessDeniedHandlerImpl())
                 )
+
                 .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+
+                .addFilterBefore(
+                        jwtAuthFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                )
+
                 .authorizeHttpRequests(auth -> auth
+
+                        // 🔥 PRE-FLIGHT (OBLIGATORIO PARA ANGULAR)
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // públicos
                         .requestMatchers(
                                 "/auth/**",
-                                "/docs/**", "/api-docs/**", "/v3/api-docs/**",
-                                "/swagger-ui/**", "/swagger-ui.html"
+                                "/docs/**",
+                                "/api-docs/**",
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
                         ).permitAll()
+
                         .requestMatchers("/h2-console/**").permitAll()
+
+                        // protegidos
                         .anyRequest().authenticated()
                 );
 
-        http.headers(headers -> headers.frameOptions(frame -> frame.disable()));
+        // H2 console
+        http.headers(headers ->
+                headers.frameOptions(frame -> frame.disable())
+        );
 
         return http.build();
     }
@@ -66,7 +96,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    AuthenticationManager authenticationManager(AuthenticationConfiguration cfg) throws Exception {
+    AuthenticationManager authenticationManager(
+            AuthenticationConfiguration cfg) throws Exception {
         return cfg.getAuthenticationManager();
     }
 }
