@@ -18,7 +18,6 @@ import java.util.List;
 //@CrossOrigin("*")
 
 @PreAuthorize("hasAnyAuthority('ADMIN','ADMINISTRATIVO')")
-
 public class PostulantController {
 
     @Autowired
