@@ -16,7 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/postulants")
 
-@PreAuthorize("hasAuthority('ROLE_ADMIN','ROLE_ADMINISTRATIVO')")
+@PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO')")
 public class PostulantController {
 
     @Autowired
