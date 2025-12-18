@@ -162,6 +162,8 @@ public class ContactServiceImpl implements IContactService {
     private UserEntity mapToUserEntity(UserDTO dto) {
         return UserEntity.builder()
                 .id(dto.getId())
+                .rut(dto.getRut())
+                .email(dto.getEmail())
 
                 .createdAt(dto.getCreatedAt())
                 .updatedAt(dto.getUpdatedAt())
