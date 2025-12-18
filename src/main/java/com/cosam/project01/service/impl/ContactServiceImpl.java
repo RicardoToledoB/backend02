@@ -250,7 +250,13 @@ public class ContactServiceImpl implements IContactService {
         entity.setName(dto.getName());
         entity.setEmail(dto.getEmail());
         entity.setCellphone(dto.getCellphone());
-        entity.setPostulant(mapToPostulantEntity(dto.getPostulant()));
+        // SOLO si viene postulant con id
+        if (dto.getPostulant() != null && dto.getPostulant().getId() != null) {
+            PostulantEntity postulantRef = PostulantEntity.builder()
+                    .id(dto.getPostulant().getId())
+                    .build();
+            entity.setPostulant(postulantRef);
+        }
         return mapToDTO(repository.save(entity));
     }
 
