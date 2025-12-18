@@ -1,15 +1,14 @@
 package com.cosam.project01.service.impl;
 
 import com.cosam.project01.dto.*;
-import com.cosam.project01.dto.ContactDTO;
 import com.cosam.project01.entity.*;
-import com.cosam.project01.entity.ContactEntity;
 import com.cosam.project01.repository.ContactRepository;
 import com.cosam.project01.service.IContactService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -19,45 +18,66 @@ public class ContactServiceImpl implements IContactService {
     @Autowired
     private ContactRepository repository;
 
-
+    /* =======================
+       MAP ENTITY -> DTO
+       ======================= */
     private ContactDTO mapToDTO(ContactEntity entity) {
+        if (entity == null) return null;
+
         return ContactDTO.builder()
                 .id(entity.getId())
                 .name(entity.getName())
                 .email(entity.getEmail())
                 .cellphone(entity.getCellphone())
                 .description(entity.getDescription())
-                .postulant(mapToPostulantDTO(entity.getPostulant()))
+                .postulant(
+                        entity.getPostulant() != null
+                                ? mapToPostulantDTO(entity.getPostulant())
+                                : null
+                )
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
                 .build();
     }
 
+    /* =======================
+       MAP DTO -> ENTITY (CREATE)
+       ======================= */
     private ContactEntity mapToEntity(ContactDTO dto) {
+
+        if (dto.getPostulant() == null || dto.getPostulant().getId() == null) {
+            throw new IllegalArgumentException("postulant.id es obligatorio");
+        }
+
         return ContactEntity.builder()
                 .id(dto.getId())
                 .name(dto.getName())
                 .email(dto.getEmail())
                 .cellphone(dto.getCellphone())
-                .postulant(mapToPostulantEntity(dto.getPostulant()))
                 .description(dto.getDescription())
-                .createdAt(dto.getCreatedAt())
-                .updatedAt(dto.getUpdatedAt())
-                .deletedAt(dto.getDeletedAt())
+                // 👉 SOLO referencia por ID
+                .postulant(
+                        PostulantEntity.builder()
+                                .id(dto.getPostulant().getId())
+                                .build()
+                )
                 .build();
     }
 
+    /* =======================
+       POSTULANT (SOLO LECTURA)
+       ======================= */
     private PostulantDTO mapToPostulantDTO(PostulantEntity entity) {
-
+        if (entity == null) return null;
 
         return PostulantDTO.builder()
                 .id(entity.getId())
-                .user(mapToUserDTO(entity.getUser()))
-                .commune(mapToCommuneDTO(entity.getCommune()))
+                .user(entity.getUser() != null ? mapToUserDTO(entity.getUser()) : null)
+                .commune(entity.getCommune() != null ? mapToCommuneDTO(entity.getCommune()) : null)
                 .address(entity.getAddress())
-                .sex(mapToSexDTO(entity.getSex()))
-                .convPrev(mapToConvPrevDTO(entity.getConvPrev()))
+                .sex(entity.getSex() != null ? mapToSexDTO(entity.getSex()) : null)
+                .convPrev(entity.getConvPrev() != null ? mapToConvPrevDTO(entity.getConvPrev()) : null)
                 .email(entity.getEmail())
                 .phone(entity.getPhone())
                 .rut(entity.getRut())
@@ -72,57 +92,24 @@ public class ContactServiceImpl implements IContactService {
                 .build();
     }
 
-    private PostulantEntity mapToPostulantEntity(PostulantDTO dto) {
-        return PostulantEntity.builder()
-                .id(dto.getId())
-                .user(mapToUserEntity(dto.getUser()))
-                .commune(mapToCommuneEntity(dto.getCommune()))
-                .address(dto.getAddress())
-                .sex(mapToSexEntity(dto.getSex()))
-                .convPrev(mapToConvPrevEntity(dto.getConvPrev()))
-                .email(dto.getEmail())
-                .phone(dto.getPhone())
-                .rut(dto.getRut())
-                .firstName(dto.getFirstName())
-                .lastName(dto.getLastName())
-                .secondLastName(dto.getSecondLastName())
-                .firstLastName(dto.getFirstLastName())
-                .birthdate(dto.getBirthdate())
-                .createdAt(dto.getCreatedAt())
-                .updatedAt(dto.getUpdatedAt())
-                .deletedAt(dto.getDeletedAt())
-                .build();
-    }
+    /* =======================
+       MAPPERS SIMPLES (DTO)
+       ======================= */
+    private UserDTO mapToUserDTO(UserEntity entity) {
+        if (entity == null) return null;
 
-    private SexEntity mapToSexEntity(SexDTO dto) {
-        return SexEntity.builder()
-                .id(dto.getId())
-                .name(dto.getName())
-                .createdAt(dto.getCreatedAt())
-                .updatedAt(dto.getUpdatedAt())
-                .deletedAt(dto.getDeletedAt())
-                .build();
-    }
-
-
-    private SexDTO mapToSexDTO(SexEntity entity) {
-
-
-        return SexDTO.builder()
+        return UserDTO.builder()
                 .id(entity.getId())
-                .name(entity.getName())
+                .rut(entity.getRut())
+                .email(entity.getEmail())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
                 .build();
     }
 
-
-
-
-
     private CommuneDTO mapToCommuneDTO(CommuneEntity entity) {
-
+        if (entity == null) return null;
 
         return CommuneDTO.builder()
                 .id(entity.getId())
@@ -133,48 +120,10 @@ public class ContactServiceImpl implements IContactService {
                 .build();
     }
 
-    private CommuneEntity mapToCommuneEntity(CommuneDTO dto) {
-        return CommuneEntity.builder()
-                .id(dto.getId())
-                .name(dto.getName())
-                .createdAt(dto.getCreatedAt())
-                .updatedAt(dto.getUpdatedAt())
-                .deletedAt(dto.getDeletedAt())
-                .build();
-    }
+    private SexDTO mapToSexDTO(SexEntity entity) {
+        if (entity == null) return null;
 
-
-
-    private UserDTO mapToUserDTO(UserEntity entity) {
-
-
-        return UserDTO.builder()
-                .id(entity.getId())
-                .rut(entity.getRut())
-                .email(entity.getEmail())
-
-                .createdAt(entity.getCreatedAt())
-                .updatedAt(entity.getUpdatedAt())
-                .deletedAt(entity.getDeletedAt())
-                .build();
-    }
-
-    private UserEntity mapToUserEntity(UserDTO dto) {
-        return UserEntity.builder()
-                .id(dto.getId())
-                .rut(dto.getRut())
-                .email(dto.getEmail())
-
-                .createdAt(dto.getCreatedAt())
-                .updatedAt(dto.getUpdatedAt())
-                .deletedAt(dto.getDeletedAt())
-                .build();
-    }
-
-    private ProgramDTO mapToProgramDTO(ProgramEntity entity) {
-
-
-        return ProgramDTO.builder()
+        return SexDTO.builder()
                 .id(entity.getId())
                 .name(entity.getName())
                 .createdAt(entity.getCreatedAt())
@@ -183,40 +132,22 @@ public class ContactServiceImpl implements IContactService {
                 .build();
     }
 
-    private ProgramEntity mapToProgramEntity(ProgramDTO dto) {
-        return ProgramEntity.builder()
-                .id(dto.getId())
-                .name(dto.getName())
-                .createdAt(dto.getCreatedAt())
-                .updatedAt(dto.getUpdatedAt())
-                .deletedAt(dto.getDeletedAt())
-                .build();
-    }
-
-
     private ConvPrevDTO mapToConvPrevDTO(ConvPrevEntity entity) {
+        if (entity == null) return null;
+
         return ConvPrevDTO.builder()
                 .id(entity.getId())
                 .name(entity.getName())
-                .intPrev(mapToIntPrevDTO(entity.getIntPrev()))
+                .intPrev(entity.getIntPrev() != null ? mapToIntPrevDTO(entity.getIntPrev()) : null)
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
-                .build();
-    }
-
-    private ConvPrevEntity mapToConvPrevEntity(ConvPrevDTO dto) {
-        return ConvPrevEntity.builder()
-                .id(dto.getId())
-                .name(dto.getName())
-                .intPrev(mapToIntPrevEntity(dto.getIntPrev()))
-                .createdAt(dto.getCreatedAt())
-                .updatedAt(dto.getUpdatedAt())
-                .deletedAt(dto.getDeletedAt())
                 .build();
     }
 
     private IntPrevDTO mapToIntPrevDTO(IntPrevEntity entity) {
+        if (entity == null) return null;
+
         return IntPrevDTO.builder()
                 .id(entity.getId())
                 .name(entity.getName())
@@ -226,50 +157,46 @@ public class ContactServiceImpl implements IContactService {
                 .build();
     }
 
-    private IntPrevEntity mapToIntPrevEntity(IntPrevDTO dto) {
-        return IntPrevEntity.builder()
-                .id(dto.getId())
-                .name(dto.getName())
-                .createdAt(dto.getCreatedAt())
-                .updatedAt(dto.getUpdatedAt())
-                .deletedAt(dto.getDeletedAt())
-                .build();
-    }
-
-
-
+    /* =======================
+       CRUD
+       ======================= */
+    @Override
     public ContactDTO create(ContactDTO dto) {
-        ContactEntity entity = repository.save(mapToEntity(dto));
-        return mapToDTO(entity);
+        ContactEntity entity = mapToEntity(dto);
+        return mapToDTO(repository.save(entity));
     }
 
     @Override
     public ContactDTO update(Integer id, ContactDTO dto) {
         ContactEntity entity = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Task not found"));
+                .orElseThrow(() -> new RuntimeException("Contact not found"));
+
         entity.setName(dto.getName());
         entity.setEmail(dto.getEmail());
         entity.setCellphone(dto.getCellphone());
-        // SOLO si viene postulant con id
+
         if (dto.getPostulant() != null && dto.getPostulant().getId() != null) {
-            PostulantEntity postulantRef = PostulantEntity.builder()
-                    .id(dto.getPostulant().getId())
-                    .build();
-            entity.setPostulant(postulantRef);
+            entity.setPostulant(
+                    PostulantEntity.builder()
+                            .id(dto.getPostulant().getId())
+                            .build()
+            );
         }
+
         return mapToDTO(repository.save(entity));
     }
 
     @Override
     public ContactDTO getById(Integer id) {
-        ContactEntity entity = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Task not found"));
-        return mapToDTO(entity);
+        return repository.findById(id)
+                .map(this::mapToDTO)
+                .orElseThrow(() -> new RuntimeException("Contact not found"));
     }
 
     @Override
     public List<ContactDTO> getAll() {
-        return repository.findAll().stream()
+        return repository.findAll()
+                .stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
@@ -280,47 +207,38 @@ public class ContactServiceImpl implements IContactService {
     }
 
     public Page<ContactDTO> getAllPaginated(Pageable pageable) {
-        return repository.findAllPaginated(pageable)
-                .map(this::mapToDTO);
+        return repository.findAllPaginated(pageable).map(this::mapToDTO);
     }
 
     public Page<ContactDTO> getAllPaginated(String name, Pageable pageable) {
         return repository.search(name, pageable).map(this::mapToDTO);
     }
 
-
-
-
-
-    /*Listar communas activas*/
     public List<ContactDTO> listAll() {
-        return repository.findAllIncludingDeleted().stream()
+        return repository.findAllIncludingDeleted()
+                .stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
-
 
     public List<ContactDTO> listActive() {
-        return repository.findAllActive().stream()
+        return repository.findAllActive()
+                .stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
 
-
-
     public List<ContactDTO> listDeleted() {
-        return repository.findAllDeleted().stream()
+        return repository.findAllDeleted()
+                .stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
 
     public void restore(Integer id) {
         ContactEntity entity = repository.findAnyById(id)
-                .orElseThrow(() -> new RuntimeException("Task not found"));
+                .orElseThrow(() -> new RuntimeException("Contact not found"));
         entity.setDeletedAt(null);
         repository.save(entity);
     }
-    
-    
-    
 }
