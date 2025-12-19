@@ -67,7 +67,8 @@ INSERT INTO diverters(name,created_at,updated_at,deleted_at) VALUES('DEMANDA ESP
 INSERT INTO not_relevants(name,created_at,updated_at,deleted_at) VALUES('POR PREVISION DE SALUD',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
                                                                    ('JURISDICCION',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
                                                                    ('DIAGNOSTICO',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                   ('OTROS',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null);
+                                                                   ('OTROS',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                                   ('NINGUNA',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null);
 
 
 

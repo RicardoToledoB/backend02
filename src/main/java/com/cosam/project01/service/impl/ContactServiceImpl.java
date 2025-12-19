@@ -174,6 +174,7 @@ public class ContactServiceImpl implements IContactService {
         entity.setName(dto.getName());
         entity.setEmail(dto.getEmail());
         entity.setCellphone(dto.getCellphone());
+        entity.setDescription(dto.getDescription());
 
         if (dto.getPostulant() != null && dto.getPostulant().getId() != null) {
             entity.setPostulant(
