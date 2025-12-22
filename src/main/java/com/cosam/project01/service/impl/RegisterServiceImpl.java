@@ -19,24 +19,27 @@ public class RegisterServiceImpl implements IRegisterService {
 
 
     private RegisterDTO mapToDTO(RegisterEntity entity) {
-        return RegisterDTO.builder()
-                .id(entity.getId())
-                .postulant(mapToPostulantDTO(entity.getPostulant()))
-                .contactType(mapToContactTypeDTO(entity.getContactType()))
-                .sender(mapToSenderDTO(entity.getSender()))
-                .diverter(mapToDiverterDTO(entity.getDiverter()))
-                .program(mapToProgramDTO(entity.getProgram()))
-                .user(mapToUserDTO(entity.getUser()))
-                .date_attention(entity.getDate_attention())
-                .description(entity.getDescription())
-                .state(mapToStateDTO(entity.getState()))
-                .is_history(entity.getIs_history())
-                .result(mapToResultDTO(entity.getResult()))
-                .number_tto(entity.getNumber_tto())
-                .createdAt(entity.getCreatedAt())
-                .updatedAt(entity.getUpdatedAt())
-                .deletedAt(entity.getDeletedAt())
-                .build();
+        private RegisterDTO mapToDTO(RegisterEntity entity) {
+            return RegisterDTO.builder()
+                    .id(entity.getId())
+                    .postulant(entity.getPostulant() != null ? mapToPostulantDTO(entity.getPostulant()) : null)
+                    .contactType(entity.getContactType() != null ? mapToContactTypeDTO(entity.getContactType()) : null)
+                    .sender(entity.getSender() != null ? mapToSenderDTO(entity.getSender()) : null)
+                    .diverter(entity.getDiverter() != null ? mapToDiverterDTO(entity.getDiverter()) : null)
+                    .program(entity.getProgram() != null ? mapToProgramDTO(entity.getProgram()) : null)
+                    .user(entity.getUser() != null ? mapToUserDTO(entity.getUser()) : null)
+                    .state(entity.getState() != null ? mapToStateDTO(entity.getState()) : null)
+                    .result(entity.getResult() != null ? mapToResultDTO(entity.getResult()) : null)
+                    .date_attention(entity.getDate_attention())
+                    .description(entity.getDescription())
+                    .number_tto(entity.getNumber_tto())
+                    .is_history(entity.getIs_history())
+                    .createdAt(entity.getCreatedAt())
+                    .updatedAt(entity.getUpdatedAt())
+                    .deletedAt(entity.getDeletedAt())
+                    .build();
+        }
+
     }
 
 
