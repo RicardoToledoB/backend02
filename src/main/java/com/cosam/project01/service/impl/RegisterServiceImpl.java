@@ -29,6 +29,7 @@ public class RegisterServiceImpl implements IRegisterService {
                 .user(entity.getUser() != null ? mapToUserDTO(entity.getUser()) : null)
                 .state(entity.getState() != null ? mapToStateDTO(entity.getState()) : null)
                 .result(entity.getResult() != null ? mapToResultDTO(entity.getResult()) : null)
+                .user(entity.getUser()!= null ? mapToUserDTO(entity.getUser()):null)
                 .date_attention(entity.getDate_attention())
                 .description(entity.getDescription())
                 .number_tto(entity.getNumber_tto())
