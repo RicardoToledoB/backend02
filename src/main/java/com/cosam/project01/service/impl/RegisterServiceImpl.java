@@ -403,36 +403,69 @@ public class RegisterServiceImpl implements IRegisterService {
 
     @Override
     public RegisterDTO update(Integer id, RegisterDTO dto) {
+
         RegisterEntity entity = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Task not found"));
+                .orElseThrow(() -> new RuntimeException("Register not found"));
 
-        /*
-
-                .postulant(mapToPostulantDTO(entity.getPostulant()))
-                .contactType(mapToContactTypeDTO(entity.getContactType()))
-                .sender(mapToSenderDTO(entity.getSender()))
-                .diverter(mapToDiverterDTO(entity.getDiverter()))
-                .program(mapToProgramDTO(entity.getProgram()))
-                .user(mapToUserDTO(entity.getUser()))
-                .date_attention(entity.getDate_attention())
-                .description(entity.getDescription())
-         */
-
-
-        entity.setPostulant(mapToPostulantEntity(dto.getPostulant()));
-        entity.setContactType(mapToContactTypeEntity(dto.getContactType()));
-        entity.setSender(mapToSenderEntity(dto.getSender()));
-        entity.setDiverter(mapToDiverterEntity(dto.getDiverter()));
-        entity.setProgram(mapToProgramEntity(dto.getProgram()));
-        entity.setUser(mapToUserEntity(dto.getUser()));
+        // Campos simples
         entity.setDate_attention(dto.getDate_attention());
         entity.setDescription(dto.getDescription());
-        entity.setState(mapToStateEntity(dto.getState()));
         entity.setNumber_tto(dto.getNumber_tto());
         entity.setIs_history(dto.getIs_history());
-        entity.setResult(mapToResultEntity(dto.getResult()));
-        return mapToDTO(repository.save(entity));
+
+        // Relaciones (solo si vienen)
+        if (dto.getPostulant() != null) {
+            entity.setPostulant(PostulantEntity.builder()
+                    .id(dto.getPostulant().getId())
+                    .build());
+        }
+
+        if (dto.getContactType() != null) {
+            entity.setContactType(ContactTypeEntity.builder()
+                    .id(dto.getContactType().getId())
+                    .build());
+        }
+
+        if (dto.getSender() != null) {
+            entity.setSender(SenderEntity.builder()
+                    .id(dto.getSender().getId())
+                    .build());
+        }
+
+        if (dto.getDiverter() != null) {
+            entity.setDiverter(DiverterEntity.builder()
+                    .id(dto.getDiverter().getId())
+                    .build());
+        }
+
+        if (dto.getProgram() != null) {
+            entity.setProgram(ProgramEntity.builder()
+                    .id(dto.getProgram().getId())
+                    .build());
+        }
+
+        if (dto.getUser() != null) {
+            entity.setUser(UserEntity.builder()
+                    .id(dto.getUser().getId())
+                    .build());
+        }
+
+        if (dto.getState() != null) {
+            entity.setState(StateEntity.builder()
+                    .id(dto.getState().getId())
+                    .build());
+        }
+
+        if (dto.getResult() != null) {
+            entity.setResult(ResultEntity.builder()
+                    .id(dto.getResult().getId())
+                    .build());
+        }
+
+        RegisterEntity saved = repository.save(entity);
+        return mapToDTO(saved);
     }
+
 
     @Override
     public RegisterDTO getById(Integer id) {
