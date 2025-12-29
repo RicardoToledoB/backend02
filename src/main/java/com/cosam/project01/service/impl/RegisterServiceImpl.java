@@ -1,7 +1,7 @@
 package com.cosam.project01.service.impl;
 import com.cosam.project01.dto.*;
 import com.cosam.project01.entity.*;
-import com.cosam.project01.repository.RegisterRepository;
+import com.cosam.project01.repository.*;
 import com.cosam.project01.service.IRegisterService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -17,6 +17,15 @@ public class RegisterServiceImpl implements IRegisterService {
     @Autowired
     private RegisterRepository repository;
 
+    @Autowired private PostulantRepository postulantRepository;
+    @Autowired private ContactTypeRepository contactTypeRepository;
+    @Autowired private SenderRepository senderRepository;
+    @Autowired private DiverterRepository diverterRepository;
+    @Autowired private ProgramRepository programRepository;
+    @Autowired private UserRepository userRepository;
+    @Autowired private StateRepository stateRepository;
+    @Autowired private ResultRepository resultRepository;
+
 
     private RegisterDTO mapToDTO(RegisterEntity entity) {
         return RegisterDTO.builder()
@@ -29,7 +38,6 @@ public class RegisterServiceImpl implements IRegisterService {
                 .user(entity.getUser() != null ? mapToUserDTO(entity.getUser()) : null)
                 .state(entity.getState() != null ? mapToStateDTO(entity.getState()) : null)
                 .result(entity.getResult() != null ? mapToResultDTO(entity.getResult()) : null)
-                .user(entity.getUser()!= null ? mapToUserDTO(entity.getUser()):null)
                 .date_attention(entity.getDate_attention())
                 .description(entity.getDescription())
                 .number_tto(entity.getNumber_tto())
@@ -416,52 +424,52 @@ public class RegisterServiceImpl implements IRegisterService {
         entity.setIs_history(dto.getIs_history());
 
         // Relaciones (solo si vienen)
-        if (dto.getPostulant() != null) {
-            entity.setPostulant(PostulantEntity.builder()
-                    .id(dto.getPostulant().getId())
-                    .build());
+        if (dto.getPostulant() != null && dto.getPostulant().getId() != null) {
+            entity.setPostulant(
+                    postulantRepository.getReferenceById(dto.getPostulant().getId())
+            );
         }
 
-        if (dto.getContactType() != null) {
-            entity.setContactType(ContactTypeEntity.builder()
-                    .id(dto.getContactType().getId())
-                    .build());
+        if (dto.getContactType() != null && dto.getContactType().getId() != null) {
+            entity.setContactType(
+                    contactTypeRepository.getReferenceById(dto.getContactType().getId())
+            );
         }
 
-        if (dto.getSender() != null) {
-            entity.setSender(SenderEntity.builder()
-                    .id(dto.getSender().getId())
-                    .build());
+        if (dto.getSender() != null && dto.getSender().getId() != null) {
+            entity.setSender(
+                    senderRepository.getReferenceById(dto.getSender().getId())
+            );
         }
 
-        if (dto.getDiverter() != null) {
-            entity.setDiverter(DiverterEntity.builder()
-                    .id(dto.getDiverter().getId())
-                    .build());
+        if (dto.getDiverter() != null && dto.getDiverter().getId() != null) {
+            entity.setDiverter(
+                    diverterRepository.getReferenceById(dto.getDiverter().getId())
+            );
         }
 
-        if (dto.getProgram() != null) {
-            entity.setProgram(ProgramEntity.builder()
-                    .id(dto.getProgram().getId())
-                    .build());
+        if (dto.getProgram() != null && dto.getProgram().getId() != null) {
+            entity.setProgram(
+                    programRepository.getReferenceById(dto.getProgram().getId())
+            );
         }
 
-        if (dto.getUser() != null) {
-            entity.setUser(UserEntity.builder()
-                    .id(dto.getUser().getId())
-                    .build());
+        if (dto.getUser() != null && dto.getUser().getId() != null) {
+            entity.setUser(
+                    userRepository.getReferenceById(dto.getUser().getId())
+            );
         }
 
-        if (dto.getState() != null) {
-            entity.setState(StateEntity.builder()
-                    .id(dto.getState().getId())
-                    .build());
+        if (dto.getState() != null && dto.getState().getId() != null) {
+            entity.setState(
+                    stateRepository.getReferenceById(dto.getState().getId())
+            );
         }
 
-        if (dto.getResult() != null) {
-            entity.setResult(ResultEntity.builder()
-                    .id(dto.getResult().getId())
-                    .build());
+        if (dto.getResult() != null && dto.getResult().getId() != null) {
+            entity.setResult(
+                    resultRepository.getReferenceById(dto.getResult().getId())
+            );
         }
 
         RegisterEntity saved = repository.save(entity);
