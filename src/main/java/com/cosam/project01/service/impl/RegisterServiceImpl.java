@@ -119,9 +119,7 @@ public class RegisterServiceImpl implements IRegisterService {
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
-                .contacts(entity.getContacts() != null
-                        ? entity.getContacts().stream().map(this::mapToContactDTO).collect(Collectors.toList())
-                        : null)
+
                 .build();
     }
 
@@ -145,9 +143,7 @@ public class RegisterServiceImpl implements IRegisterService {
        ======================= */
     private ContactEntity mapToContactEntity(ContactDTO dto) {
 
-        if (dto.getPostulant() == null || dto.getPostulant().getId() == null) {
-            throw new IllegalArgumentException("postulant.id es obligatorio");
-        }
+
 
         return ContactEntity.builder()
                 .id(dto.getId())

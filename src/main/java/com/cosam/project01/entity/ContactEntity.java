@@ -25,7 +25,7 @@ public class ContactEntity implements Serializable {
 
     private String name;
     private String description;
-    @ManyToOne(fetch = FetchType.LAZY)
+
 
     private String email;
 
