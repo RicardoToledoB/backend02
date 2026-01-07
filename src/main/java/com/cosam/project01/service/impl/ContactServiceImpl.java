@@ -30,6 +30,11 @@ public class ContactServiceImpl implements IContactService {
                 .email(entity.getEmail())
                 .cellphone(entity.getCellphone())
                 .description(entity.getDescription())
+                .postulant(
+                        entity.getPostulant() != null
+                                ? mapToPostulantDTO(entity.getPostulant())
+                                : null
+                )
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())

@@ -134,11 +134,6 @@ public class RegisterServiceImpl implements IRegisterService {
                 .email(entity.getEmail())
                 .cellphone(entity.getCellphone())
                 .description(entity.getDescription())
-                .postulant(
-                        entity.getPostulant() != null
-                                ? mapToPostulantDTO(entity.getPostulant())
-                                : null
-                )
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
@@ -160,12 +155,6 @@ public class RegisterServiceImpl implements IRegisterService {
                 .email(dto.getEmail())
                 .cellphone(dto.getCellphone())
                 .description(dto.getDescription())
-                // 👉 SOLO referencia por ID
-                .postulant(
-                        PostulantEntity.builder()
-                                .id(dto.getPostulant().getId())
-                                .build()
-                )
                 .build();
     }
 
