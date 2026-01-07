@@ -19,7 +19,7 @@ public class ContactDTO {
     private String description;
     private String email;
     private String cellphone;
-    private PostulantDTO postulant;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;

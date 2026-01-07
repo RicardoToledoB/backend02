@@ -44,8 +44,7 @@ public class PostulantEntity implements Serializable {
     @JoinColumn(name="not_relevant_id")
     private NotRelevantEntity notRelevant;
 
-    @OneToMany(mappedBy = "postulant", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<ContactEntity> contacts;
+
 
     private String firstName;
     private String lastName;

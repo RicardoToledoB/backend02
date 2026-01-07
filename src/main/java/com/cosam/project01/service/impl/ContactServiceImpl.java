@@ -30,11 +30,7 @@ public class ContactServiceImpl implements IContactService {
                 .email(entity.getEmail())
                 .cellphone(entity.getCellphone())
                 .description(entity.getDescription())
-                .postulant(
-                        entity.getPostulant() != null
-                                ? mapToPostulantDTO(entity.getPostulant())
-                                : null
-                )
+
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
@@ -46,9 +42,7 @@ public class ContactServiceImpl implements IContactService {
        ======================= */
     private ContactEntity mapToEntity(ContactDTO dto) {
 
-        if (dto.getPostulant() == null || dto.getPostulant().getId() == null) {
-            throw new IllegalArgumentException("postulant.id es obligatorio");
-        }
+
 
         return ContactEntity.builder()
                 .id(dto.getId())
@@ -57,11 +51,7 @@ public class ContactServiceImpl implements IContactService {
                 .cellphone(dto.getCellphone())
                 .description(dto.getDescription())
                 // 👉 SOLO referencia por ID
-                .postulant(
-                        PostulantEntity.builder()
-                                .id(dto.getPostulant().getId())
-                                .build()
-                )
+
                 .build();
     }
 
@@ -176,13 +166,7 @@ public class ContactServiceImpl implements IContactService {
         entity.setCellphone(dto.getCellphone());
         entity.setDescription(dto.getDescription());
 
-        if (dto.getPostulant() != null && dto.getPostulant().getId() != null) {
-            entity.setPostulant(
-                    PostulantEntity.builder()
-                            .id(dto.getPostulant().getId())
-                            .build()
-            );
-        }
+
 
         return mapToDTO(repository.save(entity));
     }

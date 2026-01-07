@@ -41,9 +41,7 @@ public class PostulantServiceImpl implements IPostulantService {
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
-                .contacts(entity.getContacts() != null
-                        ? entity.getContacts().stream().map(this::mapToContactDTO).collect(Collectors.toList())
-                        : null)
+
                 .build();
     }
 

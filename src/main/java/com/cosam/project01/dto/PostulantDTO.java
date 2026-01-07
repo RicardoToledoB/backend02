@@ -32,7 +32,7 @@ public class PostulantDTO {
     private String phone;
     private String address;
 
-    private List<ContactDTO> contacts;
+
 
     private NotRelevantDTO notRelevant;
 
