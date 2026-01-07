@@ -25,6 +25,7 @@ public class RegisterServiceImpl implements IRegisterService {
     @Autowired private UserRepository userRepository;
     @Autowired private StateRepository stateRepository;
     @Autowired private ResultRepository resultRepository;
+    @Autowired private ContactRepository contactRepository;
 
 
     private RegisterDTO mapToDTO(RegisterEntity entity) {
@@ -39,6 +40,7 @@ public class RegisterServiceImpl implements IRegisterService {
                 .state(entity.getState() != null ? mapToStateDTO(entity.getState()) : null)
                 .result(entity.getResult() != null ? mapToResultDTO(entity.getResult()) : null)
                 .date_attention(entity.getDate_attention())
+                .contact(entity.getContact() != null ? mapToContactDTO(entity.getContact()) : null)
                 .description(entity.getDescription())
                 .number_tto(entity.getNumber_tto())
                 .is_history(entity.getIs_history())
@@ -94,6 +96,8 @@ public class RegisterServiceImpl implements IRegisterService {
                 .build();
     }
 
+
+
     private PostulantDTO mapToPostulantDTO(PostulantEntity entity) {
 
 
@@ -122,15 +126,46 @@ public class RegisterServiceImpl implements IRegisterService {
     }
 
     private ContactDTO mapToContactDTO(ContactEntity entity) {
+        if (entity == null) return null;
+
         return ContactDTO.builder()
                 .id(entity.getId())
                 .name(entity.getName())
-                .cellphone(entity.getCellphone())
                 .email(entity.getEmail())
+                .cellphone(entity.getCellphone())
                 .description(entity.getDescription())
+                .postulant(
+                        entity.getPostulant() != null
+                                ? mapToPostulantDTO(entity.getPostulant())
+                                : null
+                )
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
+                .build();
+    }
+
+    /* =======================
+       MAP DTO -> ENTITY (CREATE)
+       ======================= */
+    private ContactEntity mapToContactEntity(ContactDTO dto) {
+
+        if (dto.getPostulant() == null || dto.getPostulant().getId() == null) {
+            throw new IllegalArgumentException("postulant.id es obligatorio");
+        }
+
+        return ContactEntity.builder()
+                .id(dto.getId())
+                .name(dto.getName())
+                .email(dto.getEmail())
+                .cellphone(dto.getCellphone())
+                .description(dto.getDescription())
+                // 👉 SOLO referencia por ID
+                .postulant(
+                        PostulantEntity.builder()
+                                .id(dto.getPostulant().getId())
+                                .build()
+                )
                 .build();
     }
 
@@ -469,6 +504,12 @@ public class RegisterServiceImpl implements IRegisterService {
         if (dto.getResult() != null && dto.getResult().getId() != null) {
             entity.setResult(
                     resultRepository.getReferenceById(dto.getResult().getId())
+            );
+        }
+
+        if (dto.getContact() != null && dto.getContact().getId() != null) {
+            entity.setContact(
+                    contactRepository.getReferenceById(dto.getContact().getId())
             );
         }
 

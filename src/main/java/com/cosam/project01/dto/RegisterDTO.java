@@ -1,4 +1,5 @@
 package com.cosam.project01.dto;
+import com.cosam.project01.entity.ContactEntity;
 import com.cosam.project01.entity.ResultEntity;
 import com.cosam.project01.entity.StateEntity;
 import lombok.AllArgsConstructor;
@@ -29,6 +30,7 @@ public class RegisterDTO {
 
     private DiverterDTO diverter;
 
+    private ContactDTO contact;
 
     private ProgramDTO program;
 

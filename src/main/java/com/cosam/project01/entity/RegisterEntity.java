@@ -66,7 +66,9 @@ public class RegisterEntity implements Serializable {
 
     private String description;
 
-
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name="contact")
+    private ContactEntity contact;
 
     private String is_history;
 
