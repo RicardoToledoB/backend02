@@ -65,6 +65,7 @@ public class RegisterServiceImpl implements IRegisterService {
                 .date_attention(dto.getDate_attention())
                 .description(dto.getDescription())
                 .state(mapToStateEntity(dto.getState()))
+                .contact(dto.getContact() != null ? mapToContactEntity(dto.getContact()) : null)
                 .number_tto(dto.getNumber_tto())
                 .is_history(dto.getIs_history())
                 .result(mapToResultEntity(dto.getResult()))
