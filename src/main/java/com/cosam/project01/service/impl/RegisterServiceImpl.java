@@ -428,8 +428,42 @@ public class RegisterServiceImpl implements IRegisterService {
     
 
     public RegisterDTO create(RegisterDTO dto) {
-        RegisterEntity entity = repository.save(mapToEntity(dto));
-        return mapToDTO(entity);
+        RegisterEntity entity = new RegisterEntity();
+
+        entity.setDate_attention(dto.getDate_attention());
+        entity.setDescription(dto.getDescription());
+        entity.setNumber_tto(dto.getNumber_tto());
+        entity.setIs_history(dto.getIs_history());
+
+        if (dto.getPostulant() != null && dto.getPostulant().getId() != null)
+            entity.setPostulant(postulantRepository.getReferenceById(dto.getPostulant().getId()));
+
+        if (dto.getContactType() != null && dto.getContactType().getId() != null)
+            entity.setContactType(contactTypeRepository.getReferenceById(dto.getContactType().getId()));
+
+        if (dto.getSender() != null && dto.getSender().getId() != null)
+            entity.setSender(senderRepository.getReferenceById(dto.getSender().getId()));
+
+        if (dto.getDiverter() != null && dto.getDiverter().getId() != null)
+            entity.setDiverter(diverterRepository.getReferenceById(dto.getDiverter().getId()));
+
+        if (dto.getProgram() != null && dto.getProgram().getId() != null)
+            entity.setProgram(programRepository.getReferenceById(dto.getProgram().getId()));
+
+        if (dto.getUser() != null && dto.getUser().getId() != null)
+            entity.setUser(userRepository.getReferenceById(dto.getUser().getId()));
+
+        if (dto.getState() != null && dto.getState().getId() != null)
+            entity.setState(stateRepository.getReferenceById(dto.getState().getId()));
+
+        if (dto.getResult() != null && dto.getResult().getId() != null)
+            entity.setResult(resultRepository.getReferenceById(dto.getResult().getId()));
+
+        if (dto.getContact() != null && dto.getContact().getId() != null)
+            entity.setContact(contactRepository.getReferenceById(dto.getContact().getId()));
+
+        RegisterEntity saved = repository.save(entity);
+        return mapToDTO(saved);
     }
 
     @Override
