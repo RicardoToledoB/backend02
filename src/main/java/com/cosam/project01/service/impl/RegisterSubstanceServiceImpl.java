@@ -16,41 +16,43 @@ import java.util.stream.Collectors;
 @Service
 public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
 
-    /*
-   private SubstanceDTO substance;
-   private RegisterDTO register;
-    */
-
     @Autowired
     private RegisterSubstanceRepository repository;
 
+    /* =========================
+       MAPPERS (NULL-SAFE)
+       ========================= */
 
     private RegisterSubstanceDTO mapToDTO(RegisterSubstanceEntity entity) {
+        if (entity == null) return null;
+
         return RegisterSubstanceDTO.builder()
                 .id(entity.getId())
                 .register(mapToRegisterDTO(entity.getRegister()))
                 .substance(mapToSubstanceDTO(entity.getSubstance()))
-                .createdAt(entity.getCreatedAt())
                 .level(entity.getLevel())
+                .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
                 .build();
     }
 
     private RegisterSubstanceEntity mapToEntity(RegisterSubstanceDTO dto) {
+        if (dto == null) return null;
+
         return RegisterSubstanceEntity.builder()
                 .id(dto.getId())
                 .register(mapToRegisterEntity(dto.getRegister()))
                 .substance(mapToSubstanceEntity(dto.getSubstance()))
                 .level(dto.getLevel())
-                .createdAt(dto.getCreatedAt())
-                .updatedAt(dto.getUpdatedAt())
+                // NO seteamos createdAt/updatedAt: lo manejan @PrePersist/@PreUpdate
                 .deletedAt(dto.getDeletedAt())
                 .build();
     }
 
-
     private RegisterDTO mapToRegisterDTO(RegisterEntity entity) {
+        if (entity == null) return null;
+
         return RegisterDTO.builder()
                 .id(entity.getId())
                 .postulant(mapToPostulantDTO(entity.getPostulant()))
@@ -70,7 +72,7 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
     private RegisterEntity mapToRegisterEntity(RegisterDTO dto) {
         if (dto == null) return null;
 
-        // si solo viene el ID, crea referencia mínima
+        // si viene solo el ID (caso recomendado para POST/PUT), crea referencia mínima
         if (dto.getId() != null &&
                 dto.getPostulant() == null &&
                 dto.getContactType() == null &&
@@ -100,11 +102,8 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
                 .build();
     }
 
-
-    /*FIN MAPEO PRINCIPAL*/
-
     private PostulantDTO mapToPostulantDTO(PostulantEntity entity) {
-
+        if (entity == null) return null;
 
         return PostulantDTO.builder()
                 .id(entity.getId())
@@ -127,6 +126,16 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
     }
 
     private PostulantEntity mapToPostulantEntity(PostulantDTO dto) {
+        if (dto == null) return null;
+
+        // si viene solo el ID, referencia mínima
+        if (dto.getId() != null &&
+                dto.getUser() == null &&
+                dto.getCommune() == null &&
+                dto.getSex() == null) {
+            return PostulantEntity.builder().id(dto.getId()).build();
+        }
+
         return PostulantEntity.builder()
                 .id(dto.getId())
                 .user(mapToUserEntity(dto.getUser()))
@@ -148,6 +157,13 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
     }
 
     private SexEntity mapToSexEntity(SexDTO dto) {
+        if (dto == null) return null;
+
+        // referencia mínima si viene solo ID
+        if (dto.getId() != null && dto.getName() == null) {
+            return SexEntity.builder().id(dto.getId()).build();
+        }
+
         return SexEntity.builder()
                 .id(dto.getId())
                 .name(dto.getName())
@@ -157,9 +173,8 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
                 .build();
     }
 
-
     private SexDTO mapToSexDTO(SexEntity entity) {
-
+        if (entity == null) return null;
 
         return SexDTO.builder()
                 .id(entity.getId())
@@ -170,12 +185,8 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
                 .build();
     }
 
-
-
-
-
     private CommuneDTO mapToCommuneDTO(CommuneEntity entity) {
-
+        if (entity == null) return null;
 
         return CommuneDTO.builder()
                 .id(entity.getId())
@@ -187,6 +198,13 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
     }
 
     private CommuneEntity mapToCommuneEntity(CommuneDTO dto) {
+        if (dto == null) return null;
+
+        // referencia mínima si viene solo ID
+        if (dto.getId() != null && dto.getName() == null) {
+            return CommuneEntity.builder().id(dto.getId()).build();
+        }
+
         return CommuneEntity.builder()
                 .id(dto.getId())
                 .name(dto.getName())
@@ -196,9 +214,9 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
                 .build();
     }
 
-
-
     private UserDTO mapToUserDTO(UserEntity entity) {
+        if (entity == null) return null;
+
         return UserDTO.builder()
                 .id(entity.getId())
                 .firstName(entity.getFirstName())
@@ -207,7 +225,8 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
                 .secondLastName(entity.getSecondLastName())
                 .email(entity.getEmail())
                 .username(entity.getUsername())
-                .password(entity.getPassword())
+                // IMPORTANTE: no exponer password en respuestas
+                // .password(entity.getPassword())
                 .rut(entity.getRut())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
@@ -216,6 +235,16 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
     }
 
     private UserEntity mapToUserEntity(UserDTO dto) {
+        if (dto == null) return null;
+
+        // referencia mínima si viene solo ID/username/email (ajusta si tu UserEntity requiere algo)
+        if (dto.getId() != null &&
+                dto.getFirstName() == null &&
+                dto.getUsername() == null &&
+                dto.getEmail() == null) {
+            return UserEntity.builder().id(dto.getId()).build();
+        }
+
         return UserEntity.builder()
                 .id(dto.getId())
                 .firstName(dto.getFirstName())
@@ -233,7 +262,7 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
     }
 
     private ProgramDTO mapToProgramDTO(ProgramEntity entity) {
-
+        if (entity == null) return null;
 
         return ProgramDTO.builder()
                 .id(entity.getId())
@@ -245,6 +274,13 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
     }
 
     private ProgramEntity mapToProgramEntity(ProgramDTO dto) {
+        if (dto == null) return null;
+
+        // referencia mínima si viene solo ID
+        if (dto.getId() != null && dto.getName() == null) {
+            return ProgramEntity.builder().id(dto.getId()).build();
+        }
+
         return ProgramEntity.builder()
                 .id(dto.getId())
                 .name(dto.getName())
@@ -254,8 +290,9 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
                 .build();
     }
 
-
     private ContactTypeDTO mapToContactTypeDTO(ContactTypeEntity entity) {
+        if (entity == null) return null;
+
         return ContactTypeDTO.builder()
                 .id(entity.getId())
                 .name(entity.getName())
@@ -266,6 +303,13 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
     }
 
     private ContactTypeEntity mapToContactTypeEntity(ContactTypeDTO dto) {
+        if (dto == null) return null;
+
+        // referencia mínima si viene solo ID
+        if (dto.getId() != null && dto.getName() == null) {
+            return ContactTypeEntity.builder().id(dto.getId()).build();
+        }
+
         return ContactTypeEntity.builder()
                 .id(dto.getId())
                 .name(dto.getName())
@@ -275,8 +319,9 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
                 .build();
     }
 
-
     private SenderDTO mapToSenderDTO(SenderEntity entity) {
+        if (entity == null) return null;
+
         return SenderDTO.builder()
                 .id(entity.getId())
                 .name(entity.getName())
@@ -287,6 +332,13 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
     }
 
     private SenderEntity mapToSenderEntity(SenderDTO dto) {
+        if (dto == null) return null;
+
+        // referencia mínima si viene solo ID
+        if (dto.getId() != null && dto.getName() == null) {
+            return SenderEntity.builder().id(dto.getId()).build();
+        }
+
         return SenderEntity.builder()
                 .id(dto.getId())
                 .name(dto.getName())
@@ -297,6 +349,8 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
     }
 
     private DiverterDTO mapToDiverterDTO(DiverterEntity entity) {
+        if (entity == null) return null;
+
         return DiverterDTO.builder()
                 .id(entity.getId())
                 .name(entity.getName())
@@ -307,6 +361,13 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
     }
 
     private DiverterEntity mapToDiverterEntity(DiverterDTO dto) {
+        if (dto == null) return null;
+
+        // referencia mínima si viene solo ID
+        if (dto.getId() != null && dto.getName() == null) {
+            return DiverterEntity.builder().id(dto.getId()).build();
+        }
+
         return DiverterEntity.builder()
                 .id(dto.getId())
                 .name(dto.getName())
@@ -316,8 +377,9 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
                 .build();
     }
 
-
     private SubstanceDTO mapToSubstanceDTO(SubstanceEntity entity) {
+        if (entity == null) return null;
+
         return SubstanceDTO.builder()
                 .id(entity.getId())
                 .name(entity.getName())
@@ -340,9 +402,9 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
                 .build();
     }
 
-
-
-
+    /* =========================
+       CRUD
+       ========================= */
 
     public RegisterSubstanceDTO create(RegisterSubstanceDTO dto) {
         RegisterSubstanceEntity entity = repository.save(mapToEntity(dto));
@@ -352,12 +414,11 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
     @Override
     public RegisterSubstanceDTO update(Integer id, RegisterSubstanceDTO dto) {
         RegisterSubstanceEntity entity = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Task not found"));
+                .orElseThrow(() -> new RuntimeException("RegisterSubstance not found"));
 
-
-                entity.setRegister(mapToRegisterEntity(dto.getRegister()));
-                entity.setSubstance(mapToSubstanceEntity(dto.getSubstance()));
-                entity.setLevel(dto.getLevel());
+        entity.setRegister(mapToRegisterEntity(dto != null ? dto.getRegister() : null));
+        entity.setSubstance(mapToSubstanceEntity(dto != null ? dto.getSubstance() : null));
+        entity.setLevel(dto != null ? dto.getLevel() : null);
 
         return mapToDTO(repository.save(entity));
     }
@@ -365,7 +426,7 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
     @Override
     public RegisterSubstanceDTO getById(Integer id) {
         RegisterSubstanceEntity entity = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Task not found"));
+                .orElseThrow(() -> new RuntimeException("RegisterSubstance not found"));
         return mapToDTO(entity);
     }
 
@@ -382,33 +443,24 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
     }
 
     public Page<RegisterSubstanceDTO> getAllPaginated(Pageable pageable) {
-        return repository.findAllPaginated(pageable)
-                .map(this::mapToDTO);
+        return repository.findAllPaginated(pageable).map(this::mapToDTO);
     }
 
     public Page<RegisterSubstanceDTO> getAllPaginated(Integer id, Pageable pageable) {
         return repository.search(id, pageable).map(this::mapToDTO);
     }
 
-
-
-
-
-    /*Listar communas activas*/
     public List<RegisterSubstanceDTO> listAll() {
         return repository.findAllIncludingDeleted().stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
 
-
     public List<RegisterSubstanceDTO> listActive() {
         return repository.findAllActive().stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
-
-
 
     public List<RegisterSubstanceDTO> listDeleted() {
         return repository.findAllDeleted().stream()
@@ -418,19 +470,17 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
 
     public void restore(Integer id) {
         RegisterSubstanceEntity entity = repository.findAnyById(id)
-                .orElseThrow(() -> new RuntimeException("Task not found"));
+                .orElseThrow(() -> new RuntimeException("RegisterSubstance not found"));
         entity.setDeletedAt(null);
         repository.save(entity);
     }
 
     public Page<RegisterSubstanceDTO> searchByRegisterId(Integer registerId, Pageable pageable) {
-        return repository.searchByRegisterId(registerId, pageable)
-                .map(this::mapToDTO);
+        return repository.searchByRegisterId(registerId, pageable).map(this::mapToDTO);
     }
 
     @Transactional
     public int deleteByRegisterId(Integer registerId) {
         return repository.softDeleteByRegisterId(registerId);
     }
-
 }
