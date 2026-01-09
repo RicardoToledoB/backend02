@@ -68,14 +68,30 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
     }
 
     private RegisterEntity mapToRegisterEntity(RegisterDTO dto) {
+        if (dto == null) return null;
+
+        // si solo viene el ID, crea referencia mínima
+        if (dto.getId() != null &&
+                dto.getPostulant() == null &&
+                dto.getContactType() == null &&
+                dto.getSender() == null &&
+                dto.getDiverter() == null &&
+                dto.getProgram() == null &&
+                dto.getUser() == null) {
+
+            return RegisterEntity.builder()
+                    .id(dto.getId())
+                    .build();
+        }
+
         return RegisterEntity.builder()
                 .id(dto.getId())
-                .postulant(mapToPostulantEntity(dto.getPostulant()))
-                .contactType(mapToContactTypeEntity(dto.getContactType()))
-                .sender(mapToSenderEntity(dto.getSender()))
-                .diverter(mapToDiverterEntity(dto.getDiverter()))
-                .program(mapToProgramEntity(dto.getProgram()))
-                .user(mapToUserEntity(dto.getUser()))
+                .postulant(dto.getPostulant() != null ? mapToPostulantEntity(dto.getPostulant()) : null)
+                .contactType(dto.getContactType() != null ? mapToContactTypeEntity(dto.getContactType()) : null)
+                .sender(dto.getSender() != null ? mapToSenderEntity(dto.getSender()) : null)
+                .diverter(dto.getDiverter() != null ? mapToDiverterEntity(dto.getDiverter()) : null)
+                .program(dto.getProgram() != null ? mapToProgramEntity(dto.getProgram()) : null)
+                .user(dto.getUser() != null ? mapToUserEntity(dto.getUser()) : null)
                 .date_attention(dto.getDate_attention())
                 .description(dto.getDescription())
                 .createdAt(dto.getCreatedAt())
@@ -83,6 +99,7 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
                 .deletedAt(dto.getDeletedAt())
                 .build();
     }
+
 
     /*FIN MAPEO PRINCIPAL*/
 
@@ -308,11 +325,21 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
     }
 
     private SubstanceEntity mapToSubstanceEntity(SubstanceDTO dto) {
+        if (dto == null) return null;
+
+        // solo ID → referencia mínima
+        if (dto.getId() != null && dto.getName() == null) {
+            return SubstanceEntity.builder()
+                    .id(dto.getId())
+                    .build();
+        }
+
         return SubstanceEntity.builder()
                 .id(dto.getId())
                 .name(dto.getName())
                 .build();
     }
+
 
 
 
