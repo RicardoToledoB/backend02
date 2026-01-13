@@ -24,7 +24,7 @@ public class RegisterMovementController {
     private RegisterMovementServiceImpl service;
 
     @PostMapping
-    public ResponseEntity<RegisterMovementDTO> create(@RequestBody RegisterMovementDTO dto) {
+    public ResponseEntity<RegisterMovementDTO> create(@RequestBody  RegisterMovementDTO dto) {
         return ResponseEntity.ok(service.create(dto));
     }
 
