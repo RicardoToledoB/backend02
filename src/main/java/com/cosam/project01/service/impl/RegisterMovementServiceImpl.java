@@ -52,17 +52,19 @@ public class RegisterMovementServiceImpl implements IRegisterMovementService {
     private RegisterDTO mapToRegisterDTO(RegisterEntity entity) {
         return RegisterDTO.builder()
                 .id(entity.getId())
-                .postulant(mapToPostulantDTO(entity.getPostulant()))
-                .contactType(mapToContactTypeDTO(entity.getContactType()))
-                .sender(mapToSenderDTO(entity.getSender()))
-                .diverter(mapToDiverterDTO(entity.getDiverter()))
-                .program(mapToProgramDTO(entity.getProgram()))
-                .user(mapToUserDTO(entity.getUser()))
+                .postulant(entity.getPostulant() != null ? mapToPostulantDTO(entity.getPostulant()) : null)
+                .contactType(entity.getContactType() != null ? mapToContactTypeDTO(entity.getContactType()) : null)
+                .sender(entity.getSender() != null ? mapToSenderDTO(entity.getSender()) : null)
+                .diverter(entity.getDiverter() != null ? mapToDiverterDTO(entity.getDiverter()) : null)
+                .program(entity.getProgram() != null ? mapToProgramDTO(entity.getProgram()) : null)
+                .user(entity.getUser() != null ? mapToUserDTO(entity.getUser()) : null)
+                .state(entity.getState() != null ? mapToStateDTO(entity.getState()) : null)
+                .result(entity.getResult() != null ? mapToResultDTO(entity.getResult()) : null)
                 .date_attention(entity.getDate_attention())
+                .contact(entity.getContact() != null ? mapToContactDTO(entity.getContact()) : null)
                 .description(entity.getDescription())
-                .state(mapToStateDTO(entity.getState()))
-                .is_history(entity.getIs_history())
                 .number_tto(entity.getNumber_tto())
+                .is_history(entity.getIs_history())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
@@ -71,18 +73,21 @@ public class RegisterMovementServiceImpl implements IRegisterMovementService {
 
 
 
+
     private RegisterEntity mapToRegisterEntity(RegisterDTO dto) {
         return RegisterEntity.builder()
                 .id(dto.getId())
-                .postulant(mapToPostulantEntity(dto.getPostulant()))
-                .contactType(mapToContactTypeEntity(dto.getContactType()))
-                .sender(mapToSenderEntity(dto.getSender()))
-                .diverter(mapToDiverterEntity(dto.getDiverter()))
-                .program(mapToProgramEntity(dto.getProgram()))
-                .user(mapToUserEntity(dto.getUser()))
+                .postulant(dto.getPostulant() != null ? mapToPostulantEntity(dto.getPostulant()) : null)
+                .contactType(dto.getContactType() != null ? mapToContactTypeEntity(dto.getContactType()) : null)
+                .sender(dto.getSender() != null ? mapToSenderEntity(dto.getSender()) : null)
+                .diverter(dto.getDiverter() != null ? mapToDiverterEntity(dto.getDiverter()) : null)
+                .program(dto.getProgram() != null ? mapToProgramEntity(dto.getProgram()) : null)
+                .user(dto.getUser() != null ? mapToUserEntity(dto.getUser()) : null)
+                .state(dto.getState() != null ? mapToStateEntity(dto.getState()) : null)
+                .result(dto.getResult() != null ? mapToResultEntity(dto.getResult()) : null)
                 .date_attention(dto.getDate_attention())
+                .contact(dto.getContact() != null ? mapToContactEntity(dto.getContact()) : null)
                 .description(dto.getDescription())
-                .state(mapToStateEntity(dto.getState()))
                 .number_tto(dto.getNumber_tto())
                 .is_history(dto.getIs_history())
                 .createdAt(dto.getCreatedAt())
@@ -113,6 +118,8 @@ public class RegisterMovementServiceImpl implements IRegisterMovementService {
                 .build();
     }
 
+
+
     private PostulantDTO mapToPostulantDTO(PostulantEntity entity) {
 
 
@@ -127,12 +134,45 @@ public class RegisterMovementServiceImpl implements IRegisterMovementService {
                 .rut(entity.getRut())
                 .firstName(entity.getFirstName())
                 .lastName(entity.getLastName())
+                .convPrev(mapToConvPrevDTO(entity.getConvPrev()))
                 .secondLastName(entity.getSecondLastName())
                 .firstLastName(entity.getFirstLastName())
                 .birthdate(entity.getBirthdate())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
+
+                .build();
+    }
+
+    private ContactDTO mapToContactDTO(ContactEntity entity) {
+        if (entity == null) return null;
+
+        return ContactDTO.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .email(entity.getEmail())
+                .cellphone(entity.getCellphone())
+                .description(entity.getDescription())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .deletedAt(entity.getDeletedAt())
+                .build();
+    }
+
+    /* =======================
+       MAP DTO -> ENTITY (CREATE)
+       ======================= */
+    private ContactEntity mapToContactEntity(ContactDTO dto) {
+
+
+
+        return ContactEntity.builder()
+                .id(dto.getId())
+                .name(dto.getName())
+                .email(dto.getEmail())
+                .cellphone(dto.getCellphone())
+                .description(dto.getDescription())
                 .build();
     }
 
@@ -148,6 +188,7 @@ public class RegisterMovementServiceImpl implements IRegisterMovementService {
                 .rut(dto.getRut())
                 .firstName(dto.getFirstName())
                 .lastName(dto.getLastName())
+                .convPrev(mapToConvPrevEntity(dto.getConvPrev()))
                 .secondLastName(dto.getSecondLastName())
                 .firstLastName(dto.getFirstLastName())
                 .birthdate(dto.getBirthdate())
@@ -156,6 +197,51 @@ public class RegisterMovementServiceImpl implements IRegisterMovementService {
                 .deletedAt(dto.getDeletedAt())
                 .build();
     }
+
+
+    private ConvPrevDTO mapToConvPrevDTO(ConvPrevEntity entity) {
+        return ConvPrevDTO.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .intPrev(mapToIntPrevDTO(entity.getIntPrev()))
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .deletedAt(entity.getDeletedAt())
+                .build();
+    }
+
+    private ConvPrevEntity mapToConvPrevEntity(ConvPrevDTO dto) {
+        return ConvPrevEntity.builder()
+                .id(dto.getId())
+                .name(dto.getName())
+                .intPrev(mapToIntPrevEntity(dto.getIntPrev()))
+                .createdAt(dto.getCreatedAt())
+                .updatedAt(dto.getUpdatedAt())
+                .deletedAt(dto.getDeletedAt())
+                .build();
+    }
+
+
+    private IntPrevDTO mapToIntPrevDTO(IntPrevEntity entity) {
+        return IntPrevDTO.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .deletedAt(entity.getDeletedAt())
+                .build();
+    }
+
+    private IntPrevEntity mapToIntPrevEntity(IntPrevDTO dto) {
+        return IntPrevEntity.builder()
+                .id(dto.getId())
+                .name(dto.getName())
+                .createdAt(dto.getCreatedAt())
+                .updatedAt(dto.getUpdatedAt())
+                .deletedAt(dto.getDeletedAt())
+                .build();
+    }
+
 
     private SexEntity mapToSexEntity(SexDTO dto) {
         return SexEntity.builder()
@@ -326,6 +412,42 @@ public class RegisterMovementServiceImpl implements IRegisterMovementService {
                 .build();
     }
 
+
+
+
+    /*
+
+
+
+
+
+    private String date_attention;
+
+    private String description;
+
+    */
+
+    private ResultDTO mapToResultDTO(ResultEntity entity) {
+        return ResultDTO.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .deletedAt(entity.getDeletedAt())
+                .build();
+    }
+
+    private ResultEntity mapToResultEntity(ResultDTO dto) {
+        return ResultEntity.builder()
+                .id(dto.getId())
+                .name(dto.getName())
+                .createdAt(dto.getCreatedAt())
+                .updatedAt(dto.getUpdatedAt())
+                .deletedAt(dto.getDeletedAt())
+                .build();
+    }
+
+
     private ProfessionDTO mapToProfessionDTO(ProfessionEntity entity) {
         return ProfessionDTO.builder()
                 .id(entity.getId())
@@ -345,7 +467,6 @@ public class RegisterMovementServiceImpl implements IRegisterMovementService {
                 .deletedAt(dto.getDeletedAt())
                 .build();
     }
-
 
     public RegisterMovementDTO create(RegisterMovementDTO dto) {
         RegisterMovementEntity entity = repository.save(mapToEntity(dto));
