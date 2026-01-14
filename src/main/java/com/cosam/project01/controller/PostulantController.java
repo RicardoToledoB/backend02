@@ -23,7 +23,7 @@ public class PostulantController {
     // ========================
     // CREATE
     // ========================
-    @PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO','SUPERVISOR')")
     @PostMapping
     public ResponseEntity<PostulantDTO> create(@RequestBody PostulantDTO dto) {
         return ResponseEntity.ok(service.create(dto));
@@ -32,25 +32,25 @@ public class PostulantController {
     // ========================
     // READ
     // ========================
-    @PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO','SUPERVISOR')")
     @GetMapping("/{id}")
     public ResponseEntity<PostulantDTO> getById(@PathVariable Integer id) {
         return ResponseEntity.ok(service.getById(id));
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO','SUPERVISOR')")
     @GetMapping
     public ResponseEntity<List<PostulantDTO>> listActive() {
         return ResponseEntity.ok(service.listActive());
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO','SUPERVISOR')")
     @GetMapping("/all")
     public ResponseEntity<List<PostulantDTO>> getAll() {
         return ResponseEntity.ok(service.listAll());
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO','SUPERVISOR')")
     @GetMapping("/getAllPaginated")
     public ResponseEntity<Page<PostulantDTO>> getAllPaginated(
             @RequestParam(required = false) String name,
@@ -60,7 +60,7 @@ public class PostulantController {
         return ResponseEntity.ok(service.getAllPaginated(name, pageable));
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO','SUPERVISOR')")
     @GetMapping("/searchByRut")
     public ResponseEntity<Page<PostulantDTO>> searchByRut(
             @RequestParam(required = false) String rut,
@@ -73,7 +73,7 @@ public class PostulantController {
     // ========================
     // UPDATE
     // ========================
-    @PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO','SUPERVISOR')")
     @PutMapping("/{id}")
     public ResponseEntity<PostulantDTO> update(
             @PathVariable Integer id,
@@ -85,20 +85,20 @@ public class PostulantController {
     // ========================
     // SOFT DELETE (ADMIN)
     // ========================
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO','SUPERVISOR')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         service.delete(id);
         return ResponseEntity.noContent().build();
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO','SUPERVISOR')")
     @GetMapping("/deleted")
     public ResponseEntity<List<PostulantDTO>> listDeleted() {
         return ResponseEntity.ok(service.listDeleted());
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO','SUPERVISOR')")
     @PostMapping("/{id}/restore")
     public ResponseEntity<Void> restore(@PathVariable Integer id) {
         service.restore(id);
