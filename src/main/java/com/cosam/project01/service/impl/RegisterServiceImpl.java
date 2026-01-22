@@ -26,6 +26,8 @@ public class RegisterServiceImpl implements IRegisterService {
     @Autowired private StateRepository stateRepository;
     @Autowired private ResultRepository resultRepository;
     @Autowired private ContactRepository contactRepository;
+    @Autowired private NotRelevantRepository notRelevantRepository;
+
 
 
     private RegisterDTO mapToDTO(RegisterEntity entity) {
@@ -45,12 +47,31 @@ public class RegisterServiceImpl implements IRegisterService {
                 .number_tto(entity.getNumber_tto())
                 .is_history(entity.getIs_history())
                 .createdAt(entity.getCreatedAt())
+                .notRelevant(entity.getNotRelevant() != null ? mapToNotRelevantDTO(entity.getNotRelevant()) : null)
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
                 .build();
     }
 
+    private NotRelevantDTO mapToNotRelevantDTO(NotRelevantEntity entity) {
+        return NotRelevantDTO.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .deletedAt(entity.getDeletedAt())
+                .build();
+    }
 
+    private NotRelevantEntity mapToNotRelevantEntity(NotRelevantDTO dto) {
+        return NotRelevantEntity.builder()
+                .id(dto.getId())
+                .name(dto.getName())
+                .createdAt(dto.getCreatedAt())
+                .updatedAt(dto.getUpdatedAt())
+                .deletedAt(dto.getDeletedAt())
+                .build();
+    }
 
 
     private RegisterEntity mapToEntity(RegisterDTO dto) {
@@ -462,6 +483,9 @@ public class RegisterServiceImpl implements IRegisterService {
         if (dto.getContact() != null && dto.getContact().getId() != null)
             entity.setContact(contactRepository.getReferenceById(dto.getContact().getId()));
 
+        if (dto.getNotRelevant() != null && dto.getNotRelevant().getId() != null)
+            entity.setNotRelevant(notRelevantRepository.getReferenceById(dto.getNotRelevant().getId()));
+
         RegisterEntity saved = repository.save(entity);
         return mapToDTO(saved);
     }
@@ -530,6 +554,12 @@ public class RegisterServiceImpl implements IRegisterService {
         if (dto.getContact() != null && dto.getContact().getId() != null) {
             entity.setContact(
                     contactRepository.getReferenceById(dto.getContact().getId())
+            );
+        }
+
+        if (dto.getNotRelevant() != null && dto.getNotRelevant().getId() != null) {
+            entity.setNotRelevant(
+                    notRelevantRepository.getReferenceById(dto.getNotRelevant().getId())
             );
         }
 
