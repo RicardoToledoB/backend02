@@ -34,12 +34,6 @@ INSERT INTO substances(name,created_at,updated_at,deleted_at) VALUES('ALCOHOL',C
                                                               ('ALUCINOGENOS',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
                                                               ('OTROS',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null);
 
-INSERT INTO contacts_types(name,created_at,updated_at,deleted_at) VALUES('PRESENCIAL',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                    ('TELEFONICA',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                    ('CORREO POSTAL',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                    ('DIGITAL',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                    ('OTROS',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null);
-
 
 INSERT INTO senders(name,created_at,updated_at,deleted_at) VALUES('USUARIO DIRECTAMENTE',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
                                                                         ('FAMILIAR',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
