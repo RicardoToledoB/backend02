@@ -36,7 +36,6 @@ public class PostulantServiceImpl implements IPostulantService {
                 .lastName(entity.getLastName())
                 .secondLastName(entity.getSecondLastName())
                 .firstLastName(entity.getFirstLastName())
-                .notRelevant(mapToNotRelevantDTO(entity.getNotRelevant()))
                 .birthdate(entity.getBirthdate())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
@@ -74,7 +73,6 @@ public class PostulantServiceImpl implements IPostulantService {
                 .secondLastName(dto.getSecondLastName())
                 .firstLastName(dto.getFirstLastName())
                 .birthdate(dto.getBirthdate())
-                .notRelevant(mapToRelevantEntity(dto.getNotRelevant()))
                 .createdAt(dto.getCreatedAt())
                 .updatedAt(dto.getUpdatedAt())
                 .deletedAt(dto.getDeletedAt())
@@ -284,7 +282,6 @@ public class PostulantServiceImpl implements IPostulantService {
                 entity.setFirstLastName(dto.getFirstLastName());
                 entity.setSecondLastName(dto.getSecondLastName());
                 entity.setSex(mapToSexEntity(dto.getSex()));
-                entity.setNotRelevant(mapToRelevantEntity(dto.getNotRelevant()));
 
         return mapToDTO(repository.save(entity));
     }

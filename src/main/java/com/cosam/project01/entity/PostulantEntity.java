@@ -40,9 +40,7 @@ public class PostulantEntity implements Serializable {
     @JoinColumn(name="conv_prev_id")
     private ConvPrevEntity convPrev;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name="not_relevant_id")
-    private NotRelevantEntity notRelevant;
+
 
 
 

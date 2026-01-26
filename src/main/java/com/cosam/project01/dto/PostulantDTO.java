@@ -33,9 +33,6 @@ public class PostulantDTO {
     private String address;
 
 
-
-    private NotRelevantDTO notRelevant;
-
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
