@@ -64,6 +64,7 @@ public class RegisterEntity implements Serializable {
 
     private String date_attention;
 
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @ManyToOne(fetch = FetchType.LAZY)
