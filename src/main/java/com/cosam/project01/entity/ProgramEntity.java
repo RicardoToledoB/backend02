@@ -27,6 +27,8 @@ public class ProgramEntity implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
     private String name;
+    private String utt;
+    private String type;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;

@@ -15,6 +15,8 @@ public class ProgramDTO {
 
     private Integer id;
     private String name;
+    private String utt;
+    private String type;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;

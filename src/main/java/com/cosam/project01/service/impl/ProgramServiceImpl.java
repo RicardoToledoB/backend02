@@ -24,6 +24,8 @@ public class ProgramServiceImpl implements IProgramService {
         return ProgramDTO.builder()
                 .id(entity.getId())
                 .name(entity.getName())
+                .utt(entity.getUtt())
+                .type(entity.getType())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
@@ -34,6 +36,8 @@ public class ProgramServiceImpl implements IProgramService {
         return ProgramEntity.builder()
                 .id(dto.getId())
                 .name(dto.getName())
+                .utt(dto.getUtt())
+                .type(dto.getType())
                 .createdAt(dto.getCreatedAt())
                 .updatedAt(dto.getUpdatedAt())
                 .deletedAt(dto.getDeletedAt())
@@ -50,6 +54,8 @@ public class ProgramServiceImpl implements IProgramService {
         ProgramEntity entity = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
         entity.setName(dto.getName());
+        entity.setUtt(dto.getUtt());
+        entity.setType(dto.getType());
         return mapToDTO(repository.save(entity));
     }
 
