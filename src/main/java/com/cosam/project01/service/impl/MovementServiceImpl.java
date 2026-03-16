@@ -519,8 +519,8 @@ public class MovementServiceImpl implements IMovementService {
                 .map(this::mapToDTO);
     }
 
-    public Page<MovementDTO> getAllPaginated(String id, Pageable pageable) {
-        return repository.search(id, pageable).map(this::mapToDTO);
+    public Page<MovementDTO> getAllPaginated(String id, String rut, Pageable pageable) {
+        return repository.search(id, rut, pageable).map(this::mapToDTO);
     }
 
 

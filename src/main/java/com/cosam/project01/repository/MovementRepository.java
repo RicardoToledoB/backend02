@@ -33,9 +33,14 @@ public interface MovementRepository extends JpaRepository<MovementEntity,Integer
     Page<MovementEntity> findAllPaginated(Pageable pageable);
 
     @Query("""
-       SELECT c FROM MovementEntity c
-       WHERE (:id IS NULL OR CAST(c.id AS string) LIKE CONCAT('%', :id, '%'))
-""")
-    Page<MovementEntity> search(@Param("id") String id, Pageable pageable);
+        SELECT m
+        FROM MovementEntity m
+        WHERE m.deletedAt IS NULL
+          AND (:id IS NULL OR CAST(m.id AS string) LIKE CONCAT('%', :id, '%'))
+          AND (:rut IS NULL OR LOWER(m.postulant.rut) LIKE LOWER(CONCAT('%', :rut, '%')))
+    """)
+    Page<MovementEntity> search(@Param("id") String id,
+                                @Param("rut") String rut,
+                                Pageable pageable);
 }
 

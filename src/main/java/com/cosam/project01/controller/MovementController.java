@@ -34,11 +34,13 @@ public class MovementController {
     }
 
 
-    @GetMapping("/getAllPaginated")
+    @GetMapping("/paginated")
     public ResponseEntity<Page<MovementDTO>> getAllPaginated(
-            @RequestParam(required = false) String name,
-            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(service.getAllPaginated(name, pageable));
+            @RequestParam(required = false) String id,
+            @RequestParam(required = false) String rut,
+            Pageable pageable
+    ) {
+        return ResponseEntity.ok(service.getAllPaginated(id, rut, pageable));
     }
 
     @GetMapping("/{id}")
