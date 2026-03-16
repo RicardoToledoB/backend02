@@ -524,9 +524,6 @@ public class MovementServiceImpl implements IMovementService {
     }
 
 
-
-
-
     /*Listar communas activas*/
     public List<MovementDTO> listAll() {
         return repository.findAllIncludingDeleted().stream()
