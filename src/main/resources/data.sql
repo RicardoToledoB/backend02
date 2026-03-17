@@ -16,23 +16,36 @@ INSERT INTO programs(name,created_at,updated_at,deleted_at) VALUES('PAI ADULTO N
 INSERT INTO programs(name,created_at,updated_at,deleted_at) VALUES('PAI ADOLESCENTE NATALES',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null);
 
 
-INSERT INTO sexs(name,created_at,updated_at,deleted_at) VALUES('HOMBRE',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                              ('MUJER',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                              ('INTERSEX',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                              ('DESCONCIDO',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                              ('NO INFORMADO',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null);
+INSERT INTO sexs(name,created_at,updated_at,deleted_at) VALUES('MASCULINO',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                              ('FEMENINO',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                              ('MASCULINO TRANS',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                              ('FEMENINO TRANS',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                              ('NO BINARIO',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                              ('OTRO GENERO',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                              ('NINGUN GENERA',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                              ('PREFIERO NO DECIRLO',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null);
 
 
 INSERT INTO substances(name,created_at,updated_at,deleted_at) VALUES('ALCOHOL',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                              ('MARIHUANA',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                              ('ANFETAMINA',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
                                                               ('COCAINA',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                              ('PASTABASE',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                              ('TRANQUILIZANTES O PASTILLAS PARA DORMIR',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                              ('ANFETAMINAS',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                              ('OPIACEOS',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                              ('INHALANTES',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                              ('ALUCINOGENOS',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                              ('OTROS',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null);
+                                                              ('CRACK',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                              ('EXTASIS',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                              ('HIPNOTICOS',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                              ('INHALABLES',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                              ('LSD',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                              ('MARIHUANA',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                              ('METAFETAMINAS Y OTROS DERIVADOS',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                              ('OTROS',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                              ('OTROS ALUCINOGENOS',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                              ('OTROS ESTIMULANTES',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                              ('OTROS OPIOIDES ANALGESICOS',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                              ('PASTA BASE',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                              ('TRANQUILIZANTES',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                              ('SEDANTES',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                              ('SIN ESPECIFICAR',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                              ('TUSSI/KETAMINA',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                              ('FENTANILO',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null);
 
 
 INSERT INTO senders(name,created_at,updated_at,deleted_at) VALUES('USUARIO DIRECTAMENTE',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
@@ -82,8 +95,9 @@ INSERT INTO conv_prevs(name,int_prev_id,created_at,updated_at,deleted_at) VALUES
                                                                                 ('Banmedica',2,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
                                                                                 ('Colmena Golden Cross',2,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
                                                                                 ('Capredena',3,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                                ('Particular',4,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
-                                                                                ('Ninguna',5,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null);
+                                                                                ('Particular',5,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                                                ('Desconocido',4,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
+                                                                                ('Ninguna',6,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null);
 
 INSERT INTO results(name,created_at,updated_at,deleted_at) VALUES('Ingreso a tratamiento',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),
                                                                                 ('Lista de espera	',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,null),

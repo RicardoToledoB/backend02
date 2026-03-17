@@ -19,6 +19,17 @@ public class ProgramServiceImpl implements IProgramService {
     @Autowired
     private ProgramRepository repository;
 
+    /*
+
+        private String address;
+    private String cellphone;
+    private String email;
+    private String city;
+    private String description;
+    private String c1;
+    private String c2;
+
+     */
 
     private ProgramDTO mapToDTO(ProgramEntity entity) {
         return ProgramDTO.builder()
@@ -26,6 +37,13 @@ public class ProgramServiceImpl implements IProgramService {
                 .name(entity.getName())
                 .utt(entity.getUtt())
                 .type(entity.getType())
+                .address(entity.getAddress())
+                .cellphone(entity.getCellphone())
+                .email(entity.getEmail())
+                .city(entity.getCity())
+                .description(entity.getDescription())
+                .c1(entity.getC1())
+                .c2(entity.getC2())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
@@ -38,6 +56,13 @@ public class ProgramServiceImpl implements IProgramService {
                 .name(dto.getName())
                 .utt(dto.getUtt())
                 .type(dto.getType())
+                .address(dto.getAddress())
+                .cellphone(dto.getCellphone())
+                .email(dto.getEmail())
+                .city(dto.getCity())
+                .description(dto.getDescription())
+                .c1(dto.getC1())
+                .c2(dto.getC2())
                 .createdAt(dto.getCreatedAt())
                 .updatedAt(dto.getUpdatedAt())
                 .deletedAt(dto.getDeletedAt())
@@ -56,6 +81,24 @@ public class ProgramServiceImpl implements IProgramService {
         entity.setName(dto.getName());
         entity.setUtt(dto.getUtt());
         entity.setType(dto.getType());
+        /*
+        .address(entity.getAddress())
+                .cellphone(entity.getCellphone())
+                .email(entity.getEmail())
+                .city(entity.getCity())
+                .description(entity.getDescription())
+                .c1(entity.getC1())
+                .c2(entity.getC2())
+
+
+         */
+        entity.setAddress(entity.getAddress());
+        entity.setCellphone(entity.getCellphone());
+        entity.setEmail(entity.getEmail());
+        entity.setCity(entity.getCity());
+        entity.setDescription(entity.getDescription());
+        entity.setC1(entity.getC1());
+        entity.setC2(entity.getC2());
         return mapToDTO(repository.save(entity));
     }
 

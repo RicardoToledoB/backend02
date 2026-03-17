@@ -29,6 +29,14 @@ public class ProgramEntity implements Serializable {
     private String name;
     private String utt;
     private String type;
+    private String address;
+    private String cellphone;
+    private String email;
+    private String city;
+    @Column(columnDefinition = "TEXT")
+    private String description;
+    private String c1;
+    private String c2;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;

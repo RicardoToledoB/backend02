@@ -46,6 +46,22 @@ public class RegisterServiceImpl implements IRegisterService {
                 .description(entity.getDescription())
                 .number_tto(entity.getNumber_tto())
                 .is_history(entity.getIs_history())
+                /*
+                 private String date_close1;
+    private String date_close2;
+    private String date_close3;
+    private String date_state1;
+    private String date_state2;
+    private String date_state3;
+                 */
+
+                .date_close1(entity.getDate_close1())
+                .date_close2(entity.getDate_close2())
+                .date_close3(entity.getDate_close3())
+                .date_state1(entity.getDate_state1())
+                .date_state2(entity.getDate_state2())
+                .date_state3(entity.getDate_state3())
+
                 .createdAt(entity.getCreatedAt())
                 .notRelevant(entity.getNotRelevant() != null ? mapToNotRelevantDTO(entity.getNotRelevant()) : null)
                 .updatedAt(entity.getUpdatedAt())
@@ -90,6 +106,12 @@ public class RegisterServiceImpl implements IRegisterService {
                 .description(dto.getDescription())
                 .number_tto(dto.getNumber_tto())
                 .is_history(dto.getIs_history())
+                .date_close1(dto.getDate_close1())
+                .date_close2(dto.getDate_close2())
+                .date_close3(dto.getDate_close3())
+                .date_state1(dto.getDate_state1())
+                .date_state2(dto.getDate_state2())
+                .date_state3(dto.getDate_state3())
                 .createdAt(dto.getCreatedAt())
                 .updatedAt(dto.getUpdatedAt())
                 .deletedAt(dto.getDeletedAt())
@@ -455,6 +477,12 @@ public class RegisterServiceImpl implements IRegisterService {
         entity.setDescription(dto.getDescription());
         entity.setNumber_tto(dto.getNumber_tto());
         entity.setIs_history(dto.getIs_history());
+        entity.setDate_close1(dto.getDate_close1());
+        entity.setDate_close2(dto.getDate_close2());
+        entity.setDate_close3(dto.getDate_close3());
+        entity.setDate_state1(dto.getDate_state1());
+        entity.setDate_state2(dto.getDate_state2());
+        entity.setDate_state3(dto.getDate_state3());
 
         if (dto.getPostulant() != null && dto.getPostulant().getId() != null)
             entity.setPostulant(postulantRepository.getReferenceById(dto.getPostulant().getId()));
@@ -501,6 +529,22 @@ public class RegisterServiceImpl implements IRegisterService {
         entity.setDescription(dto.getDescription());
         entity.setNumber_tto(dto.getNumber_tto());
         entity.setIs_history(dto.getIs_history());
+        /*
+          .date_close1(entity.getDate_close1())
+                .date_close2(entity.getDate_close2())
+                .date_close3(entity.getDate_close3())
+                .date_state1(entity.getDate_state1())
+                .date_state2(entity.getDate_state2())
+                .date_state3(entity.getDate_state3())
+
+         */
+        entity.setDate_close1(entity.getDate_close1());
+        entity.setDate_close2(entity.getDate_close2());
+        entity.setDate_close3(entity.getDate_close3());
+        entity.setDate_state1(entity.getDate_state1());
+        entity.setDate_state2(entity.getDate_state2());
+        entity.setDate_state3(entity.getDate_state3());
+
 
         // Relaciones (solo si vienen)
         if (dto.getPostulant() != null && dto.getPostulant().getId() != null) {

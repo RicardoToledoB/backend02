@@ -49,6 +49,13 @@ public class RegisterDTO {
     private StateDTO state;
     private String is_history;
 
+    private String date_close1;
+    private String date_close2;
+    private String date_close3;
+    private String date_state1;
+    private String date_state2;
+    private String date_state3;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;

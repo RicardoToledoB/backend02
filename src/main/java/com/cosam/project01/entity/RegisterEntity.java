@@ -75,6 +75,13 @@ public class RegisterEntity implements Serializable {
 
     private String number_tto;
 
+    private String date_close1;
+    private String date_close2;
+    private String date_close3;
+    private String date_state1;
+    private String date_state2;
+    private String date_state3;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
