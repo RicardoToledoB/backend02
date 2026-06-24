@@ -187,7 +187,7 @@ public class RegisterSubstanceServiceImpl implements IRegisterSubstanceService {
                 .secondLastName(entity.getSecondLastName())
                 .email(entity.getEmail())
                 .username(entity.getUsername())
-                .password(entity.getPassword())
+                .password(null)
                 .rut(entity.getRut())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())

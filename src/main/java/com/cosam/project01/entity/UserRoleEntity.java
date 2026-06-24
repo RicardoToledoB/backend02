@@ -22,12 +22,21 @@ public class UserRoleEntity implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="user_id")
     private UserEntity user;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="role_id")
     private RoleEntity role;
+
+    private Boolean active;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name="assigned_by_user_id")
+    private UserEntity assignedByUser;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
@@ -35,11 +44,11 @@ public class UserRoleEntity implements Serializable {
     @PrePersist
     private void createdAt(){
         this.createdAt = LocalDateTime.now();
+        if (this.active == null) this.active = true;
     }
 
     @PreUpdate
     private void updatedAt(){
         this.updatedAt = LocalDateTime.now();
     }
-
 }

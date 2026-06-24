@@ -11,10 +11,11 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RoleDTO {
-
-
     private Integer id;
     private String name;
+    private String code;
+    private String description;
+    private Boolean active;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;

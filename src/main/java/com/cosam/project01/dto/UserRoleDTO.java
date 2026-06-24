@@ -6,17 +6,16 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class UserRoleDTO {
-
-
     private Integer id;
     private UserDTO user;
     private RoleDTO role;
+    private Boolean active;
+    private UserDTO assignedByUser;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;

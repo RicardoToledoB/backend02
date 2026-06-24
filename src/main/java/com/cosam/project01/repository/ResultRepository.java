@@ -14,6 +14,9 @@ import java.util.Optional;
 @Repository
 public interface ResultRepository extends JpaRepository<ResultEntity,Integer> {
 
+    Optional<ResultEntity> findByCodeIgnoreCase(String code);
+    Optional<ResultEntity> findByNameIgnoreCase(String name);
+
     @Query(
             value = "SELECT * FROM results c WHERE c.deleted_at IS NOT NULL",
             nativeQuery = true
@@ -35,7 +38,8 @@ public interface ResultRepository extends JpaRepository<ResultEntity,Integer> {
     @Query("""
        SELECT c FROM ResultEntity c
        WHERE (:name IS NULL OR TRIM(:name) = '' 
-              OR LOWER(c.name) LIKE LOWER(CONCAT('%', :name, '%')))
+              OR LOWER(c.name) LIKE LOWER(CONCAT('%', :name, '%'))
+              OR LOWER(c.code) LIKE LOWER(CONCAT('%', :name, '%')))
     """)
     Page<ResultEntity> search(@Param("name") String name, Pageable pageable);
 }

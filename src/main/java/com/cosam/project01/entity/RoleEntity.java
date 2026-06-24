@@ -11,7 +11,6 @@ import org.hibernate.annotations.Where;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
-
 @Entity
 @Table(name="roles")
 @AllArgsConstructor
@@ -24,7 +23,17 @@ public class RoleEntity  implements Serializable {
     @Id
     @GeneratedValue(strategy= GenerationType.IDENTITY)
     private Integer id;
+
     private String name;
+
+    @Column(unique = true)
+    private String code;
+
+    @Column(length = 1000)
+    private String description;
+
+    private Boolean active;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
@@ -32,6 +41,7 @@ public class RoleEntity  implements Serializable {
     @PrePersist
     private void createdAt(){
         this.createdAt = LocalDateTime.now();
+        if (this.active == null) this.active = true;
     }
 
     @PreUpdate

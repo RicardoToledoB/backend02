@@ -14,6 +14,9 @@ import java.util.Optional;
 @Repository
 public interface RoleRepository extends JpaRepository<RoleEntity,Integer> {
 
+    Optional<RoleEntity> findByNameIgnoreCase(String name);
+    Optional<RoleEntity> findByCodeIgnoreCase(String code);
+
 
     @Query(
             value = "SELECT * FROM roles c WHERE c.deleted_at IS NOT NULL",
@@ -36,7 +39,8 @@ public interface RoleRepository extends JpaRepository<RoleEntity,Integer> {
     @Query("""
        SELECT c FROM RoleEntity c
        WHERE (:name IS NULL OR TRIM(:name) = '' 
-              OR LOWER(c.name) LIKE LOWER(CONCAT('%', :name, '%')))
+              OR LOWER(c.name) LIKE LOWER(CONCAT('%', :name, '%'))
+              OR LOWER(c.code) LIKE LOWER(CONCAT('%', :name, '%')))
     """)
     Page<RoleEntity> search(@Param("name") String name, Pageable pageable);
 }

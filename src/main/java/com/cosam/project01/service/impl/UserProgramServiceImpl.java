@@ -53,6 +53,16 @@ public class UserProgramServiceImpl implements IUserProgramService {
         return ProgramDTO.builder()
                 .id(program.getId())
                 .name(program.getName())
+                .populationTypeId(program.getPopulationType() != null ? program.getPopulationType().getId() : null)
+                .modalityId(program.getModality() != null ? program.getModality().getId() : null)
+                .planId(program.getPlan() != null ? program.getPlan().getId() : null)
+                .regionId(program.getRegion() != null ? program.getRegion().getId() : null)
+                .cityId(program.getCity() != null ? program.getCity().getId() : null)
+                .address(program.getAddress())
+                .phone(program.getPhone())
+                .email(program.getEmail())
+                .description(program.getDescription())
+                .active(program.getActive())
                 .createdAt(program.getCreatedAt())
                 .updatedAt(program.getUpdatedAt())
                 .deletedAt(program.getDeletedAt())
@@ -64,6 +74,12 @@ public class UserProgramServiceImpl implements IUserProgramService {
                 .id(entity.getId())
                 .user(mapUserToDTO(entity.getUser()))
                 .program(mapProgramToDTO(entity.getProgram()))
+                .isActive(entity.getIsActive())
+                .isSupervisor(entity.getIsSupervisor())
+                .canReceiveReferences(entity.getCanReceiveReferences())
+                .canManageDemands(entity.getCanManageDemands())
+                .canViewDashboard(entity.getCanViewDashboard())
+                .roleInProgram(entity.getRoleInProgram())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
@@ -77,6 +93,12 @@ public class UserProgramServiceImpl implements IUserProgramService {
                         .orElseThrow(() -> new RuntimeException("User not found")))
                 .program(programRepository.findById(dto.getProgram().getId())
                         .orElseThrow(() -> new RuntimeException("Program not found")))
+                .isActive(dto.getIsActive())
+                .isSupervisor(dto.getIsSupervisor())
+                .canReceiveReferences(dto.getCanReceiveReferences())
+                .canManageDemands(dto.getCanManageDemands())
+                .canViewDashboard(dto.getCanViewDashboard())
+                .roleInProgram(dto.getRoleInProgram())
                 .createdAt(dto.getCreatedAt())
                 .updatedAt(dto.getUpdatedAt())
                 .deletedAt(dto.getDeletedAt())
@@ -97,6 +119,12 @@ public class UserProgramServiceImpl implements IUserProgramService {
                 .orElseThrow(() -> new RuntimeException("User not found")));
         entity.setProgram(programRepository.findById(dto.getProgram().getId())
                 .orElseThrow(() -> new RuntimeException("Program not found")));
+        entity.setIsActive(dto.getIsActive());
+        entity.setIsSupervisor(dto.getIsSupervisor());
+        entity.setCanReceiveReferences(dto.getCanReceiveReferences());
+        entity.setCanManageDemands(dto.getCanManageDemands());
+        entity.setCanViewDashboard(dto.getCanViewDashboard());
+        entity.setRoleInProgram(dto.getRoleInProgram());
         return mapToDTO(repository.save(entity));
     }
 

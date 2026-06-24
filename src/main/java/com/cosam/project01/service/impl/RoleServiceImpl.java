@@ -25,6 +25,9 @@ public class RoleServiceImpl implements IRoleService {
         return RoleDTO.builder()
                 .id(entity.getId())
                 .name(entity.getName())
+                .code(entity.getCode())
+                .description(entity.getDescription())
+                .active(entity.getActive())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
@@ -35,6 +38,9 @@ public class RoleServiceImpl implements IRoleService {
         return RoleEntity.builder()
                 .id(dto.getId())
                 .name(dto.getName())
+                .code(dto.getCode())
+                .description(dto.getDescription())
+                .active(dto.getActive())
                 .createdAt(dto.getCreatedAt())
                 .updatedAt(dto.getUpdatedAt())
                 .deletedAt(dto.getDeletedAt())
@@ -51,6 +57,9 @@ public class RoleServiceImpl implements IRoleService {
         RoleEntity entity = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
         entity.setName(dto.getName());
+        entity.setCode(dto.getCode());
+        entity.setDescription(dto.getDescription());
+        entity.setActive(dto.getActive());
         return mapToDTO(repository.save(entity));
     }
 

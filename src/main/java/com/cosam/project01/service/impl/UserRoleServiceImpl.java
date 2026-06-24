@@ -29,6 +29,8 @@ public class UserRoleServiceImpl implements IUserRoleService {
                 .id(entity.getId())
                 .user(mapToUserDTO(entity.getUser()))
                 .role(mapToRoleDTO(entity.getRole()))
+                .active(entity.getActive())
+                .assignedByUser(entity.getAssignedByUser() != null ? mapToUserDTO(entity.getAssignedByUser()) : null)
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
@@ -40,6 +42,8 @@ public class UserRoleServiceImpl implements IUserRoleService {
                 .id(dto.getId())
                 .user(mapToUserEntity(dto.getUser()))
                 .role(mapToRoleEntity(dto.getRole()))
+                .active(dto.getActive())
+                .assignedByUser(dto.getAssignedByUser() != null ? mapToUserEntity(dto.getAssignedByUser()) : null)
                 .createdAt(dto.getCreatedAt())
                 .updatedAt(dto.getUpdatedAt())
                 .deletedAt(dto.getDeletedAt())
@@ -56,7 +60,7 @@ public class UserRoleServiceImpl implements IUserRoleService {
                 .secondLastName(entity.getSecondLastName())
                 .email(entity.getEmail())
                 .username(entity.getUsername())
-                .password(entity.getPassword())
+                .password(null)
                 .rut(entity.getRut())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
@@ -85,6 +89,9 @@ public class UserRoleServiceImpl implements IUserRoleService {
         return RoleDTO.builder()
                 .id(entity.getId())
                 .name(entity.getName())
+                .code(entity.getCode())
+                .description(entity.getDescription())
+                .active(entity.getActive())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
@@ -95,6 +102,9 @@ public class UserRoleServiceImpl implements IUserRoleService {
         return RoleEntity.builder()
                 .id(dto.getId())
                 .name(dto.getName())
+                .code(dto.getCode())
+                .description(dto.getDescription())
+                .active(dto.getActive())
                 .createdAt(dto.getCreatedAt())
                 .updatedAt(dto.getUpdatedAt())
                 .deletedAt(dto.getDeletedAt())
@@ -113,6 +123,8 @@ public class UserRoleServiceImpl implements IUserRoleService {
                 .orElseThrow(() -> new RuntimeException("Task not found"));
                 entity.setUser(mapToUserEntity(dto.getUser()));
                 entity.setRole(mapToRoleEntity(dto.getRole()));
+                entity.setActive(dto.getActive());
+                entity.setAssignedByUser(dto.getAssignedByUser() != null ? mapToUserEntity(dto.getAssignedByUser()) : null);
         return mapToDTO(repository.save(entity));
     }
 

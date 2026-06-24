@@ -35,7 +35,7 @@ public interface UserRepository extends JpaRepository<UserEntity,Integer> {
 
     @Query("""
        SELECT c FROM UserEntity c
-       WHERE (:name IS NULL OR TRIM(:name) = '' 
+       WHERE (:username IS NULL OR TRIM(:username) = '' 
               OR LOWER(c.username) LIKE LOWER(CONCAT('%', :username, '%')))
     """)
     Page<UserEntity> search(@Param("username") String username, Pageable pageable);

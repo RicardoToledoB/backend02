@@ -11,7 +11,9 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name="postulants")
+@Table(name="postulants", indexes = {
+        @Index(name = "idx_postulants_rut", columnList = "rut", unique = true)
+})
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
@@ -39,7 +41,10 @@ public class PostulantEntity implements Serializable {
     private String lastName;
     private String firstLastName;
     private String secondLastName;
+
+    @Column(nullable = false, unique = true)
     private String rut;
+
     private String birthdate;
     private String email;
     private String phone;
@@ -58,5 +63,4 @@ public class PostulantEntity implements Serializable {
     private void updatedAt(){
         this.updatedAt = LocalDateTime.now();
     }
-
 }

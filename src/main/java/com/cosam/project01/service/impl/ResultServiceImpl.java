@@ -26,6 +26,10 @@ public class ResultServiceImpl implements IResultService {
         return ResultDTO.builder()
                 .id(entity.getId())
                 .name(entity.getName())
+                .code(entity.getCode())
+                .scope(entity.getScope())
+                .description(entity.getDescription())
+                .active(entity.getActive())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
@@ -36,6 +40,10 @@ public class ResultServiceImpl implements IResultService {
         return ResultEntity.builder()
                 .id(dto.getId())
                 .name(dto.getName())
+                .code(dto.getCode())
+                .scope(dto.getScope())
+                .description(dto.getDescription())
+                .active(dto.getActive())
                 .createdAt(dto.getCreatedAt())
                 .updatedAt(dto.getUpdatedAt())
                 .deletedAt(dto.getDeletedAt())
@@ -52,6 +60,10 @@ public class ResultServiceImpl implements IResultService {
         ResultEntity entity = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
         entity.setName(dto.getName());
+        entity.setCode(dto.getCode());
+        entity.setScope(dto.getScope());
+        entity.setDescription(dto.getDescription());
+        entity.setActive(dto.getActive());
         return mapToDTO(repository.save(entity));
     }
 

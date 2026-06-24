@@ -23,12 +23,22 @@ public class UserProgramEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="user_id")
     private UserEntity user;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="program_id")
     private ProgramEntity program;
+
+    private Boolean isActive;
+    private Boolean isSupervisor;
+    private Boolean canReceiveReferences;
+    private Boolean canManageDemands;
+    private Boolean canViewDashboard;
+    private String roleInProgram;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
@@ -36,6 +46,11 @@ public class UserProgramEntity {
     @PrePersist
     private void createdAt(){
         this.createdAt = LocalDateTime.now();
+        if (this.isActive == null) this.isActive = true;
+        if (this.isSupervisor == null) this.isSupervisor = false;
+        if (this.canReceiveReferences == null) this.canReceiveReferences = false;
+        if (this.canManageDemands == null) this.canManageDemands = false;
+        if (this.canViewDashboard == null) this.canViewDashboard = false;
     }
 
     @PreUpdate

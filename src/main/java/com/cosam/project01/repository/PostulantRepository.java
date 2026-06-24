@@ -14,6 +14,8 @@ import java.util.Optional;
 @Repository
 public interface PostulantRepository extends JpaRepository<PostulantEntity,Integer> {
 
+    Optional<PostulantEntity> findFirstByRutIgnoreCase(String rut);
+
     @Query(
             value = "SELECT * FROM postulants c WHERE c.deleted_at IS NOT NULL",
             nativeQuery = true
@@ -35,7 +37,7 @@ public interface PostulantRepository extends JpaRepository<PostulantEntity,Integ
     @Query("""
        SELECT c FROM PostulantEntity c
        WHERE (:rut IS NULL OR TRIM(:rut) = '' 
-              OR LOWER(c.rut) LIKE LOWER(CONCAT('%', :name, '%')))
+              OR LOWER(c.rut) LIKE LOWER(CONCAT('%', :rut, '%')))
     """)
     Page<PostulantEntity> search(@Param("rut") String rut, Pageable pageable);
 

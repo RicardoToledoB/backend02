@@ -35,7 +35,7 @@ public interface RegisterRepository extends JpaRepository<RegisterEntity,Integer
     @Query("""
        SELECT c FROM RegisterEntity c
        WHERE (:description IS NULL OR TRIM(:description) = '' 
-              OR LOWER(c.description) LIKE LOWER(CONCAT('%', :name, '%')))
+              OR LOWER(c.description) LIKE LOWER(CONCAT('%', :description, '%')))
     """)
     Page<RegisterEntity> search(@Param("description") String description, Pageable pageable);
 
