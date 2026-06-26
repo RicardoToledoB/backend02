@@ -42,11 +42,27 @@ public interface UserRoleRepository extends JpaRepository<UserRoleEntity,Integer
     Page<UserRoleEntity> search(@Param("id") Integer id, Pageable pageable);
 
     @Query("""
-           select ur.role.name
+           select coalesce(ur.role.code, ur.role.name)
            from UserRoleEntity ur
            where ur.user.id = :userId
+             and ur.deletedAt IS NULL
+             and (ur.active IS NULL OR ur.active = true)
+             and (ur.role.active IS NULL OR ur.role.active = true)
            """)
-    List<String> findRoleNamesByUserId(Integer userId);
+    List<String> findRoleNamesByUserId(@Param("userId") Integer userId);
+
+
+    @Query("""
+           SELECT ur FROM UserRoleEntity ur
+           JOIN FETCH ur.role r
+           LEFT JOIN FETCH ur.assignedByUser
+           WHERE ur.user.id = :userId
+             AND ur.deletedAt IS NULL
+             AND (ur.active IS NULL OR ur.active = true)
+             AND (r.active IS NULL OR r.active = true)
+           """)
+    List<UserRoleEntity> findActiveRolesWithRoleByUserId(@Param("userId") Integer userId);
+
 
     // Busca todos los UserRoleEntity por el ID del usuario
     List<UserRoleEntity> findByUserId(Integer userId);

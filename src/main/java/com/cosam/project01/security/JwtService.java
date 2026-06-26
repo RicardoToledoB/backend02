@@ -41,6 +41,10 @@ public class JwtService {
         return generateToken(user, Map.of());
     }
 
+    public long getExpirationMs() {
+        return expirationMs;
+    }
+
     public boolean isTokenValid(String token, UserDetails user) {
         final String username = extractUsername(token);
         return (username.equals(user.getUsername()) && !isTokenExpired(token));

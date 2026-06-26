@@ -43,6 +43,23 @@ public interface UserProgramRepository extends JpaRepository<UserProgramEntity, 
 
 
 
+
+    @Query("""
+           SELECT up FROM UserProgramEntity up
+           JOIN FETCH up.program p
+           LEFT JOIN FETCH p.populationType
+           LEFT JOIN FETCH p.modality
+           LEFT JOIN FETCH p.plan
+           LEFT JOIN FETCH p.region
+           LEFT JOIN FETCH p.city
+           WHERE up.user.id = :userId
+             AND up.deletedAt IS NULL
+             AND (up.isActive IS NULL OR up.isActive = true)
+             AND (p.active IS NULL OR p.active = true)
+           """)
+    List<UserProgramEntity> findActiveProgramsWithProgramByUserId(@Param("userId") Integer userId);
+
+
     // Busca todos los UserRoleEntity por el ID del usuario
     List<UserProgramEntity> findByUserId(Integer userId);
 

@@ -44,7 +44,23 @@ public class DataSeeder implements CommandLineRunner {
 
     private RoleEntity role(String name) {
         return roleRepository.findByNameIgnoreCase(name)
-                .orElseGet(() -> roleRepository.save(RoleEntity.builder().name(name).build()));
+                .map(existing -> {
+                    boolean changed = false;
+                    if (existing.getCode() == null || existing.getCode().isBlank()) {
+                        existing.setCode(name.trim().toUpperCase().replace(" ", "_"));
+                        changed = true;
+                    }
+                    if (existing.getActive() == null) {
+                        existing.setActive(true);
+                        changed = true;
+                    }
+                    return changed ? roleRepository.save(existing) : existing;
+                })
+                .orElseGet(() -> roleRepository.save(RoleEntity.builder()
+                        .name(name)
+                        .code(name.trim().toUpperCase().replace(" ", "_"))
+                        .active(true)
+                        .build()));
     }
 
     private void assignRole(UserEntity user, RoleEntity role) {
