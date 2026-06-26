@@ -21,6 +21,7 @@ public class DemandCatalogSeeder implements CommandLineRunner {
     private final ProgramPopulationRepository populationRepository;
     private final ProgramModalityRepository modalityRepository;
     private final ProgramPlanRepository planRepository;
+    private final DocumentTypeRepository documentTypeRepository;
     private final RegionRepository regionRepository;
     private final CityRepository cityRepository;
     private final SemaphoreRuleRepository semaphoreRuleRepository;
@@ -35,6 +36,7 @@ public class DemandCatalogSeeder implements CommandLineRunner {
         seedClosureReasons();
         seedStatesAndResults();
         seedProgramCatalogs();
+        seedDocumentTypes();
         seedTerritory();
         seedSemaphoreRules();
     }
@@ -114,6 +116,18 @@ public class DemandCatalogSeeder implements CommandLineRunner {
         savePlan("SEMICERRADO", "Semicerrado");
         savePlan("CERRADO", "Cerrado");
         savePlan("OTRO", "Otro plan");
+    }
+
+    private void seedDocumentTypes() {
+        saveDocumentType("CONSENTIMIENTO", "Consentimiento");
+        saveDocumentType("INTERCONSULTA", "Interconsulta");
+        saveDocumentType("INFORME_CLINICO", "Informe clínico");
+        saveDocumentType("INFORME_SOCIAL", "Informe social");
+        saveDocumentType("ORDEN_INGRESO", "Orden de ingreso");
+        saveDocumentType("DOCUMENTO_EGRESO", "Documento de egreso");
+        saveDocumentType("DOCUMENTO_CIERRE", "Documento de cierre");
+        saveDocumentType("REFERENCIA", "Referencia");
+        saveDocumentType("OTRO", "Otro documento");
     }
 
     private void seedTerritory() {
@@ -201,6 +215,13 @@ public class DemandCatalogSeeder implements CommandLineRunner {
         planRepository.findByCodeIgnoreCase(code).orElseGet(() -> {
             ProgramPlanEntity e = new ProgramPlanEntity();
             e.setCode(code); e.setName(name); e.setActive(true); return planRepository.save(e);
+        });
+    }
+
+    private void saveDocumentType(String code, String name) {
+        documentTypeRepository.findByCodeIgnoreCase(code).orElseGet(() -> {
+            DocumentTypeEntity e = new DocumentTypeEntity();
+            e.setCode(code); e.setName(name); e.setActive(true); return documentTypeRepository.save(e);
         });
     }
 

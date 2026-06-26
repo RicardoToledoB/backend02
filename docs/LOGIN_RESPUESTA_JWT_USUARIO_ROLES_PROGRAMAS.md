@@ -156,3 +156,58 @@ Retorna la información vigente del usuario autenticado, roles, programas, permi
 - `src/main/java/com/cosam/project01/repository/UserRoleRepository.java`
 - `src/main/java/com/cosam/project01/repository/UserProgramRepository.java`
 - `src/main/java/com/cosam/project01/security/seeder/DataSeeder.java`
+
+## Actualización 26-06-2026: refreshToken
+
+El endpoint `POST /auth/login` ahora incluye `refreshToken` en la respuesta, manteniendo compatibilidad con el campo `token`.
+
+Ejemplo:
+
+```json
+{
+  "authenticated": true,
+  "result": "OK",
+  "message": "Login correcto",
+  "tokenType": "Bearer",
+  "token": "ACCESS_TOKEN_JWT",
+  "refreshToken": "REFRESH_TOKEN",
+  "expiresInMs": 3600000,
+  "expiresAt": "2026-06-26T16:34:11Z",
+  "user": {
+    "id": 1,
+    "email": "admin@demo.com",
+    "username": "admin",
+    "fullName": "Admin"
+  },
+  "roles": [],
+  "authorities": [],
+  "programs": []
+}
+```
+
+Nuevo endpoint de renovación:
+
+```http
+POST /auth/refresh
+Content-Type: application/json
+```
+
+Body:
+
+```json
+{
+  "refreshToken": "REFRESH_TOKEN"
+}
+```
+
+Respuesta:
+
+```json
+{
+  "tokenType": "Bearer",
+  "token": "NUEVO_ACCESS_TOKEN_JWT",
+  "refreshToken": "NUEVO_REFRESH_TOKEN",
+  "expiresInMs": 3600000,
+  "expiresAt": "2026-06-26T17:34:11Z"
+}
+```

@@ -19,5 +19,6 @@ public class EpisodeStageDTO {
     private OptionDTO closureReason;
     private String closureComment;
     private Boolean current;
+    private UserSummaryDTO responsibleUser;
     private Integer daysInStage;
 }

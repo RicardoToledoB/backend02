@@ -10,6 +10,7 @@ public record AuthResponse(
         String message,
         String tokenType,
         String token,
+        String refreshToken,
         Long expiresInMs,
         Instant expiresAt,
         AuthUserDTO user,

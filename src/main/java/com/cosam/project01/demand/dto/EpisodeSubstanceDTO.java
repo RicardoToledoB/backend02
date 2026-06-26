@@ -12,5 +12,7 @@ public class EpisodeSubstanceDTO {
     private Integer substanceId;
     private String substanceName;
     private String level;
+    private Boolean primarySubstance;
+    private Integer useOrder;
     private String observation;
 }

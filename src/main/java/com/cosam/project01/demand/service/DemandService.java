@@ -6,6 +6,9 @@ import com.cosam.project01.demand.repository.*;
 import com.cosam.project01.entity.*;
 import com.cosam.project01.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -14,8 +17,14 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -52,6 +61,7 @@ public class DemandService {
     private final ProgramPopulationRepository populationRepository;
     private final ProgramModalityRepository modalityRepository;
     private final ProgramPlanRepository planRepository;
+    private final DocumentTypeRepository documentTypeRepository;
     private final RegionRepository regionRepository;
     private final CityRepository cityRepository;
     private final SemaphoreRuleRepository semaphoreRuleRepository;
@@ -65,6 +75,9 @@ public class DemandService {
     private final UserRepository userRepository;
     private final SubstanceRepository substanceRepository;
 
+    @Value("${app.documents.storage-dir:./storage/demand-documents}")
+    private String documentStorageDir;
+
     @Transactional(readOnly = true)
     public DemandCatalogsDTO getCatalogs() {
         return DemandCatalogsDTO.builder()
@@ -75,6 +88,10 @@ public class DemandService {
                 .programPopulations(populationRepository.findAll().stream().map(this::toOption).toList())
                 .programModalities(modalityRepository.findAll().stream().map(this::toOption).toList())
                 .programPlans(planRepository.findAll().stream().map(this::toOption).toList())
+                .documentTypes(documentTypeRepository.findAll().stream().map(this::toOption).toList())
+                .alertTypes(alertTypes())
+                .priorityLevels(priorityLevels())
+                .alertStatuses(alertStatuses())
                 .regions(regionRepository.findAll().stream().map(this::toOption).toList())
                 .cities(cityRepository.findAll().stream().map(this::toOption).toList())
                 .build();
@@ -102,6 +119,9 @@ public class DemandService {
                 .orElseThrow(() -> notFound("Programa inicial no encontrado"));
 
         UserEntity currentUser = currentUserOrNull();
+        UserEntity responsibleUser = request.getResponsibleUserId() != null
+                ? userRepository.findById(request.getResponsibleUserId()).orElseThrow(() -> notFound("Responsable no encontrado"))
+                : currentUser;
         EpisodeTypeEntity type = resolveEpisodeType(request.getEpisodeTypeId(), request.getEpisodeTypeCode(), "PRIMERA_SOLICITUD");
 
         EpisodeEntity episode = EpisodeEntity.builder()
@@ -133,6 +153,7 @@ public class DemandService {
                 .stateCode(STATE_IN_PROGRESS)
                 .resultCode(RESULT_PENDING)
                 .current(true)
+                .responsibleUser(responsibleUser)
                 .build();
         stage = stageRepository.save(stage);
 
@@ -205,7 +226,7 @@ public class DemandService {
                 .averageAccumulatedDays(Math.round(averageDays * 10.0) / 10.0)
                 .redCases(semaphoreDistribution.getOrDefault("ROJO", 0L))
                 .withoutFirstCitation(withoutFirstCitation)
-                .openAlerts(alertRepository.countByStatusCodeIgnoreCaseAndDeletedAtIsNull("ABIERTA"))
+                .openAlerts(alertRepository.countByStatusCodeIgnoreCaseAndDeletedAtIsNull("ACTIVA"))
                 .semaphoreDistribution(semaphoreDistribution)
                 .topCriticalCases(top.getContent())
                 .build();
@@ -357,6 +378,7 @@ public class DemandService {
                 .stateCode(STATE_IN_PROGRESS)
                 .resultCode(RESULT_PENDING)
                 .current(true)
+                .responsibleUser(currentUser)
                 .build();
         destinationStage = stageRepository.save(destinationStage);
 
@@ -495,12 +517,21 @@ public class DemandService {
                 .nextAction(request.getNextAction())
                 .nextActionDate(request.getNextActionDate())
                 .responsibleUser(responsible)
-                .statusCode(hasText(request.getStatusCode()) ? request.getStatusCode() : "ABIERTA")
+                .statusCode(hasText(request.getStatusCode()) ? request.getStatusCode() : "ACTIVA")
                 .createdByUser(currentUser)
                 .build();
         alert = alertRepository.save(alert);
         audit(episode, stage, null, "CREAR_ALERTA", null, alert.getPriorityLevelCode(), alert.getDescription(), currentUser, null, null);
         return toAlertDTO(alert);
+    }
+
+    @Transactional(readOnly = true)
+    public List<EpisodeDocumentDTO> listDocuments(Integer episodeId) {
+        findEpisode(episodeId);
+        return documentRepository.findByEpisodeIdOrderByUploadedAtDesc(episodeId)
+                .stream()
+                .map(this::toDocumentDTO)
+                .toList();
     }
 
     @Transactional
@@ -511,12 +542,14 @@ public class DemandService {
         EpisodeReferenceEntity reference = request.getReferenceId() != null ? referenceRepository.findById(request.getReferenceId()).orElseThrow(() -> notFound("Referencia no encontrada")) : null;
         UserEntity currentUser = currentUserOrNull();
 
+        if (hasText(request.getDocumentTypeCode())) validateDocumentType(request.getDocumentTypeCode());
+
         EpisodeDocumentEntity document = EpisodeDocumentEntity.builder()
                 .episode(episode)
                 .stage(stage)
                 .event(event)
                 .reference(reference)
-                .documentTypeCode(request.getDocumentTypeCode())
+                .documentTypeCode(normalizeCode(request.getDocumentTypeCode()))
                 .originalFilename(request.getOriginalFilename())
                 .storedFilename(request.getStoredFilename())
                 .storagePath(request.getStoragePath())
@@ -525,8 +558,124 @@ public class DemandService {
                 .uploadedByUser(currentUser)
                 .build();
         document = documentRepository.save(document);
-        audit(episode, stage, event, "ADJUNTAR_DOCUMENTO", null, document.getOriginalFilename(), document.getDocumentTypeCode(), currentUser, null, null);
+        audit(episode, stage, event, "ADJUNTAR_DOCUMENTO_METADATA", null, document.getOriginalFilename(), document.getDocumentTypeCode(), currentUser, null, null);
         return toDocumentDTO(document);
+    }
+
+    @Transactional
+    public EpisodeDocumentDTO uploadDocument(Integer episodeId, MultipartFile file, String documentTypeCode, Integer stageId, Integer eventId, Integer referenceId) {
+        if (file == null || file.isEmpty()) throw badRequest("Debe adjuntar un archivo en el campo file.");
+        EpisodeEntity episode = findEpisode(episodeId);
+        EpisodeStageEntity stage = stageId != null ? stageRepository.findById(stageId).orElseThrow(() -> notFound("Etapa no encontrada")) : null;
+        EpisodeEventEntity event = eventId != null ? eventRepository.findById(eventId).orElseThrow(() -> notFound("Evento no encontrado")) : null;
+        EpisodeReferenceEntity reference = referenceId != null ? referenceRepository.findById(referenceId).orElseThrow(() -> notFound("Referencia no encontrada")) : null;
+        UserEntity currentUser = currentUserOrNull();
+        validateDocumentType(documentTypeCode);
+
+        String originalFilename = cleanFilename(file.getOriginalFilename());
+        String extension = extensionOf(originalFilename);
+        String storedFilename = "episode-" + episodeId + "-" + UUID.randomUUID() + extension;
+        Path dir = Paths.get(documentStorageDir, "episodes", String.valueOf(episodeId)).toAbsolutePath().normalize();
+        Path target = dir.resolve(storedFilename).normalize();
+        try {
+            Files.createDirectories(dir);
+            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "No fue posible guardar el archivo: " + ex.getMessage());
+        }
+
+        EpisodeDocumentEntity document = EpisodeDocumentEntity.builder()
+                .episode(episode)
+                .stage(stage)
+                .event(event)
+                .reference(reference)
+                .documentTypeCode(normalizeCode(documentTypeCode))
+                .originalFilename(originalFilename)
+                .storedFilename(storedFilename)
+                .storagePath(target.toString())
+                .mimeType(hasText(file.getContentType()) ? file.getContentType() : "application/octet-stream")
+                .fileSize(file.getSize())
+                .uploadedByUser(currentUser)
+                .uploadedAt(LocalDateTime.now())
+                .build();
+        document = documentRepository.save(document);
+        audit(episode, stage, event, "SUBIR_DOCUMENTO", null, document.getOriginalFilename(), document.getDocumentTypeCode(), currentUser, null, null);
+        return toDocumentDTO(document);
+    }
+
+    @Transactional(readOnly = true)
+    public DocumentDownloadDTO downloadDocument(Integer documentId) {
+        EpisodeDocumentEntity document = documentRepository.findById(documentId).orElseThrow(() -> notFound("Documento no encontrado"));
+        if (!hasText(document.getStoragePath())) throw notFound("El documento no tiene archivo físico asociado.");
+        Path path = Paths.get(document.getStoragePath()).toAbsolutePath().normalize();
+        if (!Files.exists(path) || !Files.isRegularFile(path)) throw notFound("Archivo físico no encontrado.");
+        Resource resource = new FileSystemResource(path);
+        return DocumentDownloadDTO.builder()
+                .resource(resource)
+                .filename(hasText(document.getOriginalFilename()) ? document.getOriginalFilename() : document.getStoredFilename())
+                .mimeType(hasText(document.getMimeType()) ? document.getMimeType() : "application/octet-stream")
+                .fileSize(document.getFileSize())
+                .build();
+    }
+
+    @Transactional
+    public EpisodeDocumentDTO updateDocument(Integer documentId, UpdateDocumentRequest request) {
+        EpisodeDocumentEntity document = documentRepository.findById(documentId).orElseThrow(() -> notFound("Documento no encontrado"));
+        String previous = documentSnapshot(document);
+        EpisodeStageEntity stage = request.getStageId() != null ? stageRepository.findById(request.getStageId()).orElseThrow(() -> notFound("Etapa no encontrada")) : document.getStage();
+        EpisodeEventEntity event = request.getEventId() != null ? eventRepository.findById(request.getEventId()).orElseThrow(() -> notFound("Evento no encontrado")) : document.getEvent();
+        EpisodeReferenceEntity reference = request.getReferenceId() != null ? referenceRepository.findById(request.getReferenceId()).orElseThrow(() -> notFound("Referencia no encontrada")) : document.getReference();
+
+        if (hasText(request.getDocumentTypeCode())) {
+            validateDocumentType(request.getDocumentTypeCode());
+            document.setDocumentTypeCode(normalizeCode(request.getDocumentTypeCode()));
+        }
+        if (hasText(request.getOriginalFilename())) document.setOriginalFilename(cleanFilename(request.getOriginalFilename()));
+        document.setStage(stage);
+        document.setEvent(event);
+        document.setReference(reference);
+        document = documentRepository.save(document);
+        audit(document.getEpisode(), stage, event, "MODIFICAR_DOCUMENTO", previous, documentSnapshot(document), "Actualización de metadata", currentUserOrNull(), null, null);
+        return toDocumentDTO(document);
+    }
+
+    @Transactional
+    public void deleteDocument(Integer documentId) {
+        EpisodeDocumentEntity document = documentRepository.findById(documentId).orElseThrow(() -> notFound("Documento no encontrado"));
+        audit(document.getEpisode(), document.getStage(), document.getEvent(), "ELIMINAR_DOCUMENTO", documentSnapshot(document), "deleted_at", "Eliminación lógica de documento", currentUserOrNull(), null, null);
+        documentRepository.delete(document);
+    }
+
+    @Transactional
+    public EpisodeDocumentDTO replaceDocument(Integer documentId, MultipartFile file, String documentTypeCode, Integer stageId, Integer eventId, Integer referenceId) {
+        EpisodeDocumentEntity previous = documentRepository.findById(documentId).orElseThrow(() -> notFound("Documento no encontrado"));
+        Integer episodeId = previous.getEpisode() != null ? previous.getEpisode().getId() : null;
+        if (episodeId == null) throw badRequest("El documento no tiene episodio asociado.");
+        audit(previous.getEpisode(), previous.getStage(), previous.getEvent(), "REEMPLAZAR_DOCUMENTO_ANTERIOR", documentSnapshot(previous), "deleted_at", "Reemplazo de archivo", currentUserOrNull(), null, null);
+        documentRepository.delete(previous);
+        EpisodeDocumentDTO created = uploadDocument(episodeId, file, hasText(documentTypeCode) ? documentTypeCode : previous.getDocumentTypeCode(), stageId, eventId, referenceId);
+        audit(previous.getEpisode(), previous.getStage(), previous.getEvent(), "REEMPLAZAR_DOCUMENTO_NUEVO", null, String.valueOf(created.getId()), "Nuevo documento creado por reemplazo", currentUserOrNull(), null, null);
+        return created;
+    }
+
+    @Transactional
+    public EmailNotificationResponse sendEmailNotification(EmailNotificationRequest request) {
+        EpisodeEntity episode = request.getEpisodeId() != null ? findEpisode(request.getEpisodeId()) : null;
+        EpisodeDocumentEntity document = request.getDocumentId() != null ? documentRepository.findById(request.getDocumentId()).orElseThrow(() -> notFound("Documento no encontrado")) : null;
+        if (episode == null && document != null) episode = document.getEpisode();
+        audit(episode, episode != null ? episode.getCurrentStage() : null, null, "SOLICITUD_ENVIO_CORREO", null, request.getTo(), request.getSubject(), currentUserOrNull(), null, null);
+        return EmailNotificationResponse.builder()
+                .sent(false)
+                .queued(false)
+                .result("EMAIL_SERVICE_NOT_CONFIGURED")
+                .message("Endpoint habilitado. El envío SMTP real queda pendiente de configuración institucional.")
+                .episodeId(episode != null ? episode.getId() : request.getEpisodeId())
+                .documentId(document != null ? document.getId() : request.getDocumentId())
+                .to(request.getTo())
+                .subject(request.getSubject())
+                .documentIds(request.getDocumentIds())
+                .sentAt(LocalDateTime.now())
+                .build();
     }
 
     @Transactional
@@ -538,6 +687,8 @@ public class DemandService {
                 .episode(episode)
                 .substance(substance)
                 .level(request.getLevel())
+                .primarySubstance(request.getPrimarySubstance() != null ? request.getPrimarySubstance() : isPrimaryLevel(request.getLevel(), request.getUseOrder()))
+                .useOrder(request.getUseOrder() != null ? request.getUseOrder() : parseLevelAsOrder(request.getLevel()))
                 .observation(request.getObservation())
                 .build();
         entity = episodeSubstanceRepository.save(entity);
@@ -727,6 +878,76 @@ public class DemandService {
         return value != null && !value.trim().isEmpty();
     }
 
+    private List<OptionDTO> alertTypes() {
+        return List.of(
+                OptionDTO.builder().code("ALERTA_ESPERA").name("Alerta por espera").build(),
+                OptionDTO.builder().code("ALERTA_INASISTENCIA").name("Alerta por inasistencia").build(),
+                OptionDTO.builder().code("ALERTA_DOCUMENTO").name("Alerta por documento").build(),
+                OptionDTO.builder().code("ALERTA_REFERENCIA").name("Alerta por referencia").build()
+        );
+    }
+
+    private List<OptionDTO> priorityLevels() {
+        return List.of(
+                OptionDTO.builder().code("BAJA").name("Baja").build(),
+                OptionDTO.builder().code("MEDIA").name("Media").build(),
+                OptionDTO.builder().code("ALTA").name("Alta").build(),
+                OptionDTO.builder().code("CRITICA").name("Crítica").build()
+        );
+    }
+
+    private List<OptionDTO> alertStatuses() {
+        return List.of(
+                OptionDTO.builder().code("ACTIVA").name("Activa").build(),
+                OptionDTO.builder().code("GESTIONADA").name("Gestionada").build(),
+                OptionDTO.builder().code("CERRADA").name("Cerrada").build(),
+                OptionDTO.builder().code("DESCARTADA").name("Descartada").build()
+        );
+    }
+
+    private void validateDocumentType(String code) {
+        if (!hasText(code)) throw badRequest("Debe indicar documentTypeCode.");
+        documentTypeRepository.findByCodeIgnoreCase(normalizeCode(code))
+                .orElseThrow(() -> badRequest("Tipo de documento no válido: " + code));
+    }
+
+    private String normalizeCode(String code) {
+        return code == null ? null : code.trim().toUpperCase().replace(' ', '_');
+    }
+
+    private String cleanFilename(String filename) {
+        if (!hasText(filename)) return "documento";
+        return Paths.get(filename).getFileName().toString().replaceAll("[/\\\\]+", "_");
+    }
+
+    private String extensionOf(String filename) {
+        if (!hasText(filename)) return "";
+        int idx = filename.lastIndexOf('.');
+        if (idx < 0 || idx == filename.length() - 1) return "";
+        String ext = filename.substring(idx);
+        return ext.length() > 20 ? "" : ext;
+    }
+
+    private String documentSnapshot(EpisodeDocumentEntity document) {
+        if (document == null) return null;
+        return "id=" + document.getId()
+                + ";type=" + document.getDocumentTypeCode()
+                + ";original=" + document.getOriginalFilename()
+                + ";stored=" + document.getStoredFilename()
+                + ";path=" + document.getStoragePath();
+    }
+
+    private Boolean isPrimaryLevel(String level, Integer useOrder) {
+        if (useOrder != null) return useOrder == 1;
+        Integer parsed = parseLevelAsOrder(level);
+        return parsed != null && parsed == 1;
+    }
+
+    private Integer parseLevelAsOrder(String level) {
+        if (!hasText(level)) return null;
+        try { return Integer.parseInt(level.trim()); } catch (Exception ignored) { return null; }
+    }
+
     private ResponseStatusException notFound(String message) {
         return new ResponseStatusException(HttpStatus.NOT_FOUND, message);
     }
@@ -742,6 +963,7 @@ public class DemandService {
     private OptionDTO toOption(ProgramPopulationEntity e) { return e == null ? null : OptionDTO.builder().id(e.getId()).code(e.getCode()).name(e.getName()).build(); }
     private OptionDTO toOption(ProgramModalityEntity e) { return e == null ? null : OptionDTO.builder().id(e.getId()).code(e.getCode()).name(e.getName()).build(); }
     private OptionDTO toOption(ProgramPlanEntity e) { return e == null ? null : OptionDTO.builder().id(e.getId()).code(e.getCode()).name(e.getName()).build(); }
+    private OptionDTO toOption(DocumentTypeEntity e) { return e == null ? null : OptionDTO.builder().id(e.getId()).code(e.getCode()).name(e.getName()).build(); }
     private OptionDTO toOption(RegionEntity e) { return e == null ? null : OptionDTO.builder().id(e.getId()).code(e.getCode()).name(e.getName()).build(); }
     private OptionDTO toOption(CityEntity e) { return e == null ? null : OptionDTO.builder().id(e.getId()).code(e.getCode()).name(e.getName()).build(); }
 
@@ -839,6 +1061,7 @@ public class DemandService {
                 .closureReason(toOption(s.getClosureReason()))
                 .closureComment(s.getClosureComment())
                 .current(s.getCurrent())
+                .responsibleUser(toUserDTO(s.getResponsibleUser()))
                 .daysInStage((int) days)
                 .build();
     }
@@ -949,6 +1172,8 @@ public class DemandService {
                 .substanceId(s.getSubstance() != null ? s.getSubstance().getId() : null)
                 .substanceName(s.getSubstance() != null ? s.getSubstance().getName() : null)
                 .level(s.getLevel())
+                .primarySubstance(s.getPrimarySubstance())
+                .useOrder(s.getUseOrder())
                 .observation(s.getObservation())
                 .build();
     }

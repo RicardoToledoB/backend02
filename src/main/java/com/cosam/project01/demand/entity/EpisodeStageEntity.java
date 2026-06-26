@@ -1,6 +1,7 @@
 package com.cosam.project01.demand.entity;
 
 import com.cosam.project01.entity.ProgramEntity;
+import com.cosam.project01.entity.UserEntity;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
@@ -63,6 +64,10 @@ public class EpisodeStageEntity implements Serializable {
 
     @Column(name = "is_current")
     private Boolean current;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "responsible_user_id")
+    private UserEntity responsibleUser;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

@@ -36,6 +36,10 @@ public class EpisodeSubstanceEntity implements Serializable {
     @Column(length = 100)
     private String level;
 
+    private Boolean primarySubstance;
+
+    private Integer useOrder;
+
     @Column(length = 1200)
     private String observation;
 
@@ -46,6 +50,10 @@ public class EpisodeSubstanceEntity implements Serializable {
     @PrePersist
     private void onCreate() {
         this.createdAt = LocalDateTime.now();
+        if (this.useOrder == null && this.level != null) {
+            try { this.useOrder = Integer.parseInt(this.level); } catch (Exception ignored) {}
+        }
+        if (this.primarySubstance == null && this.useOrder != null) this.primarySubstance = this.useOrder == 1;
     }
 
     @PreUpdate

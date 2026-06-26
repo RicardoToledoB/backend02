@@ -17,6 +17,7 @@ public class CreateEpisodeRequest {
     private LocalDate originalRequestDate;
     @NotNull
     private Integer initialProgramId;
+    private Integer responsibleUserId;
     private Integer contactTypeId;
     private Integer senderId;
     private Integer diverterId;

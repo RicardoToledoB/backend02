@@ -14,9 +14,12 @@ import com.cosam.project01.security.dto.AuthRequest;
 import com.cosam.project01.security.dto.AuthResponse;
 import com.cosam.project01.security.dto.AuthRoleDTO;
 import com.cosam.project01.security.dto.AuthUserDTO;
+import com.cosam.project01.security.dto.RefreshTokenRequest;
+import com.cosam.project01.security.dto.RefreshTokenResponse;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -28,6 +31,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -60,6 +64,7 @@ public class AuthController {
 
         AuthSession session = buildSession(user);
         String token = jwtService.generateToken(userDetails, session.claims());
+        String refreshToken = jwtService.generateRefreshToken(userDetails, session.claims());
         Instant expiresAt = Instant.now().plusMillis(jwtService.getExpirationMs());
 
         return ResponseEntity.ok(new AuthResponse(
@@ -68,6 +73,7 @@ public class AuthController {
                 "Login correcto",
                 "Bearer",
                 token,
+                refreshToken,
                 jwtService.getExpirationMs(),
                 expiresAt,
                 session.user(),
@@ -75,6 +81,38 @@ public class AuthController {
                 session.programs(),
                 session.authorities(),
                 session.claims()
+        ));
+    }
+
+    @PostMapping("/refresh")
+    @Transactional
+    public ResponseEntity<RefreshTokenResponse> refresh(@Valid @RequestBody RefreshTokenRequest req) {
+        String email;
+        try {
+            email = jwtService.extractUsername(req.refreshToken());
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token inválido");
+        }
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+        if (!jwtService.isRefreshTokenValid(req.refreshToken(), userDetails)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token expirado o inválido");
+        }
+
+        UserEntity user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no encontrado"));
+        AuthSession session = buildSession(user);
+
+        String newAccessToken = jwtService.generateToken(userDetails, session.claims());
+        String newRefreshToken = jwtService.generateRefreshToken(userDetails, session.claims());
+        Instant expiresAt = Instant.now().plusMillis(jwtService.getExpirationMs());
+
+        return ResponseEntity.ok(new RefreshTokenResponse(
+                "Bearer",
+                newAccessToken,
+                newRefreshToken,
+                jwtService.getExpirationMs(),
+                expiresAt
         ));
     }
 
@@ -91,6 +129,7 @@ public class AuthController {
                 "OK",
                 "Usuario autenticado",
                 "Bearer",
+                null,
                 null,
                 null,
                 null,
@@ -175,7 +214,7 @@ public class AuthController {
         return new AuthRoleDTO(
                 role != null ? role.getId() : null,
                 role != null ? role.getName() : null,
-                role != null ? role.getCode() : null,
+                role != null ? firstNonBlank(role.getCode(), role.getName()) : null,
                 role != null ? role.getDescription() : null,
                 role != null ? role.getActive() : null,
                 userRole.getAssignedByUser() != null ? userRole.getAssignedByUser().getId() : null
@@ -221,10 +260,6 @@ public class AuthController {
         if (first != null && !first.isBlank()) return first;
         if (second != null && !second.isBlank()) return second;
         return null;
-    }
-
-    private String safe(String value) {
-        return value == null ? "" : value;
     }
 
     private record AuthSession(
