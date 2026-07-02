@@ -30,8 +30,33 @@ public class CatalogMaintainerController {
     public ResponseEntity<List<CatalogMaintainerDTO>> list(
             @PathVariable String catalog,
             @RequestParam(required = false) String q,
+            @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false, defaultValue = "false") Boolean includeDeleted,
+            @RequestParam(required = false) Boolean deleted) {
+        return ResponseEntity.ok(service.list(catalog, q, active, includeDeleted, deleted));
+    }
+
+    @GetMapping("/{catalog}/all")
+    public ResponseEntity<List<CatalogMaintainerDTO>> listAllIncludingDeleted(
+            @PathVariable String catalog,
+            @RequestParam(required = false) String q,
             @RequestParam(required = false) Boolean active) {
-        return ResponseEntity.ok(service.list(catalog, q, active));
+        return ResponseEntity.ok(service.list(catalog, q, active, true, null));
+    }
+
+    @GetMapping("/{catalog}/deleted")
+    public ResponseEntity<List<CatalogMaintainerDTO>> listDeleted(
+            @PathVariable String catalog,
+            @RequestParam(required = false) String q) {
+        return ResponseEntity.ok(service.list(catalog, q, null, true, true));
+    }
+
+    @GetMapping("/{catalog}/inactive")
+    public ResponseEntity<List<CatalogMaintainerDTO>> listInactive(
+            @PathVariable String catalog,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false, defaultValue = "false") Boolean includeDeleted) {
+        return ResponseEntity.ok(service.list(catalog, q, false, includeDeleted, null));
     }
 
     @GetMapping("/{catalog}/getAllPaginated")
@@ -39,15 +64,18 @@ public class CatalogMaintainerController {
             @PathVariable String catalog,
             @RequestParam(required = false) String q,
             @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false, defaultValue = "false") Boolean includeDeleted,
+            @RequestParam(required = false) Boolean deleted,
             @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
-        return ResponseEntity.ok(service.listPaginated(catalog, q, active, pageable));
+        return ResponseEntity.ok(service.listPaginated(catalog, q, active, includeDeleted, deleted, pageable));
     }
 
     @GetMapping("/{catalog}/{id}")
     public ResponseEntity<CatalogMaintainerDTO> getById(
             @PathVariable String catalog,
-            @PathVariable Integer id) {
-        return ResponseEntity.ok(service.getById(catalog, id));
+            @PathVariable Integer id,
+            @RequestParam(required = false, defaultValue = "false") Boolean includeDeleted) {
+        return ResponseEntity.ok(service.getById(catalog, id, includeDeleted));
     }
 
     @PostMapping("/{catalog}")

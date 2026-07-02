@@ -60,10 +60,17 @@ public class CatalogMaintainerService {
 
     @Transactional(readOnly = true)
     public List<CatalogMaintainerDTO> list(String catalog, String q, Boolean active) {
-        List<?> items = repositoryFor(catalog).findAll();
+        return list(catalog, q, active, false, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CatalogMaintainerDTO> list(String catalog, String q, Boolean active, Boolean includeDeleted, Boolean deleted) {
+        boolean includeDeletedRows = Boolean.TRUE.equals(includeDeleted) || deleted != null;
+        List<?> items = includeDeletedRows ? findAllIncludingDeleted(catalog) : repositoryFor(catalog).findAll();
         return items.stream()
                 .map(this::toDTO)
                 .filter(dto -> active == null || Objects.equals(dto.getActive(), active))
+                .filter(dto -> deleted == null || Objects.equals(dto.getDeletedAt() != null, deleted))
                 .filter(dto -> matches(dto, q))
                 .sorted(Comparator.comparing(CatalogMaintainerDTO::getId, Comparator.nullsLast(Integer::compareTo)))
                 .collect(Collectors.toList());
@@ -71,15 +78,34 @@ public class CatalogMaintainerService {
 
     @Transactional(readOnly = true)
     public Page<CatalogMaintainerDTO> listPaginated(String catalog, String q, Boolean active, Pageable pageable) {
-        List<CatalogMaintainerDTO> filtered = list(catalog, q, active);
+        return listPaginated(catalog, q, active, false, null, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<CatalogMaintainerDTO> listPaginated(String catalog, String q, Boolean active, Boolean includeDeleted, Boolean deleted, Pageable pageable) {
+        List<CatalogMaintainerDTO> filtered = list(catalog, q, active, includeDeleted, deleted);
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), filtered.size());
-        List<CatalogMaintainerDTO> pageContent = start > end ? List.of() : filtered.subList(start, end);
+        List<CatalogMaintainerDTO> pageContent = start >= filtered.size() ? List.of() : filtered.subList(start, end);
         return new PageImpl<>(pageContent, pageable, filtered.size());
     }
 
     @Transactional(readOnly = true)
     public CatalogMaintainerDTO getById(String catalog, Integer id) {
+        return getById(catalog, id, false);
+    }
+
+    @Transactional(readOnly = true)
+    public CatalogMaintainerDTO getById(String catalog, Integer id, Boolean includeDeleted) {
+        if (Boolean.TRUE.equals(includeDeleted)) {
+            Object entity = entityManager
+                    .createNativeQuery("SELECT * FROM " + tableNameFor(catalog) + " WHERE id = :id", entityClassFor(catalog))
+                    .setParameter("id", id)
+                    .getResultStream()
+                    .findFirst()
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Registro no encontrado"));
+            return toDTO(entity);
+        }
         Object entity = repositoryFor(catalog).findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Registro no encontrado"));
         return toDTO(entity);
@@ -104,11 +130,14 @@ public class CatalogMaintainerService {
 
     @Transactional
     public void delete(String catalog, Integer id) {
-        JpaRepository repository = repositoryFor(catalog);
-        if (!repository.existsById(id)) {
+        String table = tableNameFor(catalog);
+        int updated = entityManager
+                .createNativeQuery("UPDATE " + table + " SET deleted_at = CURRENT_TIMESTAMP, active = FALSE WHERE id = :id")
+                .setParameter("id", id)
+                .executeUpdate();
+        if (updated == 0) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Registro no encontrado");
         }
-        repository.deleteById(id);
     }
 
     @Transactional
@@ -121,6 +150,13 @@ public class CatalogMaintainerService {
         if (updated == 0) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Registro no encontrado para restaurar");
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<?> findAllIncludingDeleted(String catalog) {
+        return entityManager
+                .createNativeQuery("SELECT * FROM " + tableNameFor(catalog) + " ORDER BY id ASC", entityClassFor(catalog))
+                .getResultList();
     }
 
     private boolean matches(CatalogMaintainerDTO dto, String q) {
@@ -170,6 +206,23 @@ public class CatalogMaintainerService {
             case "regions" -> new RegionEntity();
             case "cities" -> new CityEntity();
             case "semaphore-rules" -> new SemaphoreRuleEntity();
+            default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Catálogo no soportado: " + catalog);
+        };
+    }
+
+    private Class<?> entityClassFor(String catalog) {
+        return switch (normalize(catalog)) {
+            case "episode-types" -> EpisodeTypeEntity.class;
+            case "event-types" -> EventTypeEntity.class;
+            case "attendance-statuses" -> AttendanceStatusEntity.class;
+            case "closure-reasons" -> ClosureReasonEntity.class;
+            case "program-populations" -> ProgramPopulationEntity.class;
+            case "program-modalities" -> ProgramModalityEntity.class;
+            case "program-plans" -> ProgramPlanEntity.class;
+            case "document-types" -> DocumentTypeEntity.class;
+            case "regions" -> RegionEntity.class;
+            case "cities" -> CityEntity.class;
+            case "semaphore-rules" -> SemaphoreRuleEntity.class;
             default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Catálogo no soportado: " + catalog);
         };
     }
