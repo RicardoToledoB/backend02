@@ -43,6 +43,11 @@ public class SecurityConfig {
                         ).permitAll()
                         // H2 console (opcional para pruebas):
                         .requestMatchers("/h2-console/**").permitAll()
+                        // Mantenedores de catálogos de Demanda.
+                        // Se habilita explícitamente para ADMIN, ADMINISTRATIVO y SUPERVISOR,
+                        // evitando 403 en rutas como /api/v1/demand/maintainers/episodeTypes.
+                        .requestMatchers("/api/v1/demand/maintainers/**")
+                        .hasAnyAuthority("ROLE_ADMIN", "ROLE_ADMINISTRATIVO", "ROLE_SUPERVISOR")
                         .anyRequest().authenticated()
                 );
 

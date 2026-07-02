@@ -193,7 +193,14 @@ public class CatalogMaintainerService {
 
     private String normalize(String catalog) {
         if (catalog == null) return "";
-        String value = catalog.trim().toLowerCase(Locale.ROOT).replace('_', '-');
+
+        // Soporta las variantes usadas por frontend y backend:
+        // episode-types, episode_types, episodeTypes, EpisodeTypes, etc.
+        String value = catalog.trim()
+                .replaceAll("([a-z0-9])([A-Z])", "$1-$2")
+                .replace('_', '-')
+                .toLowerCase(Locale.ROOT);
+
         return switch (value) {
             case "episode-type", "episode-types" -> "episode-types";
             case "event-type", "event-types" -> "event-types";
