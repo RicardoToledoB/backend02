@@ -138,9 +138,9 @@ public class CatalogMaintainerService {
         return value != null && value.toLowerCase().contains(term);
     }
 
-    @SuppressWarnings("rawtypes")
-    private JpaRepository repositoryFor(String catalog) {
-        return switch (normalize(catalog)) {
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private JpaRepository<Object, Integer> repositoryFor(String catalog) {
+        JpaRepository repository = switch (normalize(catalog)) {
             case "episode-types" -> episodeTypeRepository;
             case "event-types" -> eventTypeRepository;
             case "attendance-statuses" -> attendanceStatusRepository;
@@ -154,6 +154,7 @@ public class CatalogMaintainerService {
             case "semaphore-rules" -> semaphoreRuleRepository;
             default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Catálogo no soportado: " + catalog);
         };
+        return (JpaRepository<Object, Integer>) repository;
     }
 
     private Object newEntity(String catalog) {
