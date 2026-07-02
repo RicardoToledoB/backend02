@@ -98,13 +98,14 @@ public class CatalogMaintainerService {
     @Transactional(readOnly = true)
     public CatalogMaintainerDTO getById(String catalog, Integer id, Boolean includeDeleted) {
         if (Boolean.TRUE.equals(includeDeleted)) {
-            Object entity = entityManager
+            List<?> result = entityManager
                     .createNativeQuery("SELECT * FROM " + tableNameFor(catalog) + " WHERE id = :id", entityClassFor(catalog))
                     .setParameter("id", id)
-                    .getResultStream()
-                    .findFirst()
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Registro no encontrado"));
-            return toDTO(entity);
+                    .getResultList();
+            if (result.isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Registro no encontrado");
+            }
+            return toDTO(result.get(0));
         }
         Object entity = repositoryFor(catalog).findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Registro no encontrado"));
