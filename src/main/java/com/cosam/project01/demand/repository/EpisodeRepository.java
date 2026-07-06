@@ -25,7 +25,8 @@ public interface EpisodeRepository extends JpaRepository<EpisodeEntity, Integer>
 
     @Query("""
             SELECT e FROM EpisodeEntity e
-            WHERE LOWER(e.postulant.rut) = LOWER(:rut)
+            WHERE (LOWER(e.postulant.rut) = LOWER(:rut)
+                   OR LOWER(REPLACE(REPLACE(e.postulant.rut, '.', ''), '-', '')) = LOWER(REPLACE(REPLACE(:rut, '.', ''), '-', '')))
               AND e.active = true
               AND e.deletedAt IS NULL
             ORDER BY e.createdAt DESC
@@ -34,7 +35,8 @@ public interface EpisodeRepository extends JpaRepository<EpisodeEntity, Integer>
 
     @Query("""
             SELECT e FROM EpisodeEntity e
-            WHERE LOWER(e.postulant.rut) = LOWER(:rut)
+            WHERE (LOWER(e.postulant.rut) = LOWER(:rut)
+                   OR LOWER(REPLACE(REPLACE(e.postulant.rut, '.', ''), '-', '')) = LOWER(REPLACE(REPLACE(:rut, '.', ''), '-', '')))
               AND e.deletedAt IS NULL
             ORDER BY e.originalRequestDate DESC, e.id DESC
             """)

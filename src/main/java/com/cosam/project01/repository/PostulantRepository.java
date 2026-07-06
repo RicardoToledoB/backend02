@@ -16,6 +16,33 @@ public interface PostulantRepository extends JpaRepository<PostulantEntity,Integ
 
     Optional<PostulantEntity> findFirstByRutIgnoreCase(String rut);
 
+    @Query("""
+       SELECT c FROM PostulantEntity c
+       WHERE c.deletedAt IS NULL
+         AND (LOWER(c.rut) = LOWER(:rut)
+              OR LOWER(REPLACE(REPLACE(c.rut, '.', ''), '-', '')) = LOWER(REPLACE(REPLACE(:rut, '.', ''), '-', '')))
+    """)
+    Optional<PostulantEntity> findFirstByRutNormalized(@Param("rut") String rut);
+
+    @Query(
+            value = """
+                    SELECT * FROM postulants p
+                    WHERE p.deleted_at IS NULL
+                      AND (:rut IS NULL OR TRIM(:rut) = ''
+                           OR LOWER(p.rut) LIKE LOWER(CONCAT('%', :rut, '%'))
+                           OR REPLACE(REPLACE(LOWER(p.rut), '.', ''), '-', '') LIKE CONCAT('%', REPLACE(REPLACE(LOWER(:rut), '.', ''), '-', ''), '%'))
+                    """,
+            countQuery = """
+                    SELECT COUNT(*) FROM postulants p
+                    WHERE p.deleted_at IS NULL
+                      AND (:rut IS NULL OR TRIM(:rut) = ''
+                           OR LOWER(p.rut) LIKE LOWER(CONCAT('%', :rut, '%'))
+                           OR REPLACE(REPLACE(LOWER(p.rut), '.', ''), '-', '') LIKE CONCAT('%', REPLACE(REPLACE(LOWER(:rut), '.', ''), '-', ''), '%'))
+                    """,
+            nativeQuery = true
+    )
+    Page<PostulantEntity> searchByRutNormalized(@Param("rut") String rut, Pageable pageable);
+
     @Query(
             value = "SELECT * FROM postulants c WHERE c.deleted_at IS NOT NULL",
             nativeQuery = true

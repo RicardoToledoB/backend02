@@ -100,7 +100,7 @@ public class DemandService {
 
     @Transactional(readOnly = true)
     public PostulantSummaryDTO getPersonByRut(String rut) {
-        return postulantRepository.findFirstByRutIgnoreCase(normalizeRut(rut))
+        return postulantRepository.findFirstByRutNormalized(normalizeRut(rut))
                 .map(this::toPostulantDTO)
                 .orElseThrow(() -> notFound("Persona/postulante no encontrado"));
     }

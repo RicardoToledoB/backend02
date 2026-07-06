@@ -220,6 +220,10 @@ public class PostulantServiceImpl implements IPostulantService {
         return repository.search(name, pageable).map(this::mapToDTO);
     }
 
+    public Page<PostulantDTO> searchByRut(String rut, Pageable pageable) {
+        return repository.searchByRutNormalized(rut == null ? "" : rut.trim(), pageable).map(this::mapToDTO);
+    }
+
 
 
 

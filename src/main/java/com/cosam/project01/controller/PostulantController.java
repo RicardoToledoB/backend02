@@ -16,7 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/postulants")
 //@CrossOrigin("*")
-@PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO')")
+@PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ADMINISTRATIVO','ROLE_SUPERVISOR','ROLE_PROFESIONAL')")
 public class PostulantController {
 
     @Autowired
@@ -56,6 +56,13 @@ public class PostulantController {
             @RequestParam(required = false) String name,
             @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(service.getAllPaginated(name, pageable));
+    }
+
+    @GetMapping("/searchByRut")
+    public ResponseEntity<Page<PostulantDTO>> searchByRut(
+            @RequestParam String rut,
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(service.searchByRut(rut, pageable));
     }
 
 
