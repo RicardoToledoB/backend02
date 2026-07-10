@@ -1,6 +1,7 @@
 package com.cosam.project01.demand.entity;
 
 import com.cosam.project01.entity.ProgramEntity;
+import com.cosam.project01.entity.ProgramProfessionalEntity;
 import com.cosam.project01.entity.UserEntity;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
