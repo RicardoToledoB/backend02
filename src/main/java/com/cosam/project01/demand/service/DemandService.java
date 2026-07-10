@@ -243,11 +243,13 @@ public class DemandService {
         ProgramEntity program = request.getProgramId() != null
                 ? programRepository.findById(request.getProgramId()).orElseThrow(() -> notFound("Programa no encontrado"))
                 : stage.getProgram();
+        EpisodeEventEntity relatedEvent = resolveRelatedEvent(episode, request.getRelatedEventId());
 
         EpisodeEventEntity event = EpisodeEventEntity.builder()
                 .episode(episode)
                 .stage(stage)
                 .eventType(type)
+                .relatedEvent(relatedEvent)
                 .eventDate(request.getEventDate())
                 .eventTime(request.getEventTime())
                 .attendanceStatus(attendance)
@@ -264,6 +266,7 @@ public class DemandService {
                 .stateCode(request.getStateCode())
                 .build();
         event = eventRepository.save(event);
+        updateRelatedCitationAttendanceIfNeeded(type, relatedEvent, attendance);
 
         if (hasText(request.getResultCode())) episode.setResultCode(request.getResultCode());
         if (hasText(request.getStateCode())) episode.setStateCode(request.getStateCode());
@@ -312,11 +315,13 @@ public class DemandService {
         UserEntity professional = findNullable(userRepository, request.getProfessionalUserId());
         UserEntity currentUser = currentUserOrNull();
         AttendanceStatusEntity attendance = attendanceStatus(request.getAttendanceStatusCode());
+        EpisodeEventEntity relatedEvent = resolveRelatedEvent(episode, request.getRelatedEventId());
 
         EpisodeEventEntity event = EpisodeEventEntity.builder()
                 .episode(episode)
                 .stage(stage)
                 .eventType(eventType("ASISTENCIA"))
+                .relatedEvent(relatedEvent)
                 .eventDate(request.getEventDate())
                 .eventTime(request.getEventTime())
                 .attendanceStatus(attendance)
@@ -332,6 +337,7 @@ public class DemandService {
                 .stateCode(STATE_IN_PROGRESS)
                 .build();
         event = eventRepository.save(event);
+        updateRelatedCitationAttendanceIfNeeded(event.getEventType(), relatedEvent, attendance);
 
         if (hasText(request.getResultCode())) {
             episode.setResultCode(request.getResultCode());
@@ -831,6 +837,25 @@ public class DemandService {
                 .orElseThrow(() -> notFound("Tipo de evento no encontrado: " + code));
     }
 
+    private EpisodeEventEntity resolveRelatedEvent(EpisodeEntity episode, Integer relatedEventId) {
+        if (relatedEventId == null) return null;
+        EpisodeEventEntity related = eventRepository.findById(relatedEventId)
+                .orElseThrow(() -> notFound("Evento relacionado no encontrado: " + relatedEventId));
+        if (related.getEpisode() == null || !Objects.equals(related.getEpisode().getId(), episode.getId())) {
+            throw badRequest("El evento relacionado no pertenece al episodio indicado");
+        }
+        return related;
+    }
+
+    private void updateRelatedCitationAttendanceIfNeeded(EventTypeEntity eventType, EpisodeEventEntity relatedEvent, AttendanceStatusEntity attendance) {
+        if (eventType == null || relatedEvent == null || attendance == null) return;
+        if (!"ASISTENCIA".equalsIgnoreCase(eventType.getCode())) return;
+        if (relatedEvent.getEventType() == null || !"CITACION".equalsIgnoreCase(relatedEvent.getEventType().getCode())) return;
+        relatedEvent.setAttendanceStatus(attendance);
+        relatedEvent.setUpdatedAt(LocalDateTime.now());
+        eventRepository.save(relatedEvent);
+    }
+
     private AttendanceStatusEntity resolveAttendanceStatus(Integer id, String code, String defaultCode) {
         if (id != null) return attendanceStatusRepository.findById(id).orElseThrow(() -> notFound("Estado de asistencia no encontrado"));
         if (!hasText(code) && !hasText(defaultCode)) return null;
@@ -1072,6 +1097,7 @@ public class DemandService {
                 .id(ev.getId())
                 .episodeId(ev.getEpisode() != null ? ev.getEpisode().getId() : null)
                 .stageId(ev.getStage() != null ? ev.getStage().getId() : null)
+                .relatedEventId(ev.getRelatedEvent() != null ? ev.getRelatedEvent().getId() : null)
                 .eventType(toOption(ev.getEventType()))
                 .eventDate(ev.getEventDate())
                 .eventTime(ev.getEventTime())

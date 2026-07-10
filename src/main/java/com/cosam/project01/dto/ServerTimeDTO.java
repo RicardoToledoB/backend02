@@ -12,4 +12,5 @@ import lombok.NoArgsConstructor;
 public class ServerTimeDTO {
     private long epochMillis;
     private String dateTime;
+    private String timezone;
 }

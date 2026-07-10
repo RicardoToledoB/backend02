@@ -132,8 +132,7 @@ public class ProgramProfessionalServiceImpl {
         entity.setDeletedAt(null);
         entity.setActive(true);
         repository.save(entity);
-        // No se restauran automáticamente programas antiguos para evitar asociaciones no deseadas.
-        // El frontend puede enviar PUT con programIds para reactivar/asignar programas.
+        linkRepository.restoreAllPrograms(id);
     }
 
     private void validate(ProgramProfessionalDTO dto) {

@@ -13,6 +13,7 @@ public class EpisodeEventDTO {
     private Integer id;
     private Integer episodeId;
     private Integer stageId;
+    private Integer relatedEventId;
     private OptionDTO eventType;
     private LocalDate eventDate;
     private LocalTime eventTime;

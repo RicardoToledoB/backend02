@@ -55,4 +55,12 @@ public interface ProgramProfessionalProgramRepository extends JpaRepository<Prog
     """)
     void softDeleteAllPrograms(@Param("professionalId") Long professionalId,
                                @Param("deletedAt") LocalDateTime deletedAt);
+    @Modifying
+    @Query("""
+       UPDATE ProgramProfessionalProgramEntity link
+       SET link.deletedAt = NULL
+       WHERE link.programProfessional.id = :professionalId
+    """)
+    void restoreAllPrograms(@Param("professionalId") Long professionalId);
+
 }

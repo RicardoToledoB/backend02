@@ -19,6 +19,7 @@ import java.time.LocalTime;
         indexes = {
                 @Index(name = "idx_event_episode_date", columnList = "episode_id, event_date"),
                 @Index(name = "idx_event_stage", columnList = "stage_id"),
+                @Index(name = "idx_event_related", columnList = "related_event_id"),
                 @Index(name = "idx_event_professional", columnList = "professional_user_id")
         }
 )
@@ -46,6 +47,10 @@ public class EpisodeEventEntity implements Serializable {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_type_id", nullable = false)
     private EventTypeEntity eventType;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "related_event_id")
+    private EpisodeEventEntity relatedEvent;
 
     private LocalDate eventDate;
     private LocalTime eventTime;

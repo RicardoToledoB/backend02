@@ -12,6 +12,7 @@ import java.time.LocalTime;
 @AllArgsConstructor
 public class RegisterAttendanceRequest {
     private Integer stageId;
+    private Integer relatedEventId;
     private LocalDate eventDate;
     private LocalTime eventTime;
     private Integer professionalUserId;

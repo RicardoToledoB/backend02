@@ -11,6 +11,7 @@ import java.time.LocalTime;
 @AllArgsConstructor
 public class CreateEventRequest {
     private Integer stageId;
+    private Integer relatedEventId;
     private Integer eventTypeId;
     private String eventTypeCode;
     private LocalDate eventDate;

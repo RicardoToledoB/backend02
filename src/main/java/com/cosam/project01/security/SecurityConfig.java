@@ -2,6 +2,7 @@ package com.cosam.project01.security;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.*;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.*;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
@@ -41,6 +42,8 @@ public class SecurityConfig {
                                 "/auth/**",
                                 "/docs/**", "/api-docs/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html"
                         ).permitAll()
+                        // Preflight CORS para PUT/PATCH/DELETE desde Angular
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // H2 console (opcional para pruebas):
                         .requestMatchers("/h2-console/**").permitAll()
                         // Mantenedores de catálogos de Demanda.

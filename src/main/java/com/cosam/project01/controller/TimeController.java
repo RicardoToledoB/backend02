@@ -29,6 +29,7 @@ public class TimeController {
         return ResponseEntity.ok(ServerTimeDTO.builder()
                 .epochMillis(now.toEpochMilli())
                 .dateTime(zonedDateTime.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME))
+                .timezone(zone.getId())
                 .build());
     }
 }
