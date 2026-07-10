@@ -55,12 +55,18 @@ public interface ProgramProfessionalProgramRepository extends JpaRepository<Prog
     """)
     void softDeleteAllPrograms(@Param("professionalId") Long professionalId,
                                @Param("deletedAt") LocalDateTime deletedAt);
+    /**
+     * Restaura todas las relaciones programa-facultativo, incluyendo las que están
+     * con deleted_at informado. Se usa SQL nativo porque la entidad tiene @Where
+     * deleted_at IS NULL y, dependiendo de la versión de Hibernate, esa cláusula
+     * puede impedir que un bulk update JPQL alcance registros eliminados lógicamente.
+     */
     @Modifying
-    @Query("""
-       UPDATE ProgramProfessionalProgramEntity link
-       SET link.deletedAt = NULL
-       WHERE link.programProfessional.id = :professionalId
-    """)
+    @Query(value = """
+       UPDATE program_professional_programs
+       SET deleted_at = NULL
+       WHERE program_professional_id = :professionalId
+    """, nativeQuery = true)
     void restoreAllPrograms(@Param("professionalId") Long professionalId);
 
 }
