@@ -68,6 +68,7 @@ public class DemandService {
 
     private final PostulantRepository postulantRepository;
     private final ProgramRepository programRepository;
+    private final ProgramProfessionalRepository programProfessionalRepository;
     private final ContactTypeRepository contactTypeRepository;
     private final SenderRepository senderRepository;
     private final DiverterRepository diverterRepository;
@@ -240,6 +241,8 @@ public class DemandService {
         AttendanceStatusEntity attendance = resolveAttendanceStatus(request.getAttendanceStatusId(), request.getAttendanceStatusCode(), null);
         UserEntity currentUser = currentUserOrNull();
         UserEntity professional = findNullable(userRepository, request.getProfessionalUserId());
+        ProgramProfessionalEntity programProfessional = findNullableProgramProfessional(request.getProgramProfessionalId());
+        String professionName = firstText(request.getProfessionName(), professionNameFromProgramProfessional(programProfessional));
         ProgramEntity program = request.getProgramId() != null
                 ? programRepository.findById(request.getProgramId()).orElseThrow(() -> notFound("Programa no encontrado"))
                 : stage.getProgram();
@@ -253,8 +256,9 @@ public class DemandService {
                 .eventDate(request.getEventDate())
                 .eventTime(request.getEventTime())
                 .attendanceStatus(attendance)
-                .professionName(request.getProfessionName())
+                .professionName(professionName)
                 .professionalUser(professional)
+                .programProfessional(programProfessional)
                 .registeredByUser(currentUser)
                 .program(program)
                 .comment(request.getComment())
@@ -281,6 +285,8 @@ public class DemandService {
         EpisodeEntity episode = findOpenEpisode(episodeId);
         EpisodeStageEntity stage = resolveStage(episode, request.getStageId());
         UserEntity professional = findNullable(userRepository, request.getProfessionalUserId());
+        ProgramProfessionalEntity programProfessional = findNullableProgramProfessional(request.getProgramProfessionalId());
+        String professionName = firstText(request.getProfessionName(), professionNameFromProgramProfessional(programProfessional));
         UserEntity currentUser = currentUserOrNull();
         ProgramEntity program = request.getProgramId() != null
                 ? programRepository.findById(request.getProgramId()).orElseThrow(() -> notFound("Programa no encontrado"))
@@ -293,8 +299,9 @@ public class DemandService {
                 .eventDate(request.getCitationDate())
                 .eventTime(request.getCitationTime())
                 .attendanceStatus(attendanceStatus("AGENDADO"))
-                .professionName(request.getProfessionName())
+                .professionName(professionName)
                 .professionalUser(professional)
+                .programProfessional(programProfessional)
                 .registeredByUser(currentUser)
                 .program(program)
                 .citationComment(request.getCitationComment())
@@ -313,6 +320,8 @@ public class DemandService {
         EpisodeEntity episode = findOpenEpisode(episodeId);
         EpisodeStageEntity stage = resolveStage(episode, request.getStageId());
         UserEntity professional = findNullable(userRepository, request.getProfessionalUserId());
+        ProgramProfessionalEntity programProfessional = findNullableProgramProfessional(request.getProgramProfessionalId());
+        String professionName = firstText(request.getProfessionName(), professionNameFromProgramProfessional(programProfessional));
         UserEntity currentUser = currentUserOrNull();
         AttendanceStatusEntity attendance = attendanceStatus(request.getAttendanceStatusCode());
         EpisodeEventEntity relatedEvent = resolveRelatedEvent(episode, request.getRelatedEventId());
@@ -325,8 +334,9 @@ public class DemandService {
                 .eventDate(request.getEventDate())
                 .eventTime(request.getEventTime())
                 .attendanceStatus(attendance)
-                .professionName(request.getProfessionName())
+                .professionName(professionName)
                 .professionalUser(professional)
+                .programProfessional(programProfessional)
                 .registeredByUser(currentUser)
                 .program(stage.getProgram())
                 .comment(request.getComment())
@@ -345,8 +355,13 @@ public class DemandService {
         }
 
         if ("NO_SE_PRESENTO".equalsIgnoreCase(attendance.getCode())) {
-            Integer professionalUserId = professional != null ? professional.getId() : null;
-            long noShows = eventRepository.countNoShowByStageAndProfessional(stage.getId(), professionalUserId);
+            long noShows;
+            if (programProfessional != null) {
+                noShows = eventRepository.countNoShowByStageAndProgramProfessional(stage.getId(), programProfessional.getId());
+            } else {
+                Integer professionalUserId = professional != null ? professional.getId() : null;
+                noShows = eventRepository.countNoShowByStageAndProfessional(stage.getId(), professionalUserId);
+            }
             if (noShows >= 2) {
                 ClosureReasonEntity reason = closureReason("CIERRE_POR_INASISTENCIAS");
                 closeEpisodeInternal(episode, stage, reason, "Cierre automático: dos inasistencias con el mismo profesional.", currentUser, "CIERRE_POR_INASISTENCIAS");
@@ -878,6 +893,21 @@ public class DemandService {
                 .orElseThrow(() -> notFound("Motivo de cierre no encontrado: " + code));
     }
 
+    private ProgramProfessionalEntity findNullableProgramProfessional(Long id) {
+        if (id == null) return null;
+        return programProfessionalRepository.findById(id)
+                .orElseThrow(() -> notFound("Facultativo no encontrado: " + id));
+    }
+
+    private String professionNameFromProgramProfessional(ProgramProfessionalEntity professional) {
+        if (professional == null || professional.getProfession() == null) return null;
+        return professional.getProfession().getName();
+    }
+
+    private String firstText(String preferred, String fallback) {
+        return hasText(preferred) ? preferred : fallback;
+    }
+
     private <T> T findNullable(org.springframework.data.jpa.repository.JpaRepository<T, Integer> repository, Integer id) {
         if (id == null) return null;
         return repository.findById(id).orElseThrow(() -> notFound("Registro relacionado no encontrado: " + id));
@@ -1104,6 +1134,8 @@ public class DemandService {
                 .attendanceStatus(toOption(ev.getAttendanceStatus()))
                 .professionName(ev.getProfessionName())
                 .professionalUser(toUserDTO(ev.getProfessionalUser()))
+                .programProfessionalId(ev.getProgramProfessional() != null ? ev.getProgramProfessional().getId() : null)
+                .programProfessionalName(ev.getProgramProfessional() != null ? ev.getProgramProfessional().getName() : null)
                 .registeredByUser(toUserDTO(ev.getRegisteredByUser()))
                 .program(toProgramDTO(ev.getProgram()))
                 .comment(ev.getComment())

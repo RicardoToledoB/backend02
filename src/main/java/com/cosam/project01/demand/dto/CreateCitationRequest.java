@@ -17,6 +17,7 @@ public class CreateCitationRequest {
     @NotNull
     private LocalTime citationTime;
     private Integer professionalUserId;
+    private Long programProfessionalId;
     private String professionName;
     private Integer programId;
     private String citationComment;

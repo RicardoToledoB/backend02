@@ -20,6 +20,7 @@ public class CreateEventRequest {
     private String attendanceStatusCode;
     private String professionName;
     private Integer professionalUserId;
+    private Long programProfessionalId;
     private Integer programId;
     private String comment;
     private String citationComment;

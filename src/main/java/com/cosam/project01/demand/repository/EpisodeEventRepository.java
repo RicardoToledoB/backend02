@@ -21,4 +21,14 @@ public interface EpisodeEventRepository extends JpaRepository<EpisodeEventEntity
             """)
     long countNoShowByStageAndProfessional(@Param("stageId") Integer stageId,
                                             @Param("professionalUserId") Integer professionalUserId);
+
+    @Query("""
+            SELECT COUNT(ev) FROM EpisodeEventEntity ev
+            WHERE ev.stage.id = :stageId
+              AND UPPER(ev.eventType.code) IN ('ASISTENCIA', 'CITACION')
+              AND UPPER(ev.attendanceStatus.code) = 'NO_SE_PRESENTO'
+              AND ev.programProfessional.id = :programProfessionalId
+            """)
+    long countNoShowByStageAndProgramProfessional(@Param("stageId") Integer stageId,
+                                                  @Param("programProfessionalId") Long programProfessionalId);
 }

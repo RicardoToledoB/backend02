@@ -34,25 +34,25 @@ public interface ProgramProfessionalProgramRepository extends JpaRepository<Prog
     """)
     List<ProgramProfessionalProgramEntity> findActiveByProfessionalId(@Param("professionalId") Long professionalId);
 
-    @Modifying
-    @Query("""
-       UPDATE ProgramProfessionalProgramEntity link
-       SET link.deletedAt = :deletedAt
-       WHERE link.programProfessional.id = :professionalId
-         AND link.deletedAt IS NULL
-         AND link.program.id NOT IN :programIds
-    """)
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = """
+       UPDATE program_professional_programs
+       SET deleted_at = :deletedAt
+       WHERE program_professional_id = :professionalId
+         AND deleted_at IS NULL
+         AND program_id NOT IN (:programIds)
+    """, nativeQuery = true)
     void softDeleteMissingPrograms(@Param("professionalId") Long professionalId,
                                    @Param("programIds") List<Integer> programIds,
                                    @Param("deletedAt") LocalDateTime deletedAt);
 
-    @Modifying
-    @Query("""
-       UPDATE ProgramProfessionalProgramEntity link
-       SET link.deletedAt = :deletedAt
-       WHERE link.programProfessional.id = :professionalId
-         AND link.deletedAt IS NULL
-    """)
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = """
+       UPDATE program_professional_programs
+       SET deleted_at = :deletedAt
+       WHERE program_professional_id = :professionalId
+         AND deleted_at IS NULL
+    """, nativeQuery = true)
     void softDeleteAllPrograms(@Param("professionalId") Long professionalId,
                                @Param("deletedAt") LocalDateTime deletedAt);
     /**
@@ -61,7 +61,7 @@ public interface ProgramProfessionalProgramRepository extends JpaRepository<Prog
      * deleted_at IS NULL y, dependiendo de la versión de Hibernate, esa cláusula
      * puede impedir que un bulk update JPQL alcance registros eliminados lógicamente.
      */
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = """
        UPDATE program_professional_programs
        SET deleted_at = NULL

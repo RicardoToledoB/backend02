@@ -16,6 +16,7 @@ public class RegisterAttendanceRequest {
     private LocalDate eventDate;
     private LocalTime eventTime;
     private Integer professionalUserId;
+    private Long programProfessionalId;
     private String professionName;
     @NotBlank
     private String attendanceStatusCode;

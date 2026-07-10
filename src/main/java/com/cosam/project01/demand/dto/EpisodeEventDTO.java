@@ -20,6 +20,8 @@ public class EpisodeEventDTO {
     private OptionDTO attendanceStatus;
     private String professionName;
     private UserSummaryDTO professionalUser;
+    private Long programProfessionalId;
+    private String programProfessionalName;
     private UserSummaryDTO registeredByUser;
     private ProgramSummaryDTO program;
     private String comment;
