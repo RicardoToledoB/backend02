@@ -2,6 +2,7 @@ package com.cosam.project01.service.impl;
 
 import com.cosam.project01.dto.ProgramDTO;
 import com.cosam.project01.dto.ProgramProfessionalDTO;
+import com.cosam.project01.dto.ProgramProfessionalProgramRelationDTO;
 import com.cosam.project01.entity.ProfessionEntity;
 import com.cosam.project01.entity.ProgramEntity;
 import com.cosam.project01.entity.ProgramProfessionalEntity;
@@ -83,6 +84,18 @@ public class ProgramProfessionalServiceImpl {
     @Transactional(readOnly = true)
     public Page<ProgramProfessionalDTO> getAllPaginated(String q, Integer professionId, Integer programId, Pageable pageable) {
         return repository.search(q, professionId, programId, pageable).map(this::toDTO);
+    }
+
+
+    @Transactional(readOnly = true)
+    public List<ProgramProfessionalProgramRelationDTO> listDeletedProgramRelations(Long professionalId) {
+        repository.findAnyById(professionalId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Facultativo no encontrado"));
+
+        return linkRepository.findAllByProfessionalIncludingDeleted(professionalId).stream()
+                .filter(link -> link.getDeletedAt() != null)
+                .map(this::toRelationDTO)
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -223,6 +236,20 @@ public class ProgramProfessionalServiceImpl {
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
+                .build();
+    }
+
+
+    private ProgramProfessionalProgramRelationDTO toRelationDTO(ProgramProfessionalProgramEntity link) {
+        ProgramEntity program = link.getProgram();
+        return ProgramProfessionalProgramRelationDTO.builder()
+                .id(link.getId())
+                .programProfessionalId(link.getProgramProfessional() != null ? link.getProgramProfessional().getId() : null)
+                .programId(program != null ? program.getId() : null)
+                .programName(program != null ? program.getName() : null)
+                .active(link.getDeletedAt() == null)
+                .createdAt(link.getCreatedAt())
+                .deletedAt(link.getDeletedAt())
                 .build();
     }
 

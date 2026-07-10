@@ -1,6 +1,7 @@
 package com.cosam.project01.controller;
 
 import com.cosam.project01.dto.ProgramProfessionalDTO;
+import com.cosam.project01.dto.ProgramProfessionalProgramRelationDTO;
 import com.cosam.project01.service.impl.ProgramProfessionalServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -48,6 +49,12 @@ public class ProgramProfessionalController {
     @GetMapping("/program/{programId}")
     public ResponseEntity<List<ProgramProfessionalDTO>> listByProgram(@PathVariable Integer programId) {
         return ResponseEntity.ok(service.listByProgram(programId));
+    }
+
+
+    @GetMapping("/{id}/program-relations/deleted")
+    public ResponseEntity<List<ProgramProfessionalProgramRelationDTO>> listDeletedProgramRelations(@PathVariable Long id) {
+        return ResponseEntity.ok(service.listDeletedProgramRelations(id));
     }
 
     @GetMapping("/findById/{id}")
