@@ -9,6 +9,8 @@ import com.cosam.project01.repository.StateRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.transaction.annotation.Transactional;
+import jakarta.persistence.EntityManager;
 
 @Configuration
 @RequiredArgsConstructor
@@ -27,8 +29,10 @@ public class DemandCatalogSeeder implements CommandLineRunner {
     private final SemaphoreRuleRepository semaphoreRuleRepository;
     private final StateRepository stateRepository;
     private final ResultRepository resultRepository;
+    private final EntityManager entityManager;
 
     @Override
+    @Transactional
     public void run(String... args) {
         seedEpisodeTypes();
         seedEventTypes();
@@ -133,6 +137,19 @@ public class DemandCatalogSeeder implements CommandLineRunner {
     private void seedTerritory() {
         RegionEntity magallanes = regionRepository.findByCodeIgnoreCase("MAGALLANES")
                 .orElseGet(() -> {
+                    int updated = entityManager.createNativeQuery("""
+                            UPDATE regions
+                            SET name = :name,
+                                active = true,
+                                deleted_at = NULL
+                            WHERE UPPER(code) = UPPER(:code)
+                            """)
+                            .setParameter("name", "Región de Magallanes y de la Antártica Chilena")
+                            .setParameter("code", "MAGALLANES")
+                            .executeUpdate();
+                    if (updated > 0) {
+                        return regionRepository.findByCodeIgnoreCase("MAGALLANES").orElseThrow();
+                    }
                     RegionEntity r = new RegionEntity();
                     r.setCode("MAGALLANES");
                     r.setName("Región de Magallanes y de la Antártica Chilena");
@@ -153,89 +170,169 @@ public class DemandCatalogSeeder implements CommandLineRunner {
     }
 
 
+    private boolean upsertBaseCatalog(String tableName, String code, String name) {
+        int updated = entityManager.createNativeQuery("""
+                UPDATE %s
+                SET name = :name,
+                    active = true,
+                    deleted_at = NULL
+                WHERE UPPER(code) = UPPER(:code)
+                """.formatted(tableName))
+                .setParameter("name", name)
+                .setParameter("code", code)
+                .executeUpdate();
+        return updated > 0;
+    }
+
     private void saveState(String code, String name, String scope, String description) {
-        stateRepository.findByCodeIgnoreCase(code).orElseGet(() -> {
+        int updated = entityManager.createNativeQuery("""
+                UPDATE states
+                SET name = :name,
+                    scope = :scope,
+                    description = :description,
+                    active = true,
+                    deleted_at = NULL
+                WHERE UPPER(code) = UPPER(:code)
+                """)
+                .setParameter("name", name)
+                .setParameter("scope", scope)
+                .setParameter("description", description)
+                .setParameter("code", code)
+                .executeUpdate();
+
+        if (updated == 0) {
             StateEntity e = new StateEntity();
-            e.setCode(code); e.setName(name); e.setScope(scope); e.setDescription(description); e.setActive(true);
-            return stateRepository.save(e);
-        });
+            e.setCode(code);
+            e.setName(name);
+            e.setScope(scope);
+            e.setDescription(description);
+            e.setActive(true);
+            stateRepository.save(e);
+        }
     }
 
     private void saveResult(String code, String name, String scope, String description) {
-        resultRepository.findByCodeIgnoreCase(code).orElseGet(() -> {
+        int updated = entityManager.createNativeQuery("""
+                UPDATE results
+                SET name = :name,
+                    scope = :scope,
+                    description = :description,
+                    active = true,
+                    deleted_at = NULL
+                WHERE UPPER(code) = UPPER(:code)
+                """)
+                .setParameter("name", name)
+                .setParameter("scope", scope)
+                .setParameter("description", description)
+                .setParameter("code", code)
+                .executeUpdate();
+
+        if (updated == 0) {
             ResultEntity e = new ResultEntity();
-            e.setCode(code); e.setName(name); e.setScope(scope); e.setDescription(description); e.setActive(true);
-            return resultRepository.save(e);
-        });
+            e.setCode(code);
+            e.setName(name);
+            e.setScope(scope);
+            e.setDescription(description);
+            e.setActive(true);
+            resultRepository.save(e);
+        }
     }
 
     private void saveEpisodeType(String code, String name) {
-        episodeTypeRepository.findByCodeIgnoreCase(code).orElseGet(() -> {
+        if (!upsertBaseCatalog("episode_types", code, name)) {
             EpisodeTypeEntity e = new EpisodeTypeEntity();
-            e.setCode(code); e.setName(name); e.setActive(true); return episodeTypeRepository.save(e);
-        });
+            e.setCode(code); e.setName(name); e.setActive(true); episodeTypeRepository.save(e);
+        }
     }
 
     private void saveEventType(String code, String name) {
-        eventTypeRepository.findByCodeIgnoreCase(code).orElseGet(() -> {
+        if (!upsertBaseCatalog("event_types", code, name)) {
             EventTypeEntity e = new EventTypeEntity();
-            e.setCode(code); e.setName(name); e.setActive(true); return eventTypeRepository.save(e);
-        });
+            e.setCode(code); e.setName(name); e.setActive(true); eventTypeRepository.save(e);
+        }
     }
 
     private void saveAttendanceStatus(String code, String name) {
-        attendanceStatusRepository.findByCodeIgnoreCase(code).orElseGet(() -> {
+        if (!upsertBaseCatalog("attendance_statuses", code, name)) {
             AttendanceStatusEntity e = new AttendanceStatusEntity();
-            e.setCode(code); e.setName(name); e.setActive(true); return attendanceStatusRepository.save(e);
-        });
+            e.setCode(code); e.setName(name); e.setActive(true); attendanceStatusRepository.save(e);
+        }
     }
 
     private void saveClosureReason(String code, String name) {
-        closureReasonRepository.findByCodeIgnoreCase(code).orElseGet(() -> {
+        if (!upsertBaseCatalog("closure_reasons", code, name)) {
             ClosureReasonEntity e = new ClosureReasonEntity();
-            e.setCode(code); e.setName(name); e.setActive(true); return closureReasonRepository.save(e);
-        });
+            e.setCode(code); e.setName(name); e.setActive(true); closureReasonRepository.save(e);
+        }
     }
 
     private void savePopulation(String code, String name) {
-        populationRepository.findByCodeIgnoreCase(code).orElseGet(() -> {
+        if (!upsertBaseCatalog("program_populations", code, name)) {
             ProgramPopulationEntity e = new ProgramPopulationEntity();
-            e.setCode(code); e.setName(name); e.setActive(true); return populationRepository.save(e);
-        });
+            e.setCode(code); e.setName(name); e.setActive(true); populationRepository.save(e);
+        }
     }
 
     private void saveModality(String code, String name) {
-        modalityRepository.findByCodeIgnoreCase(code).orElseGet(() -> {
+        if (!upsertBaseCatalog("program_modalities", code, name)) {
             ProgramModalityEntity e = new ProgramModalityEntity();
-            e.setCode(code); e.setName(name); e.setActive(true); return modalityRepository.save(e);
-        });
+            e.setCode(code); e.setName(name); e.setActive(true); modalityRepository.save(e);
+        }
     }
 
     private void savePlan(String code, String name) {
-        planRepository.findByCodeIgnoreCase(code).orElseGet(() -> {
+        if (!upsertBaseCatalog("program_plans", code, name)) {
             ProgramPlanEntity e = new ProgramPlanEntity();
-            e.setCode(code); e.setName(name); e.setActive(true); return planRepository.save(e);
-        });
+            e.setCode(code); e.setName(name); e.setActive(true); planRepository.save(e);
+        }
     }
 
     private void saveDocumentType(String code, String name) {
-        documentTypeRepository.findByCodeIgnoreCase(code).orElseGet(() -> {
+        if (!upsertBaseCatalog("document_types", code, name)) {
             DocumentTypeEntity e = new DocumentTypeEntity();
-            e.setCode(code); e.setName(name); e.setActive(true); return documentTypeRepository.save(e);
-        });
+            e.setCode(code); e.setName(name); e.setActive(true); documentTypeRepository.save(e);
+        }
     }
 
     private void saveCity(String code, String name, RegionEntity region) {
-        cityRepository.findByCodeIgnoreCase(code).orElseGet(() -> {
+        int updated = entityManager.createNativeQuery("""
+                UPDATE cities
+                SET name = :name,
+                    region_id = :regionId,
+                    active = true,
+                    deleted_at = NULL
+                WHERE UPPER(code) = UPPER(:code)
+                """)
+                .setParameter("name", name)
+                .setParameter("regionId", region.getId())
+                .setParameter("code", code)
+                .executeUpdate();
+
+        if (updated == 0) {
             CityEntity e = new CityEntity();
-            e.setCode(code); e.setName(name); e.setRegion(region); e.setActive(true); return cityRepository.save(e);
-        });
+            e.setCode(code); e.setName(name); e.setRegion(region); e.setActive(true); cityRepository.save(e);
+        }
     }
 
     private void saveSemaphore(String colorCode, String name, Integer minDays, Integer maxDays) {
-        semaphoreRuleRepository.findByColorCodeIgnoreCase(colorCode).orElseGet(() -> {
+        int updated = entityManager.createNativeQuery("""
+                UPDATE semaphore_rules
+                SET name = :name,
+                    min_days = :minDays,
+                    max_days = :maxDays,
+                    active = true,
+                    deleted_at = NULL
+                WHERE UPPER(color_code) = UPPER(:colorCode)
+                """)
+                .setParameter("name", name)
+                .setParameter("minDays", minDays)
+                .setParameter("maxDays", maxDays)
+                .setParameter("colorCode", colorCode)
+                .executeUpdate();
+
+        if (updated == 0) {
             SemaphoreRuleEntity e = new SemaphoreRuleEntity();
-            e.setColorCode(colorCode); e.setName(name); e.setMinDays(minDays); e.setMaxDays(maxDays); e.setActive(true); return semaphoreRuleRepository.save(e);
-        });
+            e.setColorCode(colorCode); e.setName(name); e.setMinDays(minDays); e.setMaxDays(maxDays); e.setActive(true); semaphoreRuleRepository.save(e);
+        }
     }
 }
