@@ -18,7 +18,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/results")
 //@CrossOrigin("*")
-@PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMINISTRATIVO', 'ROLE_SUPERVISOR')")
+@PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMINISTRATIVO', 'ROLE_SUPERVISOR', 'ROLE_PROFESIONAL')")
 public class ResultController {
 
     @Autowired
@@ -48,6 +48,7 @@ public class ResultController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ADMINISTRATIVO', 'ROLE_SUPERVISOR', 'ROLE_PROFESIONAL')")
     public ResponseEntity<ResultDTO> update(@PathVariable Integer id, @RequestBody ResultDTO dto) {
         return ResponseEntity.ok(service.update(id, dto));
     }

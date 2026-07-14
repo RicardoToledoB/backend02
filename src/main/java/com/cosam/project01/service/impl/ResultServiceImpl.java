@@ -10,7 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.ImportResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -57,13 +59,33 @@ public class ResultServiceImpl implements IResultService {
 
     @Override
     public ResultDTO update(Integer id, ResultDTO dto) {
-        ResultEntity entity = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Task not found"));
-        entity.setName(dto.getName());
-        entity.setCode(dto.getCode());
-        entity.setScope(dto.getScope());
-        entity.setDescription(dto.getDescription());
-        entity.setActive(dto.getActive());
+        // Usar findAnyById permite actualizar también registros históricos/base
+        // aunque en el futuro estuvieran eliminados lógicamente. No existe una
+        // regla de negocio que bloquee la edición de los IDs 1-8.
+        ResultEntity entity = repository.findAnyById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resultado no encontrado"));
+
+        if (dto.getCode() != null && !dto.getCode().isBlank()) {
+            String normalizedCode = dto.getCode().trim().toUpperCase();
+
+            repository.findActiveDuplicateCode(id, normalizedCode).ifPresent(existing -> {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "Ya existe un resultado activo con el código " + normalizedCode
+                );
+            });
+
+            // Si el código estaba ocupado por duplicados eliminados lógicamente
+            // 9-16 u otros, se libera para que el registro histórico/base pueda
+            // recibir el código solicitado sin violar UNIQUE(code).
+            repository.neutralizeDeletedDuplicatesByCode(id, normalizedCode);
+            entity.setCode(normalizedCode);
+        }
+
+        if (dto.getName() != null) entity.setName(dto.getName());
+        if (dto.getScope() != null) entity.setScope(dto.getScope());
+        if (dto.getDescription() != null) entity.setDescription(dto.getDescription());
+        if (dto.getActive() != null) entity.setActive(dto.getActive());
         return mapToDTO(repository.save(entity));
     }
 
@@ -83,7 +105,7 @@ public class ResultServiceImpl implements IResultService {
 
     @Override
     public void delete(Integer id) {
-        repository.deleteById(id);
+        repository.softDeleteAndDeactivate(id);
     }
     public Page<ResultDTO> getAllPaginated(Pageable pageable) {
         return repository.findAllPaginated(pageable)
@@ -121,9 +143,9 @@ public class ResultServiceImpl implements IResultService {
     }
 
     public void restore(Integer id) {
-        ResultEntity entity = repository.findAnyById(id)
-                .orElseThrow(() -> new RuntimeException("Task not found"));
-        entity.setDeletedAt(null);
-        repository.save(entity);
+        int updated = repository.restoreAndActivate(id);
+        if (updated == 0) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Resultado no encontrado");
+        }
     }
 }

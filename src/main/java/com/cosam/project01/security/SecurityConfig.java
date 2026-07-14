@@ -51,7 +51,7 @@ public class SecurityConfig {
                         // evitando 403 en rutas como /api/v1/demand/maintainers/episodeTypes.
                         .requestMatchers("/api/v1/time/server").permitAll()
                         .requestMatchers("/api/v1/demand/maintainers/**", "/api/v1/professions/**", "/api/v1/int_prevs/**", "/api/v1/conv_prevs/**", "/api/v1/program_professionals/**", "/api/v1/results/**")
-                        .hasAnyAuthority("ROLE_ADMIN", "ROLE_ADMINISTRATIVO", "ROLE_SUPERVISOR")
+                        .hasAnyAuthority("ROLE_ADMIN", "ROLE_ADMINISTRATIVO", "ROLE_SUPERVISOR", "ROLE_PROFESIONAL")
                         .requestMatchers("/api/v1/postulants/searchByRut", "/api/v1/demand/episodes/active/by-rut/**")
                         .hasAnyAuthority("ROLE_ADMIN", "ROLE_ADMINISTRATIVO", "ROLE_SUPERVISOR", "ROLE_PROFESIONAL")
                         .anyRequest().authenticated()
