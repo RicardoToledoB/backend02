@@ -4,6 +4,7 @@ import com.cosam.project01.entity.ContactEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -39,4 +40,14 @@ public interface ContactRepository extends JpaRepository<ContactEntity,Integer> 
     """)
     Page<ContactEntity> search(@Param("name") String name, Pageable pageable);
 
+    /**
+     * Referente activo de un postulante. Si existen varios, retorna el último creado.
+     */
+    Optional<ContactEntity> findFirstByPostulant_IdAndDeletedAtIsNullOrderByIdDesc(Integer postulantId);
+
+    List<ContactEntity> findByPostulant_IdAndDeletedAtIsNullOrderByIdDesc(Integer postulantId);
+
+    @Modifying
+    @Query(value = "UPDATE contacts SET deleted_at = NULL WHERE id = :id", nativeQuery = true)
+    int restoreById(@Param("id") Integer id);
 }

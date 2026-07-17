@@ -1,4 +1,5 @@
 package com.cosam.project01.controller;
+
 import com.cosam.project01.dto.ContactDTO;
 import com.cosam.project01.service.impl.ContactServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,11 +13,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-
 @RestController
 @RequestMapping("/api/v1/contacts")
-//@CrossOrigin("*")
-@PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO')")
+@PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ADMINISTRATIVO','ROLE_SUPERVISOR','ROLE_PROFESIONAL')")
 public class ContactController {
 
     @Autowired
@@ -27,8 +26,6 @@ public class ContactController {
         return ResponseEntity.ok(service.create(dto));
     }
 
-   
-
     @GetMapping("/{id}")
     public ResponseEntity<ContactDTO> getById(@PathVariable Integer id) {
         return ResponseEntity.ok(service.getById(id));
@@ -38,9 +35,6 @@ public class ContactController {
     public ResponseEntity<ContactDTO> update(@PathVariable Integer id, @RequestBody ContactDTO dto) {
         return ResponseEntity.ok(service.update(id, dto));
     }
-    
-    
-    
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
@@ -48,12 +42,10 @@ public class ContactController {
         return ResponseEntity.noContent().build();
     }
 
-
     @GetMapping("/all")
     public ResponseEntity<List<ContactDTO>> getAll() {
         return ResponseEntity.ok(service.listAll());
     }
-
 
     @GetMapping("/getAllPaginated")
     public ResponseEntity<Page<ContactDTO>> getAllPaginated(
@@ -62,8 +54,6 @@ public class ContactController {
         return ResponseEntity.ok(service.getAllPaginated(name, pageable));
     }
 
-
-    /* SOFT DELETE */
     @GetMapping
     public ResponseEntity<List<ContactDTO>> listActive() {
         return ResponseEntity.ok(service.listActive());
@@ -74,11 +64,26 @@ public class ContactController {
         return ResponseEntity.ok(service.listDeleted());
     }
 
-
-
     @PostMapping("/{id}/restore")
     public ResponseEntity<Void> restore(@PathVariable Integer id) {
         service.restore(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Referente activo asociado al postulante.
+     * Retorna el último contacto activo creado para el postulante.
+     */
+    @GetMapping("/by-postulant/{postulantId}")
+    public ResponseEntity<ContactDTO> getByPostulant(@PathVariable Integer postulantId) {
+        return ResponseEntity.ok(service.getByPostulantId(postulantId));
+    }
+
+    /**
+     * Endpoint adicional de apoyo para auditoría/diagnóstico si existiera más de un referente activo.
+     */
+    @GetMapping("/by-postulant/{postulantId}/all")
+    public ResponseEntity<List<ContactDTO>> getAllByPostulant(@PathVariable Integer postulantId) {
+        return ResponseEntity.ok(service.getAllByPostulantId(postulantId));
     }
 }

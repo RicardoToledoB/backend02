@@ -1,4 +1,5 @@
 package com.cosam.project01.entity;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,6 +26,13 @@ public class ContactEntity implements Serializable {
 
     private String name;
     private String description;
+
+    @Column(name = "cellphone", length = 60)
+    private String cellphone;
+
+    @Column(name = "email", length = 180)
+    private String email;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="postulant_id")
     private PostulantEntity postulant;

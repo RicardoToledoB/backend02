@@ -11,6 +11,10 @@ public interface IContactService {
 
     ContactDTO getById(Integer id);
 
+    ContactDTO getByPostulantId(Integer postulantId);
+
+    List<ContactDTO> getAllByPostulantId(Integer postulantId);
+
     List<ContactDTO> getAll();
 
     void delete(Integer id);
