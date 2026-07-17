@@ -22,7 +22,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/demand")
 @RequiredArgsConstructor
-@PreAuthorize("isAuthenticated()")
+@PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ADMINISTRATIVO','ROLE_SUPERVISOR','ROLE_PROFESIONAL')")
 public class DemandController {
 
     private final DemandService service;
@@ -45,6 +45,12 @@ public class DemandController {
     @PostMapping("/episodes")
     public ResponseEntity<EpisodeDTO> createEpisode(@Valid @RequestBody CreateEpisodeRequest request) {
         return ResponseEntity.ok(service.createEpisode(request));
+    }
+
+
+    @GetMapping("/episodes/catalogs")
+    public ResponseEntity<DemandCatalogsDTO> episodeCatalogs() {
+        return ResponseEntity.ok(service.getCatalogs());
     }
 
     @GetMapping("/episodes/{id}")
