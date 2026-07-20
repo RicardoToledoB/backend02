@@ -50,9 +50,17 @@ public class SecurityConfig {
                         // Se habilita explícitamente para ADMIN, ADMINISTRATIVO y SUPERVISOR,
                         // evitando 403 en rutas como /api/v1/demand/maintainers/episodeTypes.
                         .requestMatchers("/api/v1/time/server").permitAll()
+                        // Endpoints críticos de episodios/longitudinal usados por frontend.
+                        // Se dejan como authenticated() para eliminar falsos 403 cuando el token es válido,
+                        // pero la autorización fina por rol/perfil se aplicará desde la lógica funcional.
+                        .requestMatchers(
+                                "/api/v1/demand/episodes/catalogs",
+                                "/api/v1/demand/episodes/*/longitudinal",
+                                "/api/v1/demand/episodes/by-rut/*/longitudinal",
+                                "/api/v1/demand/episodes/active/by-rut/*"
+                        ).authenticated()
                         // Módulo Demanda completo: episodios, longitudinal, eventos, referencias, dashboard,
-                        // documentos, catálogos y endpoints auxiliares. Se autoriza explícitamente para evitar
-                        // 403 cuando el token trae ROLE_ADMIN / ROLE_ADMINISTRATIVO / ROLE_SUPERVISOR / ROLE_PROFESIONAL.
+                        // documentos, catálogos y endpoints auxiliares.
                         .requestMatchers("/api/v1/demand/**")
                         .hasAnyAuthority("ROLE_ADMIN", "ROLE_ADMINISTRATIVO", "ROLE_SUPERVISOR", "ROLE_PROFESIONAL")
                         .requestMatchers("/api/v1/professions/**", "/api/v1/int_prevs/**", "/api/v1/conv_prevs/**", "/api/v1/program_professionals/**", "/api/v1/results/**", "/api/v1/contacts/**")
