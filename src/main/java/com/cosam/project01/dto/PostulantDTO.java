@@ -20,6 +20,18 @@ public class PostulantDTO {
 
     private SexDTO sex;
 
+    /**
+     * Convenio previsional asociado al postulante.
+     * GET /api/v1/postulants/{id} retorna convPrev con su intPrev anidado.
+     */
+    private ConvPrevDTO convPrev;
+
+    /**
+     * Campo simple recomendado para crear/editar desde frontend.
+     * Permite enviar { "convPrevId": 1 } sin armar el objeto completo.
+     */
+    private Integer convPrevId;
+
     private String firstName;
     private String lastName;
     private String firstLastName;
