@@ -26,7 +26,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain chain
     ) throws ServletException, IOException {
 
-        final String authHeader = request.getHeader("Authorization");
+        final String authHeader = firstNonBlank(
+                request.getHeader("Authorization"),
+                request.getHeader("X-Forwarded-Authorization"),
+                request.getHeader("X-Authorization")
+        );
         final String prefix = "Bearer ";
         String jwt = null;
         String email = null;
@@ -49,5 +53,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         chain.doFilter(request, response);
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) return null;
+        for (String value : values) {
+            if (value != null && !value.isBlank()) return value;
+        }
+        return null;
     }
 }

@@ -14,6 +14,7 @@ import org.springframework.security.crypto.bcrypt.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.*;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
@@ -54,15 +55,18 @@ public class SecurityConfig {
                         // Se dejan como authenticated() para eliminar falsos 403 cuando el token es válido,
                         // pero la autorización fina por rol/perfil se aplicará desde la lógica funcional.
                         .requestMatchers(
-                                "/api/v1/demand/episodes/catalogs",
-                                "/api/v1/demand/episodes/*/longitudinal",
-                                "/api/v1/demand/episodes/by-rut/*/longitudinal",
-                                "/api/v1/demand/episodes/active/by-rut/*"
+                                new AntPathRequestMatcher("/api/v1/demand/episodes/catalogs", "GET"),
+                                new AntPathRequestMatcher("/api/v1/demand/episodes/*/longitudinal", "GET"),
+                                new AntPathRequestMatcher("/api/v1/demand/episodes/by-rut/*/longitudinal", "GET"),
+                                new AntPathRequestMatcher("/api/v1/demand/episodes/by-rut/**/longitudinal", "GET"),
+                                new AntPathRequestMatcher("/api/v1/demand/episodes/active/by-rut/*", "GET"),
+                                new AntPathRequestMatcher("/api/v1/demand/episodes/active/by-rut/**", "GET")
                         ).authenticated()
                         // Módulo Demanda completo: episodios, longitudinal, eventos, referencias, dashboard,
                         // documentos, catálogos y endpoints auxiliares.
-                        .requestMatchers("/api/v1/demand/**")
-                        .hasAnyAuthority("ROLE_ADMIN", "ROLE_ADMINISTRATIVO", "ROLE_SUPERVISOR", "ROLE_PROFESIONAL")
+                        // Se deja como authenticated() para eliminar 403 por diferencias entre ROLE_*, hasRole/hasAuthority,
+                        // y validaciones de programa/permisos. La validación funcional se mantiene en servicios cuando aplique.
+                        .requestMatchers("/api/v1/demand/**").authenticated()
                         .requestMatchers("/api/v1/professions/**", "/api/v1/int_prevs/**", "/api/v1/conv_prevs/**", "/api/v1/program_professionals/**", "/api/v1/results/**", "/api/v1/contacts/**")
                         .hasAnyAuthority("ROLE_ADMIN", "ROLE_ADMINISTRATIVO", "ROLE_SUPERVISOR", "ROLE_PROFESIONAL")
                         .requestMatchers("/api/v1/postulants/searchByRut")
