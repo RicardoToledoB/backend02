@@ -51,6 +51,15 @@ public class DemandController {
         return ResponseEntity.ok(service.getCatalogs());
     }
 
+    @GetMapping("/episodes")
+    public ResponseEntity<Page<PrioritizedEpisodeDTO>> listEpisodes(
+            @RequestParam(required = false) Integer programId,
+            @RequestParam(required = false) String stateCode,
+            @RequestParam(required = false) String resultCode,
+            @PageableDefault(size = 20, sort = "originalRequestDate", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(service.getPrioritized(programId, stateCode, resultCode, pageable));
+    }
+
     @GetMapping("/episodes/{id}")
     public ResponseEntity<EpisodeDTO> getEpisode(@PathVariable Integer id) {
         return ResponseEntity.ok(service.getEpisode(id));

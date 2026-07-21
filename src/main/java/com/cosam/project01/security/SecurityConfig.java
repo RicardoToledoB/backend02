@@ -55,6 +55,8 @@ public class SecurityConfig {
                         // Se dejan como authenticated() para eliminar falsos 403 cuando el token es válido,
                         // pero la autorización fina por rol/perfil se aplicará desde la lógica funcional.
                         .requestMatchers(
+                                new AntPathRequestMatcher("/api/v1/demand/episodes", "GET"),
+                                new AntPathRequestMatcher("/api/v1/demand/episodes/", "GET"),
                                 new AntPathRequestMatcher("/api/v1/demand/episodes/catalogs", "GET"),
                                 new AntPathRequestMatcher("/api/v1/demand/episodes/*/longitudinal", "GET"),
                                 new AntPathRequestMatcher("/api/v1/demand/episodes/by-rut/*/longitudinal", "GET"),
