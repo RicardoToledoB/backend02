@@ -12,6 +12,7 @@ import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -52,6 +53,7 @@ public class DemandController {
     }
 
     @GetMapping("/episodes")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ADMINISTRATIVO','ROLE_SUPERVISOR','ROLE_PROFESIONAL')")
     public ResponseEntity<Page<PrioritizedEpisodeDTO>> listEpisodes(
             @RequestParam(required = false) Integer programId,
             @RequestParam(required = false) String stateCode,
@@ -61,21 +63,25 @@ public class DemandController {
     }
 
     @GetMapping("/episodes/{id}")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ADMINISTRATIVO','ROLE_SUPERVISOR','ROLE_PROFESIONAL')")
     public ResponseEntity<EpisodeDTO> getEpisode(@PathVariable Integer id) {
         return ResponseEntity.ok(service.getEpisode(id));
     }
 
     @GetMapping("/episodes/{id}/longitudinal")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ADMINISTRATIVO','ROLE_SUPERVISOR','ROLE_PROFESIONAL')")
     public ResponseEntity<EpisodeLongitudinalDTO> getLongitudinalByEpisode(@PathVariable Integer id) {
         return ResponseEntity.ok(service.getLongitudinalByEpisodeId(id));
     }
 
     @GetMapping("/episodes/active/by-rut/{rut}")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ADMINISTRATIVO','ROLE_SUPERVISOR','ROLE_PROFESIONAL')")
     public ResponseEntity<EpisodeDTO> getActiveByRut(@PathVariable String rut) {
         return ResponseEntity.ok(service.getActiveByRut(rut));
     }
 
     @GetMapping("/episodes/by-rut/{rut}/longitudinal")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ADMINISTRATIVO','ROLE_SUPERVISOR','ROLE_PROFESIONAL')")
     public ResponseEntity<EpisodeLongitudinalDTO> getLongitudinalByRut(@PathVariable String rut) {
         return ResponseEntity.ok(service.getLongitudinalByRut(rut));
     }
