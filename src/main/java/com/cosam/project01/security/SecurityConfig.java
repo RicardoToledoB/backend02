@@ -51,7 +51,8 @@ public class SecurityConfig {
                         // Se habilita explícitamente para ADMIN, ADMINISTRATIVO y SUPERVISOR,
                         // evitando 403 en rutas como /api/v1/demand/maintainers/episodeTypes.
                         .requestMatchers("/api/v1/time/server").permitAll()
-                        // Endpoints longitudinales: se dejan pasar por la cadena web para evitar el falso 403
+			.requestMatchers("/error").permitAll()
+			// Endpoints longitudinales: se dejan pasar por la cadena web para evitar el falso 403
                         // detectado en producción. La validación JWT obligatoria se realiza manualmente
                         // dentro del controlador antes de devolver información clínica/operacional.
                         .requestMatchers(
