@@ -1,5 +1,6 @@
 package com.cosam.project01.demand.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -13,6 +14,10 @@ public class EpisodeDTO {
     private String episodeCode;
     private PostulantSummaryDTO postulant;
     private OptionDTO episodeType;
+
+    @Schema(description = "Número de tratamientos previos registrados manualmente para el episodio. Reemplaza funcionalmente a registers.number_tto.", example = "0", defaultValue = "0", minimum = "0")
+    private Integer previousTreatmentNumber;
+
     private LocalDate originalRequestDate;
     private ProgramSummaryDTO initialProgram;
     private ProgramSummaryDTO currentProgram;

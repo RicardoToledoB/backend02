@@ -124,10 +124,12 @@ public class DemandService {
                 ? userRepository.findById(request.getResponsibleUserId()).orElseThrow(() -> notFound("Responsable no encontrado"))
                 : currentUser;
         EpisodeTypeEntity type = resolveEpisodeType(request.getEpisodeTypeId(), request.getEpisodeTypeCode(), "PRIMERA_SOLICITUD");
+        Integer previousTreatmentNumber = normalizePreviousTreatmentNumber(request.getPreviousTreatmentNumber());
 
         EpisodeEntity episode = EpisodeEntity.builder()
                 .postulant(postulant)
                 .episodeType(type)
+                .previousTreatmentNumber(previousTreatmentNumber)
                 .originalRequestDate(request.getOriginalRequestDate() != null ? request.getOriginalRequestDate() : LocalDate.now())
                 .initialProgram(program)
                 .currentProgram(program)
@@ -717,6 +719,12 @@ public class DemandService {
         return toSubstanceDTO(entity);
     }
 
+    private Integer normalizePreviousTreatmentNumber(Integer value) {
+        if (value == null) return 0;
+        if (value < 0) throw badRequest("El número de tratamientos previos debe ser mayor o igual a 0.");
+        return value;
+    }
+
     private EpisodeLongitudinalDTO buildLongitudinal(List<EpisodeEntity> episodes) {
         EpisodeEntity first = episodes.get(0);
         List<Integer> episodeIds = episodes.stream().map(EpisodeEntity::getId).toList();
@@ -1077,6 +1085,7 @@ public class DemandService {
                 .episodeCode(e.getEpisodeCode())
                 .postulant(toPostulantDTO(e.getPostulant()))
                 .episodeType(toOption(e.getEpisodeType()))
+                .previousTreatmentNumber(e.getPreviousTreatmentNumber() != null ? e.getPreviousTreatmentNumber() : 0)
                 .originalRequestDate(e.getOriginalRequestDate())
                 .initialProgram(toProgramDTO(e.getInitialProgram()))
                 .currentProgram(toProgramDTO(e.getCurrentProgram()))

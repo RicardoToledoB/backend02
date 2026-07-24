@@ -44,6 +44,10 @@ public class EpisodeEntity implements Serializable {
     @JoinColumn(name = "episode_type_id")
     private EpisodeTypeEntity episodeType;
 
+    @Builder.Default
+    @Column(name = "previous_treatment_number", nullable = false)
+    private Integer previousTreatmentNumber = 0;
+
     @Column(nullable = false)
     private LocalDate originalRequestDate;
 
@@ -116,6 +120,7 @@ public class EpisodeEntity implements Serializable {
         this.createdAt = LocalDateTime.now();
         if (this.active == null) this.active = true;
         if (this.waitingStopped == null) this.waitingStopped = false;
+        if (this.previousTreatmentNumber == null || this.previousTreatmentNumber < 0) this.previousTreatmentNumber = 0;
         if (this.stateCode == null) this.stateCode = "EN_TRAMITE";
         if (this.resultCode == null) this.resultCode = "AUN_SIN_RESULTADO";
         if (this.originalRequestDate == null) this.originalRequestDate = LocalDate.now();
@@ -124,5 +129,6 @@ public class EpisodeEntity implements Serializable {
     @PreUpdate
     private void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+        if (this.previousTreatmentNumber == null || this.previousTreatmentNumber < 0) this.previousTreatmentNumber = 0;
     }
 }
