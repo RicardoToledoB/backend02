@@ -22,7 +22,9 @@ import java.time.LocalTime;
                 @Index(name = "idx_event_stage", columnList = "stage_id"),
                 @Index(name = "idx_event_related", columnList = "related_event_id"),
                 @Index(name = "idx_event_professional", columnList = "professional_user_id"),
-                @Index(name = "idx_event_program_professional", columnList = "program_professional_id")
+                @Index(name = "idx_event_program_professional", columnList = "program_professional_id"),
+                @Index(name = "idx_event_citation_type", columnList = "citation_type_id"),
+                @Index(name = "idx_event_biopsychosocial_commitment_level", columnList = "biopsychosocial_commitment_level_id")
         }
 )
 @Getter
@@ -53,6 +55,14 @@ public class EpisodeEventEntity implements Serializable {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "related_event_id")
     private EpisodeEventEntity relatedEvent;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "citation_type_id")
+    private CitationTypeEntity citationType;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "biopsychosocial_commitment_level_id")
+    private BiopsychosocialCommitmentLevelEntity biopsychosocialCommitmentLevel;
 
     private LocalDate eventDate;
     private LocalTime eventTime;

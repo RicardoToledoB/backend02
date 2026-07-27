@@ -19,6 +19,8 @@ public class DemandCatalogSeeder implements CommandLineRunner {
     private final EpisodeTypeRepository episodeTypeRepository;
     private final EventTypeRepository eventTypeRepository;
     private final AttendanceStatusRepository attendanceStatusRepository;
+    private final CitationTypeRepository citationTypeRepository;
+    private final BiopsychosocialCommitmentLevelRepository biopsychosocialCommitmentLevelRepository;
     private final ClosureReasonRepository closureReasonRepository;
     private final ProgramPopulationRepository populationRepository;
     private final ProgramModalityRepository modalityRepository;
@@ -37,6 +39,8 @@ public class DemandCatalogSeeder implements CommandLineRunner {
         seedEpisodeTypes();
         seedEventTypes();
         seedAttendanceStatuses();
+        seedCitationTypes();
+        seedBiopsychosocialCommitmentLevels();
         seedClosureReasons();
         seedStatesAndResults();
         seedProgramCatalogs();
@@ -75,6 +79,20 @@ public class DemandCatalogSeeder implements CommandLineRunner {
         saveAttendanceStatus("CANCELA_PROGRAMA", "Cancela programa");
         saveAttendanceStatus("REPROGRAMADA", "Reprogramada");
         saveAttendanceStatus("PENDIENTE", "Pendiente");
+    }
+
+    private void seedCitationTypes() {
+        saveCitationType("PRIMERA_CITACION_PRIMERA_ENTREVISTA", "Primera citación a primera entrevista.", 1);
+        saveCitationType("SEGUNDA_CITACION_PRIMERA_ENTREVISTA", "Segunda citación a primera entrevista.", 2);
+        saveCitationType("PRIMERA_CITACION_SEGUNDA_ENTREVISTA", "Primera citación a segunda entrevista.", 3);
+        saveCitationType("SEGUNDA_CITACION_SEGUNDA_ENTREVISTA", "Segunda citación a segunda entrevista.", 4);
+        saveCitationType("ENTREVISTA_OPCIONAL", "Entrevista opcional.", 5);
+    }
+
+    private void seedBiopsychosocialCommitmentLevels() {
+        saveBiopsychosocialCommitmentLevel("LEVE", "Leve");
+        saveBiopsychosocialCommitmentLevel("MODERADO", "Moderado");
+        saveBiopsychosocialCommitmentLevel("SEVERO", "Severo");
     }
 
     private void seedClosureReasons() {
@@ -257,6 +275,23 @@ public class DemandCatalogSeeder implements CommandLineRunner {
             AttendanceStatusEntity e = new AttendanceStatusEntity();
             e.setCode(code); e.setName(name); e.setActive(true); attendanceStatusRepository.save(e);
         }
+    }
+
+    private void saveCitationType(String code, String name, Integer sortOrder) {
+        CitationTypeEntity e = citationTypeRepository.findByCodeIgnoreCase(code).orElseGet(CitationTypeEntity::new);
+        e.setCode(code);
+        e.setName(name);
+        e.setSortOrder(sortOrder);
+        e.setActive(true);
+        citationTypeRepository.save(e);
+    }
+
+    private void saveBiopsychosocialCommitmentLevel(String code, String name) {
+        BiopsychosocialCommitmentLevelEntity e = biopsychosocialCommitmentLevelRepository.findByCodeIgnoreCase(code).orElseGet(BiopsychosocialCommitmentLevelEntity::new);
+        e.setCode(code);
+        e.setName(name);
+        e.setActive(true);
+        biopsychosocialCommitmentLevelRepository.save(e);
     }
 
     private void saveClosureReason(String code, String name) {

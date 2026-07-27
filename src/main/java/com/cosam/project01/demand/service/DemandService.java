@@ -57,6 +57,8 @@ public class DemandService {
     private final EpisodeTypeRepository episodeTypeRepository;
     private final EventTypeRepository eventTypeRepository;
     private final AttendanceStatusRepository attendanceStatusRepository;
+    private final CitationTypeRepository citationTypeRepository;
+    private final BiopsychosocialCommitmentLevelRepository biopsychosocialCommitmentLevelRepository;
     private final ClosureReasonRepository closureReasonRepository;
     private final ProgramPopulationRepository populationRepository;
     private final ProgramModalityRepository modalityRepository;
@@ -85,6 +87,8 @@ public class DemandService {
                 .episodeTypes(episodeTypeRepository.findAll().stream().map(this::toOption).toList())
                 .eventTypes(eventTypeRepository.findAll().stream().map(this::toOption).toList())
                 .attendanceStatuses(attendanceStatusRepository.findAll().stream().map(this::toOption).toList())
+                .citationTypes(citationTypeRepository.findActiveTrueOrderBySortOrderAscNameAsc().stream().map(this::toOption).toList())
+                .biopsychosocialCommitmentLevels(biopsychosocialCommitmentLevelRepository.findActiveTrueOrderByNameAsc().stream().map(this::toOption).toList())
                 .closureReasons(closureReasonRepository.findAll().stream().map(this::toOption).toList())
                 .programPopulations(populationRepository.findAll().stream().map(this::toOption).toList())
                 .programModalities(modalityRepository.findAll().stream().map(this::toOption).toList())
@@ -241,6 +245,10 @@ public class DemandService {
         EpisodeStageEntity stage = resolveStage(episode, request.getStageId());
         EventTypeEntity type = resolveEventType(request.getEventTypeId(), request.getEventTypeCode());
         AttendanceStatusEntity attendance = resolveAttendanceStatus(request.getAttendanceStatusId(), request.getAttendanceStatusCode(), null);
+        boolean isRetroalimentacion = "RETROALIMENTACION".equalsIgnoreCase(type.getCode());
+        BiopsychosocialCommitmentLevelEntity biopsychosocialCommitmentLevel = isRetroalimentacion
+                ? resolveBiopsychosocialCommitmentLevel(request.getBiopsychosocialCommitmentCode())
+                : null;
         UserEntity currentUser = currentUserOrNull();
         UserEntity professional = findNullable(userRepository, request.getProfessionalUserId());
         ProgramProfessionalEntity programProfessional = findNullableProgramProfessional(request.getProgramProfessionalId());
@@ -250,11 +258,16 @@ public class DemandService {
                 : stage.getProgram();
         EpisodeEventEntity relatedEvent = resolveRelatedEvent(episode, request.getRelatedEventId());
 
+        if (isRetroalimentacion) {
+            validateRetroalimentacionRequest(request, professional, programProfessional, professionName);
+        }
+
         EpisodeEventEntity event = EpisodeEventEntity.builder()
                 .episode(episode)
                 .stage(stage)
                 .eventType(type)
                 .relatedEvent(relatedEvent)
+                .biopsychosocialCommitmentLevel(biopsychosocialCommitmentLevel)
                 .eventDate(request.getEventDate())
                 .eventTime(request.getEventTime())
                 .attendanceStatus(attendance)
@@ -274,6 +287,14 @@ public class DemandService {
         event = eventRepository.save(event);
         updateRelatedCitationAttendanceIfNeeded(type, relatedEvent, attendance);
 
+        if (isRetroalimentacion && RESULT_TREATMENT_ENTRY.equalsIgnoreCase(request.getResultCode())) {
+            LocalDateTime entryAt = LocalDateTime.of(request.getEventDate(), request.getEventTime());
+            episode.setEntryToTreatmentAt(entryAt);
+            episode.setWaitingStopped(true);
+            stage.setResultCode(RESULT_TREATMENT_ENTRY);
+            stageRepository.save(stage);
+        }
+
         if (hasText(request.getResultCode())) episode.setResultCode(request.getResultCode());
         if (hasText(request.getStateCode())) episode.setStateCode(request.getStateCode());
         episodeRepository.save(episode);
@@ -286,6 +307,7 @@ public class DemandService {
     public EpisodeEventDTO createCitation(Integer episodeId, CreateCitationRequest request) {
         EpisodeEntity episode = findOpenEpisode(episodeId);
         EpisodeStageEntity stage = resolveStage(episode, request.getStageId());
+        CitationTypeEntity citationType = resolveCitationType(request.getCitationTypeCode());
         UserEntity professional = findNullable(userRepository, request.getProfessionalUserId());
         ProgramProfessionalEntity programProfessional = findNullableProgramProfessional(request.getProgramProfessionalId());
         String professionName = firstText(request.getProfessionName(), professionNameFromProgramProfessional(programProfessional));
@@ -298,6 +320,7 @@ public class DemandService {
                 .episode(episode)
                 .stage(stage)
                 .eventType(eventType("CITACION"))
+                .citationType(citationType)
                 .eventDate(request.getCitationDate())
                 .eventTime(request.getCitationTime())
                 .attendanceStatus(attendanceStatus("AGENDADO"))
@@ -479,7 +502,7 @@ public class DemandService {
             throw badRequest("Cuando la causal es OTRO, la observación/comentario de cierre es obligatoria.");
         }
 
-        closeEpisodeInternal(episode, stage, reason, request.getClosureComment(), currentUser, RESULT_CLOSURE);
+        closeEpisodeInternal(episode, stage, reason, request.getClosureComment(), currentUser, RESULT_CLOSURE, request.getClosureDate());
         EpisodeEventEntity event = createInternalEvent(episode, stage, "CIERRE", null, null, stage.getProgram(), currentUser, currentUser,
                 "Cierre de episodio: " + reason.getName(), null, request.getClosureComment(), null, null, RESULT_CLOSURE, STATE_CLOSED);
         audit(episode, stage, event, "CIERRE_EPISODIO", null, reason.getCode(), request.getClosureComment(), currentUser, null, null);
@@ -781,7 +804,11 @@ public class DemandService {
     }
 
     private void closeEpisodeInternal(EpisodeEntity episode, EpisodeStageEntity stage, ClosureReasonEntity reason, String comment, UserEntity currentUser, String resultCode) {
-        LocalDateTime now = LocalDateTime.now();
+        closeEpisodeInternal(episode, stage, reason, comment, currentUser, resultCode, null);
+    }
+
+    private void closeEpisodeInternal(EpisodeEntity episode, EpisodeStageEntity stage, ClosureReasonEntity reason, String comment, UserEntity currentUser, String resultCode, LocalDateTime closureDate) {
+        LocalDateTime now = closureDate != null ? closureDate : LocalDateTime.now();
         episode.setActive(false);
         episode.setClosedAt(now);
         episode.setStateCode(STATE_CLOSED);
@@ -853,6 +880,44 @@ public class DemandService {
         if (id != null) return eventTypeRepository.findById(id).orElseThrow(() -> notFound("Tipo de evento no encontrado"));
         if (!hasText(code)) throw badRequest("Debe indicar eventTypeCode o eventTypeId");
         return eventType(code);
+    }
+
+    private CitationTypeEntity resolveCitationType(String code) {
+        if (!hasText(code)) return null;
+        CitationTypeEntity citationType = citationTypeRepository.findByCodeIgnoreCase(code)
+                .orElseThrow(() -> notFound("Tipo de citación no encontrado: " + code));
+        if (!Boolean.TRUE.equals(citationType.getActive())) {
+            throw badRequest("Tipo de citación inactivo: " + code);
+        }
+        return citationType;
+    }
+
+    private BiopsychosocialCommitmentLevelEntity resolveBiopsychosocialCommitmentLevel(String code) {
+        if (!hasText(code)) {
+            throw badRequest("Debe indicar biopsychosocialCommitmentCode para eventos RETROALIMENTACION");
+        }
+        BiopsychosocialCommitmentLevelEntity level = biopsychosocialCommitmentLevelRepository.findByCodeIgnoreCase(code)
+                .orElseThrow(() -> notFound("Nivel de compromiso biopsicosocial no encontrado: " + code));
+        if (!Boolean.TRUE.equals(level.getActive())) {
+            throw badRequest("Nivel de compromiso biopsicosocial inactivo: " + code);
+        }
+        return level;
+    }
+
+    private void validateRetroalimentacionRequest(CreateEventRequest request, UserEntity professional,
+                                                   ProgramProfessionalEntity programProfessional, String professionName) {
+        if (request.getEventDate() == null) {
+            throw badRequest("La fecha es obligatoria para eventos RETROALIMENTACION");
+        }
+        if (request.getEventTime() == null) {
+            throw badRequest("La hora es obligatoria para eventos RETROALIMENTACION");
+        }
+        if (professional == null && programProfessional == null && !hasText(professionName)) {
+            throw badRequest("Debe indicar profesional para eventos RETROALIMENTACION");
+        }
+        if (!hasText(request.getResultCode())) {
+            throw badRequest("Debe indicar resultCode para eventos RETROALIMENTACION");
+        }
     }
 
     private EventTypeEntity eventType(String code) {
@@ -1022,6 +1087,8 @@ public class DemandService {
     private OptionDTO toOption(EpisodeTypeEntity e) { return e == null ? null : OptionDTO.builder().id(e.getId()).code(e.getCode()).name(e.getName()).build(); }
     private OptionDTO toOption(EventTypeEntity e) { return e == null ? null : OptionDTO.builder().id(e.getId()).code(e.getCode()).name(e.getName()).build(); }
     private OptionDTO toOption(AttendanceStatusEntity e) { return e == null ? null : OptionDTO.builder().id(e.getId()).code(e.getCode()).name(e.getName()).build(); }
+    private OptionDTO toOption(CitationTypeEntity e) { return e == null ? null : OptionDTO.builder().id(e.getId()).code(e.getCode()).name(e.getName()).build(); }
+    private OptionDTO toOption(BiopsychosocialCommitmentLevelEntity e) { return e == null ? null : OptionDTO.builder().id(e.getId()).code(e.getCode()).name(e.getName()).build(); }
     private OptionDTO toOption(ClosureReasonEntity e) { return e == null ? null : OptionDTO.builder().id(e.getId()).code(e.getCode()).name(e.getName()).build(); }
     private OptionDTO toOption(ProgramPopulationEntity e) { return e == null ? null : OptionDTO.builder().id(e.getId()).code(e.getCode()).name(e.getName()).build(); }
     private OptionDTO toOption(ProgramModalityEntity e) { return e == null ? null : OptionDTO.builder().id(e.getId()).code(e.getCode()).name(e.getName()).build(); }
@@ -1138,6 +1205,8 @@ public class DemandService {
                 .stageId(ev.getStage() != null ? ev.getStage().getId() : null)
                 .relatedEventId(ev.getRelatedEvent() != null ? ev.getRelatedEvent().getId() : null)
                 .eventType(toOption(ev.getEventType()))
+                .citationType(toOption(ev.getCitationType()))
+                .biopsychosocialCommitmentLevel(toOption(ev.getBiopsychosocialCommitmentLevel()))
                 .eventDate(ev.getEventDate())
                 .eventTime(ev.getEventTime())
                 .attendanceStatus(toOption(ev.getAttendanceStatus()))

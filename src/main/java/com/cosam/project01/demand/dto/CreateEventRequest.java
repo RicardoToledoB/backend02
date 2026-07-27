@@ -1,5 +1,6 @@
 package com.cosam.project01.demand.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -29,4 +30,7 @@ public class CreateEventRequest {
     private LocalDate nextActionDate;
     private String resultCode;
     private String stateCode;
+
+    @Schema(description = "Código del nivel de compromiso biopsicosocial. Obligatorio cuando eventTypeCode es RETROALIMENTACION. Se guarda en episode_events.biopsychosocial_commitment_level_id.", example = "MODERADO")
+    private String biopsychosocialCommitmentCode;
 }

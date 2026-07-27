@@ -1,5 +1,6 @@
 package com.cosam.project01.demand.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -15,6 +16,13 @@ public class EpisodeEventDTO {
     private Integer stageId;
     private Integer relatedEventId;
     private OptionDTO eventType;
+
+    @Schema(description = "Tipo de citación asociado al evento. Solo se informa para eventos CITACION.")
+    private OptionDTO citationType;
+
+    @Schema(description = "Nivel de compromiso biopsicosocial asociado al evento. Solo se informa para eventos RETROALIMENTACION.")
+    private OptionDTO biopsychosocialCommitmentLevel;
+
     private LocalDate eventDate;
     private LocalTime eventTime;
     private OptionDTO attendanceStatus;
