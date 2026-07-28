@@ -3,6 +3,7 @@ package com.cosam.project01.demand.dto;
 import lombok.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -14,6 +15,14 @@ public class PrioritizedEpisodeDTO {
     private String rut;
     private String personName;
     private ProgramSummaryDTO currentProgram;
+    private Integer currentStageId;
+    private String currentStageStateCode;
+    private String currentStageResultCode;
+    private LocalDateTime currentStageReceivedAt;
+    private Integer currentStageDays;
+    private Integer originProgramId;
+    private String originProgramName;
+    private Long referenceCount;
     private LocalDate originalRequestDate;
     private Integer accumulatedDays;
     private String semaphoreColor;

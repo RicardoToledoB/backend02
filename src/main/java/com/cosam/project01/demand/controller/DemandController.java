@@ -14,10 +14,12 @@ import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -102,6 +104,13 @@ public class DemandController {
     @GetMapping("/dashboard/supervisor/programs")
     public ResponseEntity<List<DemandSupervisorProgramDTO>> dashboardSupervisorPrograms() {
         return ResponseEntity.ok(service.getDashboardSupervisorPrograms());
+    }
+
+    @GetMapping("/dashboard/supervisor/programs/references")
+    public ResponseEntity<List<DemandSupervisorProgramReferenceDTO>> dashboardSupervisorProgramReferences(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return ResponseEntity.ok(service.getDashboardSupervisorProgramReferences(from, to));
     }
 
     @PostMapping("/episodes/{id}/events")

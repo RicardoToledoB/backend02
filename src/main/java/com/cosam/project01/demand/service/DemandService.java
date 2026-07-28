@@ -286,6 +286,89 @@ public class DemandService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<DemandSupervisorProgramReferenceDTO> getDashboardSupervisorProgramReferences(LocalDate from, LocalDate to) {
+        LocalDate today = LocalDate.now();
+        LocalDate start = from != null ? from : today.withDayOfMonth(1);
+        LocalDate end = to != null ? to : (from != null ? today : today.withDayOfMonth(today.lengthOfMonth()));
+        if (end.isBefore(start)) {
+            throw badRequest("La fecha to no puede ser menor que from.");
+        }
+
+        LocalDateTime fromAt = start.atStartOfDay();
+        LocalDateTime toExclusive = end.plusDays(1).atStartOfDay();
+
+        List<EpisodeReferenceEntity> referencesInRange = referenceRepository.findAll().stream()
+                .filter(ref -> ref.getReferenceDate() != null)
+                .filter(ref -> !ref.getReferenceDate().isBefore(fromAt) && ref.getReferenceDate().isBefore(toExclusive))
+                .toList();
+
+        Map<Integer, ProgramEntity> programsById = new LinkedHashMap<>();
+        programRepository.findAllActive().stream()
+                .filter(p -> p.getId() != null)
+                .filter(p -> p.getActive() == null || Boolean.TRUE.equals(p.getActive()))
+                .sorted(Comparator.comparing(p -> Optional.ofNullable(p.getName()).orElse(""), String.CASE_INSENSITIVE_ORDER))
+                .forEach(p -> programsById.put(p.getId(), p));
+
+        referencesInRange.stream()
+                .map(EpisodeReferenceEntity::getOriginProgram)
+                .filter(Objects::nonNull)
+                .filter(p -> p.getId() != null)
+                .forEach(p -> programsById.putIfAbsent(p.getId(), p));
+        referencesInRange.stream()
+                .map(EpisodeReferenceEntity::getDestinationProgram)
+                .filter(Objects::nonNull)
+                .filter(p -> p.getId() != null)
+                .forEach(p -> programsById.putIfAbsent(p.getId(), p));
+
+        Map<Integer, Long> receivedByProgram = new HashMap<>();
+        Map<Integer, Long> sentByProgram = new HashMap<>();
+        Map<Integer, List<Long>> daysBeforeReferenceByDestination = new HashMap<>();
+        Map<Integer, Map<String, Long>> reasonsByDestination = new HashMap<>();
+        Set<Integer> referencedOriginStageIds = new HashSet<>();
+
+        for (EpisodeReferenceEntity ref : referencesInRange) {
+            Integer originProgramId = ref.getOriginProgram() != null ? ref.getOriginProgram().getId() : null;
+            Integer destinationProgramId = ref.getDestinationProgram() != null ? ref.getDestinationProgram().getId() : null;
+
+            if (originProgramId != null) {
+                sentByProgram.merge(originProgramId, 1L, Long::sum);
+            }
+            if (destinationProgramId != null) {
+                receivedByProgram.merge(destinationProgramId, 1L, Long::sum);
+                long daysBeforeReference = daysBetween(ref.getOriginStage() != null ? ref.getOriginStage().getReceivedAt() : null, ref.getReferenceDate());
+                daysBeforeReferenceByDestination.computeIfAbsent(destinationProgramId, k -> new ArrayList<>()).add(daysBeforeReference);
+                String reason = hasText(ref.getReason()) ? ref.getReason().trim() : "Sin motivo informado";
+                reasonsByDestination.computeIfAbsent(destinationProgramId, k -> new LinkedHashMap<>()).merge(reason, 1L, Long::sum);
+            }
+            if (ref.getOriginStage() != null && ref.getOriginStage().getId() != null) {
+                referencedOriginStageIds.add(ref.getOriginStage().getId());
+            }
+        }
+
+        Map<Integer, Long> pendingReferencesByProgram = new HashMap<>();
+        episodeRepository.findPrioritized(null, null, null, Pageable.unpaged()).getContent().forEach(episode -> {
+            EpisodeStageEntity currentStage = resolveCurrentStageForRead(episode);
+            if (currentStage == null || currentStage.getProgram() == null || currentStage.getProgram().getId() == null) return;
+            if (!RESULT_REFERENCE.equalsIgnoreCase(Optional.ofNullable(currentStage.getResultCode()).orElse(""))) return;
+            if (currentStage.getId() != null && referencedOriginStageIds.contains(currentStage.getId())) return;
+            if (!isStageWithinRange(currentStage, start, end)) return;
+            pendingReferencesByProgram.merge(currentStage.getProgram().getId(), 1L, Long::sum);
+            programsById.putIfAbsent(currentStage.getProgram().getId(), currentStage.getProgram());
+        });
+
+        return programsById.values().stream()
+                .map(program -> toProgramReferenceStatsDTO(
+                        program,
+                        receivedByProgram.getOrDefault(program.getId(), 0L),
+                        sentByProgram.getOrDefault(program.getId(), 0L),
+                        pendingReferencesByProgram.getOrDefault(program.getId(), 0L),
+                        daysBeforeReferenceByDestination.getOrDefault(program.getId(), List.of()),
+                        reasonsByDestination.getOrDefault(program.getId(), Map.of())
+                ))
+                .toList();
+    }
+
     @Transactional
     public EpisodeEventDTO createEvent(Integer episodeId, CreateEventRequest request) {
         EpisodeEntity episode = findOpenEpisode(episodeId);
@@ -854,6 +937,50 @@ public class DemandService {
                 .build();
     }
 
+    private DemandSupervisorProgramReferenceDTO toProgramReferenceStatsDTO(
+            ProgramEntity program,
+            long receivedReferences,
+            long sentReferences,
+            long pendingReferences,
+            List<Long> daysBeforeReference,
+            Map<String, Long> referenceReasons) {
+        double averageDays = daysBeforeReference == null || daysBeforeReference.isEmpty()
+                ? 0.0
+                : daysBeforeReference.stream().filter(Objects::nonNull).mapToLong(Long::longValue).average().orElse(0.0);
+
+        List<ReferenceReasonDTO> reasons = referenceReasons == null ? List.of() : referenceReasons.entrySet().stream()
+                .sorted(Map.Entry.<String, Long>comparingByValue(Comparator.reverseOrder())
+                        .thenComparing(Map.Entry.comparingByKey(String.CASE_INSENSITIVE_ORDER)))
+                .map(entry -> ReferenceReasonDTO.builder()
+                        .reason(entry.getKey())
+                        .count(entry.getValue())
+                        .build())
+                .toList();
+
+        return DemandSupervisorProgramReferenceDTO.builder()
+                .programId(program != null ? program.getId() : null)
+                .programName(program != null ? program.getName() : null)
+                .receivedReferences(receivedReferences)
+                .sentReferences(sentReferences)
+                .pendingReferences(pendingReferences)
+                .referenceBalance(receivedReferences - sentReferences)
+                .averageDaysBeforeReference(Math.round(averageDays * 10.0) / 10.0)
+                .referenceReasons(reasons)
+                .build();
+    }
+
+    private long daysBetween(LocalDateTime start, LocalDateTime end) {
+        if (start == null || end == null) return 0L;
+        long days = ChronoUnit.DAYS.between(start.toLocalDate(), end.toLocalDate());
+        return Math.max(days, 0L);
+    }
+
+    private boolean isStageWithinRange(EpisodeStageEntity stage, LocalDate from, LocalDate to) {
+        if (stage == null || stage.getReceivedAt() == null) return true;
+        LocalDate date = stage.getReceivedAt().toLocalDate();
+        return (date.isEqual(from) || date.isAfter(from)) && (date.isEqual(to) || date.isBefore(to));
+    }
+
     private boolean hasFirstCitationForDashboard(List<EpisodeEventEntity> events) {
         if (events == null || events.isEmpty()) return false;
         return events.stream().anyMatch(ev ->
@@ -940,6 +1067,19 @@ public class DemandService {
             throw badRequest("El episodio se encuentra cerrado. Debe usar reversión por perfil superior si corresponde.");
         }
         return episode;
+    }
+
+    private EpisodeStageEntity resolveCurrentStageForRead(EpisodeEntity episode) {
+        if (episode == null) return null;
+        if (episode.getCurrentStage() != null) return episode.getCurrentStage();
+        return stageRepository.findFirstByEpisodeIdAndCurrentTrueOrderByStageOrderDesc(episode.getId()).orElse(null);
+    }
+
+    private Integer daysInStage(EpisodeStageEntity stage) {
+        if (stage == null || stage.getReceivedAt() == null) return 0;
+        LocalDate endDate = (stage.getClosedAt() != null ? stage.getClosedAt() : LocalDateTime.now()).toLocalDate();
+        long days = ChronoUnit.DAYS.between(stage.getReceivedAt().toLocalDate(), endDate);
+        return (int) Math.max(days, 0);
     }
 
     private EpisodeStageEntity resolveStage(EpisodeEntity episode, Integer stageId) {
@@ -1496,7 +1636,19 @@ public class DemandService {
         List<EpisodeEventEntity> events = eventRepository.findByEpisodeIdOrderByEventDateAscEventTimeAscIdAsc(e.getId());
         EpisodeEventEntity last = latestEvent(events);
         EpisodeEventEntity feedback = latestEventByType(events, "RETROALIMENTACION");
+        EpisodeStageEntity currentStage = resolveCurrentStageForRead(e);
+        EpisodeStageEntity originStage = currentStage != null ? currentStage.getOriginStage() : null;
+        ProgramEntity originProgram = originStage != null ? originStage.getProgram() : null;
+        String currentStageStateCode = currentStage != null ? currentStage.getStateCode() : e.getStateCode();
+        String currentStageResultCode = currentStage != null ? currentStage.getResultCode() : e.getResultCode();
+        Integer currentStageId = currentStage != null ? currentStage.getId() : null;
         boolean hasCitation = events.stream().anyMatch(ev -> ev.getEventType() != null && "CITACION".equalsIgnoreCase(ev.getEventType().getCode()));
+        boolean hasFeedbackInCurrentStage = events.stream().anyMatch(ev ->
+                ev.getEventType() != null
+                        && "RETROALIMENTACION".equalsIgnoreCase(ev.getEventType().getCode())
+                        && currentStageId != null
+                        && ev.getStage() != null
+                        && Objects.equals(ev.getStage().getId(), currentStageId));
 
         return PrioritizedEpisodeDTO.builder()
                 .episodeId(e.getId())
@@ -1504,11 +1656,19 @@ public class DemandService {
                 .rut(e.getPostulant() != null ? e.getPostulant().getRut() : null)
                 .personName(personName(e.getPostulant()))
                 .currentProgram(toProgramDTO(e.getCurrentProgram()))
+                .currentStageId(currentStageId)
+                .currentStageStateCode(currentStageStateCode)
+                .currentStageResultCode(currentStageResultCode)
+                .currentStageReceivedAt(currentStage != null ? currentStage.getReceivedAt() : null)
+                .currentStageDays(daysInStage(currentStage))
+                .originProgramId(originProgram != null ? originProgram.getId() : null)
+                .originProgramName(originProgram != null ? originProgram.getName() : null)
+                .referenceCount(referenceRepository.countByEpisodeId(e.getId()))
                 .originalRequestDate(e.getOriginalRequestDate())
                 .accumulatedDays(days)
                 .semaphoreColor(resolveSemaphore(days))
-                .stateCode(e.getStateCode())
-                .resultCode(e.getResultCode())
+                .stateCode(currentStageStateCode)
+                .resultCode(currentStageResultCode)
                 .lastManagement(last != null && last.getEventType() != null ? last.getEventType().getName() : null)
                 .lastManagementDate(last != null ? last.getEventDate() : null)
                 .lastManagementTime(last != null ? last.getEventTime() : null)
@@ -1522,7 +1682,7 @@ public class DemandService {
                 .biopsychosocialCommitmentCode(feedback != null && feedback.getBiopsychosocialCommitmentLevel() != null
                         ? feedback.getBiopsychosocialCommitmentLevel().getCode()
                         : null)
-                .suggestedAction(suggestedAction(e, hasCitation))
+                .suggestedAction(suggestedAction(e, currentStage, hasCitation, hasFeedbackInCurrentStage))
                 .build();
     }
 
@@ -1591,6 +1751,14 @@ public class DemandService {
             case "currentprogram", "currentprogramname", "program", "programname" ->
                     dto.getCurrentProgram() != null ? normalizeSortText(dto.getCurrentProgram().getName()) : null;
             case "currentprogramid", "programid" -> dto.getCurrentProgram() != null ? dto.getCurrentProgram().getId() : null;
+            case "currentstageid" -> dto.getCurrentStageId();
+            case "currentstagestatecode" -> normalizeSortText(dto.getCurrentStageStateCode());
+            case "currentstageresultcode" -> normalizeSortText(dto.getCurrentStageResultCode());
+            case "currentstagereceivedat" -> dto.getCurrentStageReceivedAt();
+            case "currentstagedays" -> dto.getCurrentStageDays();
+            case "originprogramid" -> dto.getOriginProgramId();
+            case "originprogramname" -> normalizeSortText(dto.getOriginProgramName());
+            case "referencecount" -> dto.getReferenceCount();
             case "originalrequestdate" -> dto.getOriginalRequestDate();
             case "accumulateddays" -> dto.getAccumulatedDays();
             case "semaphorecolor" -> normalizeSortText(dto.getSemaphoreColor());
@@ -1652,11 +1820,13 @@ public class DemandService {
                 .replaceAll("\\s+", " ").trim();
     }
 
-    private String suggestedAction(EpisodeEntity e, boolean hasCitation) {
+    private String suggestedAction(EpisodeEntity e, EpisodeStageEntity currentStage, boolean hasCitation, boolean hasFeedbackInCurrentStage) {
+        String currentResultCode = currentStage != null ? currentStage.getResultCode() : (e != null ? e.getResultCode() : null);
         if (!hasCitation) return "Registrar primera citación";
-        if (RESULT_WAITING_LIST.equalsIgnoreCase(Optional.ofNullable(e.getResultCode()).orElse(""))) return "Gestionar cupo / revisar prioridad";
-        if (RESULT_REFERENCE.equalsIgnoreCase(Optional.ofNullable(e.getResultCode()).orElse(""))) return "Confirmar recepción en programa destino";
-        if (RESULT_TREATMENT_ENTRY.equalsIgnoreCase(Optional.ofNullable(e.getResultCode()).orElse(""))) return "Registrar cierre cuando corresponda";
+        if (RESULT_WAITING_LIST.equalsIgnoreCase(Optional.ofNullable(currentResultCode).orElse(""))) return "Gestionar cupo / revisar prioridad";
+        if (RESULT_REFERENCE.equalsIgnoreCase(Optional.ofNullable(currentResultCode).orElse(""))) return "Confirmar recepción en programa destino";
+        if (RESULT_TREATMENT_ENTRY.equalsIgnoreCase(Optional.ofNullable(currentResultCode).orElse(""))) return "Registrar cierre cuando corresponda";
+        if (RESULT_PENDING.equalsIgnoreCase(Optional.ofNullable(currentResultCode).orElse("")) && !hasFeedbackInCurrentStage) return "Registrar retroalimentación";
         return "Revisar caso y definir resultado";
     }
 

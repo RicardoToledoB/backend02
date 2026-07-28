@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface EpisodeReferenceRepository extends JpaRepository<EpisodeReferenceEntity, Integer> {
     List<EpisodeReferenceEntity> findByEpisodeIdOrderByReferenceDateAsc(Integer episodeId);
+    long countByEpisodeId(Integer episodeId);
 }
