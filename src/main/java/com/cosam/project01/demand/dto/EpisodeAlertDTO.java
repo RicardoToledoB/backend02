@@ -10,6 +10,13 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class EpisodeAlertDTO {
     private Integer id;
+
+    // Campos compactos solicitados por la ficha longitudinal.
+    private String type;
+    private String priority;
+    private String status;
+    private LocalDate nextReviewDate;
+    private String responsibleUserName;
     private Integer episodeId;
     private Integer stageId;
     private String alertTypeCode;

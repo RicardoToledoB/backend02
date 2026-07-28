@@ -8,6 +8,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class EpisodeLongitudinalDTO {
+    private Long openAlertCount;
     private PostulantSummaryDTO postulant;
     private EpisodeDTO activeEpisode;
     private List<EpisodeDTO> episodes;

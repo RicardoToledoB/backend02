@@ -99,6 +99,11 @@ public class DemandController {
         return ResponseEntity.ok(service.getDashboard());
     }
 
+    @GetMapping("/dashboard/supervisor/programs")
+    public ResponseEntity<List<DemandSupervisorProgramDTO>> dashboardSupervisorPrograms() {
+        return ResponseEntity.ok(service.getDashboardSupervisorPrograms());
+    }
+
     @PostMapping("/episodes/{id}/events")
     public ResponseEntity<EpisodeEventDTO> createEvent(@PathVariable Integer id, @Valid @RequestBody CreateEventRequest request) {
         return ResponseEntity.ok(service.createEvent(id, request));
@@ -115,7 +120,8 @@ public class DemandController {
     }
 
     @PostMapping("/episodes/{id}/references")
-    public ResponseEntity<EpisodeReferenceDTO> referenceEpisode(@PathVariable Integer id, @Valid @RequestBody ReferenceEpisodeRequest request) {
+    public ResponseEntity<EpisodeReferenceDTO> referenceEpisode(@PathVariable Integer id, @Valid @RequestBody ReferenceEpisodeRequest request, HttpServletRequest httpRequest) {
+        requestTokenValidator.requireValidAccessToken(httpRequest);
         return ResponseEntity.ok(service.referenceEpisode(id, request));
     }
 
@@ -130,7 +136,8 @@ public class DemandController {
     }
 
     @PostMapping("/episodes/{id}/close")
-    public ResponseEntity<EpisodeDTO> close(@PathVariable Integer id, @Valid @RequestBody CloseEpisodeRequest request) {
+    public ResponseEntity<EpisodeDTO> close(@PathVariable Integer id, @Valid @RequestBody CloseEpisodeRequest request, HttpServletRequest httpRequest) {
+        requestTokenValidator.requireValidAccessToken(httpRequest);
         return ResponseEntity.ok(service.closeEpisode(id, request));
     }
 

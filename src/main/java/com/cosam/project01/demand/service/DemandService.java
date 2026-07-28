@@ -31,6 +31,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -255,6 +256,34 @@ public class DemandService {
                 .semaphoreDistribution(semaphoreDistribution)
                 .topCriticalCases(top.getContent())
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<DemandSupervisorProgramDTO> getDashboardSupervisorPrograms() {
+        List<EpisodeEntity> activeEpisodes = episodeRepository
+                .findPrioritized(null, null, null, Pageable.unpaged())
+                .getContent();
+
+        Map<Integer, List<EpisodeEntity>> episodesByProgram = activeEpisodes.stream()
+                .filter(e -> e.getCurrentProgram() != null && e.getCurrentProgram().getId() != null)
+                .collect(Collectors.groupingBy(e -> e.getCurrentProgram().getId(), LinkedHashMap::new, Collectors.toList()));
+
+        Map<Integer, ProgramEntity> programsById = new LinkedHashMap<>();
+        programRepository.findAllActive().stream()
+                .filter(p -> p.getId() != null)
+                .filter(p -> p.getActive() == null || Boolean.TRUE.equals(p.getActive()))
+                .sorted(Comparator.comparing(p -> Optional.ofNullable(p.getName()).orElse(""), String.CASE_INSENSITIVE_ORDER))
+                .forEach(p -> programsById.put(p.getId(), p));
+
+        activeEpisodes.stream()
+                .map(EpisodeEntity::getCurrentProgram)
+                .filter(Objects::nonNull)
+                .filter(p -> p.getId() != null)
+                .forEach(p -> programsById.putIfAbsent(p.getId(), p));
+
+        return programsById.values().stream()
+                .map(program -> toSupervisorProgramDashboardDTO(program, episodesByProgram.getOrDefault(program.getId(), List.of())))
+                .toList();
     }
 
     @Transactional
@@ -510,17 +539,18 @@ public class DemandService {
 
     @Transactional
     public EpisodeDTO closeEpisode(Integer episodeId, CloseEpisodeRequest request) {
-        requireConfirmation(request.getConfirmImpact(), "El cierre pasará el episodio a histórico y no podrá editarse libremente.");
         EpisodeEntity episode = findOpenEpisode(episodeId);
         EpisodeStageEntity stage = resolveStage(episode, null);
         UserEntity currentUser = currentUserOrNull();
+        boolean explicitClosureReason = request.getClosureReasonId() != null || hasText(request.getClosureReasonCode());
         ClosureReasonEntity reason = resolveClosureReason(request.getClosureReasonId(), request.getClosureReasonCode());
+        LocalDateTime closureAt = parseOptionalDateTime(request.getClosureDate());
 
-        if (reason.getCode() != null && reason.getCode().toUpperCase().contains("OTRO") && !hasText(request.getClosureComment())) {
+        if (explicitClosureReason && reason.getCode() != null && reason.getCode().toUpperCase().contains("OTRO") && !hasText(request.getClosureComment())) {
             throw badRequest("Cuando la causal es OTRO, la observación/comentario de cierre es obligatoria.");
         }
 
-        closeEpisodeInternal(episode, stage, reason, request.getClosureComment(), currentUser, RESULT_CLOSURE, request.getClosureDate());
+        closeEpisodeInternal(episode, stage, reason, request.getClosureComment(), currentUser, RESULT_CLOSURE, closureAt);
         EpisodeEventEntity event = createInternalEvent(episode, stage, "CIERRE", null, null, stage.getProgram(), currentUser, currentUser,
                 "Cierre de episodio: " + reason.getName(), null, request.getClosureComment(), null, null, RESULT_CLOSURE, STATE_CLOSED);
         audit(episode, stage, event, "CIERRE_EPISODIO", null, reason.getCode(), request.getClosureComment(), currentUser, null, null);
@@ -760,6 +790,104 @@ public class DemandService {
         return toSubstanceDTO(entity);
     }
 
+    private DemandSupervisorProgramDTO toSupervisorProgramDashboardDTO(ProgramEntity program, List<EpisodeEntity> episodes) {
+        List<EpisodeEntity> safeEpisodes = episodes != null ? episodes : List.of();
+        long activeDemands = safeEpisodes.size();
+        long totalDays = 0;
+        long redCases = 0;
+        long withoutFirstCitation = 0;
+        long withoutFeedback = 0;
+        long severeCommitmentCases = 0;
+        long pendingReferences = 0;
+        long pendingClosures = 0;
+        long openAlerts = 0;
+
+        for (EpisodeEntity episode : safeEpisodes) {
+            int days = accumulatedDays(episode);
+            totalDays += days;
+            if ("ROJO".equalsIgnoreCase(resolveSemaphore(days))) {
+                redCases++;
+            }
+
+            List<EpisodeEventEntity> events = eventRepository.findByEpisodeIdOrderByEventDateAscEventTimeAscIdAsc(episode.getId());
+            if (!hasFirstCitationForDashboard(events)) {
+                withoutFirstCitation++;
+            }
+            if (!hasEventType(events, "RETROALIMENTACION")) {
+                withoutFeedback++;
+            }
+
+            EpisodeEventEntity feedback = latestEventByType(events, "RETROALIMENTACION");
+            String commitmentCode = feedback != null && feedback.getBiopsychosocialCommitmentLevel() != null
+                    ? feedback.getBiopsychosocialCommitmentLevel().getCode()
+                    : null;
+            if ("SEVERO".equalsIgnoreCase(commitmentCode)) {
+                severeCommitmentCases++;
+            }
+
+            if (isPendingReference(episode)) {
+                pendingReferences++;
+            }
+            if (isPendingClosure(episode)) {
+                pendingClosures++;
+            }
+
+            openAlerts += alertRepository.findByEpisodeIdOrderByCreatedAtDesc(episode.getId()).stream()
+                    .filter(this::isOpenAlert)
+                    .count();
+        }
+
+        double averageDays = activeDemands > 0 ? (double) totalDays / activeDemands : 0.0;
+
+        return DemandSupervisorProgramDTO.builder()
+                .programId(program != null ? program.getId() : null)
+                .programName(program != null ? program.getName() : null)
+                .activeDemands(activeDemands)
+                .averageAccumulatedDays(Math.round(averageDays * 10.0) / 10.0)
+                .redCases(redCases)
+                .withoutFirstCitation(withoutFirstCitation)
+                .withoutFeedback(withoutFeedback)
+                .severeCommitmentCases(severeCommitmentCases)
+                .pendingReferences(pendingReferences)
+                .pendingClosures(pendingClosures)
+                .openAlerts(openAlerts)
+                .build();
+    }
+
+    private boolean hasFirstCitationForDashboard(List<EpisodeEventEntity> events) {
+        if (events == null || events.isEmpty()) return false;
+        return events.stream().anyMatch(ev ->
+                ev.getEventType() != null
+                        && "CITACION".equalsIgnoreCase(ev.getEventType().getCode())
+                        && (ev.getCitationType() == null
+                            || "PRIMERA_CITACION_PRIMERA_ENTREVISTA".equalsIgnoreCase(ev.getCitationType().getCode())));
+    }
+
+    private boolean hasEventType(List<EpisodeEventEntity> events, String eventTypeCode) {
+        if (events == null || !hasText(eventTypeCode)) return false;
+        return events.stream().anyMatch(ev -> ev.getEventType() != null
+                && eventTypeCode.equalsIgnoreCase(ev.getEventType().getCode()));
+    }
+
+    private boolean isPendingReference(EpisodeEntity episode) {
+        return episode != null
+                && Boolean.TRUE.equals(episode.getActive())
+                && episode.getClosedAt() == null
+                && RESULT_REFERENCE.equalsIgnoreCase(Optional.ofNullable(episode.getResultCode()).orElse(""));
+    }
+
+    private boolean isPendingClosure(EpisodeEntity episode) {
+        if (episode == null || !Boolean.TRUE.equals(episode.getActive()) || episode.getClosedAt() != null) return false;
+        return episode.getEntryToTreatmentAt() != null
+                || RESULT_TREATMENT_ENTRY.equalsIgnoreCase(Optional.ofNullable(episode.getResultCode()).orElse(""));
+    }
+
+    private boolean isOpenAlert(EpisodeAlertEntity alert) {
+        if (alert == null) return false;
+        String status = normalizeCode(alert.getStatusCode());
+        return "ABIERTA".equals(status) || "ACTIVA".equals(status) || "OPEN".equals(status);
+    }
+
     private Integer normalizePreviousTreatmentNumber(Integer value) {
         if (value == null) return 0;
         if (value < 0) throw badRequest("El número de tratamientos previos debe ser mayor o igual a 0.");
@@ -773,6 +901,7 @@ public class DemandService {
         List<EpisodeEventDTO> events = new ArrayList<>();
         List<EpisodeReferenceDTO> references = new ArrayList<>();
         List<EpisodeAlertDTO> alerts = new ArrayList<>();
+        long openAlertCount = 0;
         List<EpisodeDocumentDTO> documents = new ArrayList<>();
         List<EpisodeAuditLogDTO> auditLogs = new ArrayList<>();
 
@@ -780,12 +909,15 @@ public class DemandService {
             stages.addAll(stageRepository.findByEpisodeIdOrderByStageOrderAsc(id).stream().map(this::toStageDTO).toList());
             events.addAll(eventRepository.findByEpisodeIdOrderByEventDateAscEventTimeAscIdAsc(id).stream().map(this::toEventDTO).toList());
             references.addAll(referenceRepository.findByEpisodeIdOrderByReferenceDateAsc(id).stream().map(this::toReferenceDTO).toList());
-            alerts.addAll(alertRepository.findByEpisodeIdOrderByCreatedAtDesc(id).stream().map(this::toAlertDTO).toList());
+            List<EpisodeAlertEntity> episodeAlerts = alertRepository.findByEpisodeIdOrderByCreatedAtDesc(id);
+            openAlertCount += episodeAlerts.stream().filter(this::isOpenAlert).count();
+            alerts.addAll(episodeAlerts.stream().map(this::toAlertDTO).toList());
             documents.addAll(documentRepository.findByEpisodeIdOrderByUploadedAtDesc(id).stream().map(this::toDocumentDTO).toList());
             auditLogs.addAll(auditLogRepository.findByEpisodeIdOrderByPerformedAtDesc(id).stream().map(this::toAuditDTO).toList());
         }
 
         return EpisodeLongitudinalDTO.builder()
+                .openAlertCount(openAlertCount)
                 .postulant(toPostulantDTO(first.getPostulant()))
                 .activeEpisode(episodes.stream().filter(EpisodeEntity::getActive).findFirst().map(this::toEpisodeDTO).orElse(null))
                 .episodes(episodes.stream().map(this::toEpisodeDTO).toList())
@@ -968,6 +1100,21 @@ public class DemandService {
         return attendanceStatus(hasText(code) ? code : defaultCode);
     }
 
+    private LocalDateTime parseOptionalDateTime(String value) {
+        if (!hasText(value)) return null;
+        String trimmed = value.trim();
+        try {
+            return LocalDateTime.parse(trimmed);
+        } catch (DateTimeParseException ignored) {
+            // Se intenta como fecha simple YYYY-MM-DD.
+        }
+        try {
+            return LocalDate.parse(trimmed).atStartOfDay();
+        } catch (DateTimeParseException ex) {
+            throw badRequest("closureDate debe tener formato YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss");
+        }
+    }
+
     private AttendanceStatusEntity attendanceStatus(String code) {
         return attendanceStatusRepository.findByCodeIgnoreCase(code)
                 .orElseThrow(() -> notFound("Estado de asistencia no encontrado: " + code));
@@ -975,8 +1122,10 @@ public class DemandService {
 
     private ClosureReasonEntity resolveClosureReason(Integer id, String code) {
         if (id != null) return closureReasonRepository.findById(id).orElseThrow(() -> notFound("Motivo de cierre no encontrado"));
-        if (!hasText(code)) throw badRequest("Debe indicar closureReasonCode o closureReasonId");
-        return closureReason(code);
+        if (hasText(code)) return closureReason(code);
+        return closureReasonRepository.findByCodeIgnoreCase("OTRO_CIERRE")
+                .or(() -> closureReasonRepository.findByCodeIgnoreCase("ABANDONO"))
+                .orElseThrow(() -> badRequest("Debe existir al menos un motivo de cierre activo para cerrar el episodio"));
     }
 
     private ClosureReasonEntity closureReason(String code) {
@@ -1128,6 +1277,11 @@ public class DemandService {
                 .name(hasText(name) ? name : user.getUsername())
                 .email(user.getEmail())
                 .build();
+    }
+
+    private String userDisplayName(UserEntity user) {
+        UserSummaryDTO summary = toUserDTO(user);
+        return summary != null ? summary.getName() : null;
     }
 
     private PostulantSummaryDTO toPostulantDTO(PostulantEntity p) {
@@ -1284,6 +1438,11 @@ public class DemandService {
         if (a == null) return null;
         return EpisodeAlertDTO.builder()
                 .id(a.getId())
+                .type(a.getAlertTypeCode())
+                .priority(a.getPriorityLevelCode())
+                .status(a.getStatusCode())
+                .nextReviewDate(a.getNextActionDate())
+                .responsibleUserName(userDisplayName(a.getResponsibleUser()))
                 .episodeId(a.getEpisode() != null ? a.getEpisode().getId() : null)
                 .stageId(a.getStage() != null ? a.getStage().getId() : null)
                 .alertTypeCode(a.getAlertTypeCode())
