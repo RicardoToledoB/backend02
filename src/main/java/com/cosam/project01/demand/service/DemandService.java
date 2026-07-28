@@ -323,8 +323,8 @@ public class DemandService {
 
         Map<Integer, Long> receivedByProgram = new HashMap<>();
         Map<Integer, Long> sentByProgram = new HashMap<>();
-        Map<Integer, List<Long>> daysBeforeReferenceByDestination = new HashMap<>();
-        Map<Integer, Map<String, Long>> reasonsByDestination = new HashMap<>();
+        Map<Integer, List<Long>> daysBeforeReferenceByOrigin = new HashMap<>();
+        Map<Integer, Map<String, Long>> reasonsByOrigin = new HashMap<>();
         Set<Integer> referencedOriginStageIds = new HashSet<>();
 
         for (EpisodeReferenceEntity ref : referencesInRange) {
@@ -333,13 +333,13 @@ public class DemandService {
 
             if (originProgramId != null) {
                 sentByProgram.merge(originProgramId, 1L, Long::sum);
+                long daysBeforeReference = daysBetween(ref.getOriginStage() != null ? ref.getOriginStage().getReceivedAt() : null, ref.getReferenceDate());
+                daysBeforeReferenceByOrigin.computeIfAbsent(originProgramId, k -> new ArrayList<>()).add(daysBeforeReference);
+                String reason = hasText(ref.getReason()) ? ref.getReason().trim() : "Sin motivo informado";
+                reasonsByOrigin.computeIfAbsent(originProgramId, k -> new LinkedHashMap<>()).merge(reason, 1L, Long::sum);
             }
             if (destinationProgramId != null) {
                 receivedByProgram.merge(destinationProgramId, 1L, Long::sum);
-                long daysBeforeReference = daysBetween(ref.getOriginStage() != null ? ref.getOriginStage().getReceivedAt() : null, ref.getReferenceDate());
-                daysBeforeReferenceByDestination.computeIfAbsent(destinationProgramId, k -> new ArrayList<>()).add(daysBeforeReference);
-                String reason = hasText(ref.getReason()) ? ref.getReason().trim() : "Sin motivo informado";
-                reasonsByDestination.computeIfAbsent(destinationProgramId, k -> new LinkedHashMap<>()).merge(reason, 1L, Long::sum);
             }
             if (ref.getOriginStage() != null && ref.getOriginStage().getId() != null) {
                 referencedOriginStageIds.add(ref.getOriginStage().getId());
@@ -363,8 +363,8 @@ public class DemandService {
                         receivedByProgram.getOrDefault(program.getId(), 0L),
                         sentByProgram.getOrDefault(program.getId(), 0L),
                         pendingReferencesByProgram.getOrDefault(program.getId(), 0L),
-                        daysBeforeReferenceByDestination.getOrDefault(program.getId(), List.of()),
-                        reasonsByDestination.getOrDefault(program.getId(), Map.of())
+                        daysBeforeReferenceByOrigin.getOrDefault(program.getId(), List.of()),
+                        reasonsByOrigin.getOrDefault(program.getId(), Map.of())
                 ))
                 .toList();
     }
@@ -1634,7 +1634,6 @@ public class DemandService {
     private PrioritizedEpisodeDTO toPrioritizedDTO(EpisodeEntity e) {
         int days = accumulatedDays(e);
         List<EpisodeEventEntity> events = eventRepository.findByEpisodeIdOrderByEventDateAscEventTimeAscIdAsc(e.getId());
-        EpisodeEventEntity last = latestEvent(events);
         EpisodeEventEntity feedback = latestEventByType(events, "RETROALIMENTACION");
         EpisodeStageEntity currentStage = resolveCurrentStageForRead(e);
         EpisodeStageEntity originStage = currentStage != null ? currentStage.getOriginStage() : null;
@@ -1642,13 +1641,16 @@ public class DemandService {
         String currentStageStateCode = currentStage != null ? currentStage.getStateCode() : e.getStateCode();
         String currentStageResultCode = currentStage != null ? currentStage.getResultCode() : e.getResultCode();
         Integer currentStageId = currentStage != null ? currentStage.getId() : null;
-        boolean hasCitation = events.stream().anyMatch(ev -> ev.getEventType() != null && "CITACION".equalsIgnoreCase(ev.getEventType().getCode()));
-        boolean hasFeedbackInCurrentStage = events.stream().anyMatch(ev ->
-                ev.getEventType() != null
-                        && "RETROALIMENTACION".equalsIgnoreCase(ev.getEventType().getCode())
-                        && currentStageId != null
+        List<EpisodeEventEntity> currentStageEvents = events.stream()
+                .filter(ev -> currentStageId != null
                         && ev.getStage() != null
-                        && Objects.equals(ev.getStage().getId(), currentStageId));
+                        && Objects.equals(ev.getStage().getId(), currentStageId))
+                .toList();
+        EpisodeEventEntity last = latestEvent(currentStageEvents);
+        boolean hasCitation = events.stream().anyMatch(ev -> ev.getEventType() != null && "CITACION".equalsIgnoreCase(ev.getEventType().getCode()));
+        boolean hasFeedbackInCurrentStage = currentStageEvents.stream().anyMatch(ev ->
+                ev.getEventType() != null
+                        && "RETROALIMENTACION".equalsIgnoreCase(ev.getEventType().getCode()));
 
         return PrioritizedEpisodeDTO.builder()
                 .episodeId(e.getId())
