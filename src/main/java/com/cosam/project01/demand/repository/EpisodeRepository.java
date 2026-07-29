@@ -52,12 +52,15 @@ public interface EpisodeRepository extends JpaRepository<EpisodeEntity, Integer>
 
     @Query("""
             SELECT e FROM EpisodeEntity e
-            WHERE e.active = true
-              AND e.closedAt IS NULL
-              AND e.deletedAt IS NULL
+            LEFT JOIN e.currentStage cs
+            WHERE e.deletedAt IS NULL
+              AND (
+                    UPPER(COALESCE(:stateCode, '')) = 'CERRADO'
+                    OR (e.active = true AND e.closedAt IS NULL)
+              )
               AND (:programId IS NULL OR e.currentProgram.id = :programId)
-              AND (:stateCode IS NULL OR :stateCode = '' OR e.stateCode = :stateCode)
-              AND (:resultCode IS NULL OR :resultCode = '' OR e.resultCode = :resultCode)
+              AND (:stateCode IS NULL OR :stateCode = '' OR UPPER(COALESCE(cs.stateCode, e.stateCode)) = UPPER(:stateCode))
+              AND (:resultCode IS NULL OR :resultCode = '' OR UPPER(COALESCE(cs.resultCode, e.resultCode)) = UPPER(:resultCode))
             ORDER BY e.originalRequestDate ASC, e.id ASC
             """)
     Page<EpisodeEntity> findPrioritized(@Param("programId") Integer programId,

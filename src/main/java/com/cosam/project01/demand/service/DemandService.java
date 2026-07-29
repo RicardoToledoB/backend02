@@ -244,7 +244,12 @@ public class DemandService {
                 .average()
                 .orElse(0.0);
 
-        long withoutFirstCitation = episodeRepository.countActiveWithoutFirstCitation();
+        List<EpisodeEntity> activeEpisodesForDashboard = episodeRepository
+                .findPrioritized(null, null, null, Pageable.unpaged())
+                .getContent();
+        long withoutFirstCitation = activeEpisodesForDashboard.stream()
+                .filter(this::withoutFirstCitationInCurrentStage)
+                .count();
 
         return DemandDashboardDTO.builder()
                 .activeDemands(episodeRepository.countByActiveTrueAndDeletedAtIsNull())
@@ -893,7 +898,8 @@ public class DemandService {
             }
 
             List<EpisodeEventEntity> events = eventRepository.findByEpisodeIdOrderByEventDateAscEventTimeAscIdAsc(episode.getId());
-            if (!hasFirstCitationForDashboard(events)) {
+            List<EpisodeEventEntity> currentStageEvents = filterEventsByStage(events, resolveCurrentStageForRead(episode));
+            if (!hasFirstCitationForDashboard(currentStageEvents)) {
                 withoutFirstCitation++;
             }
             if (!hasEventType(events, "RETROALIMENTACION")) {
@@ -983,11 +989,32 @@ public class DemandService {
 
     private boolean hasFirstCitationForDashboard(List<EpisodeEventEntity> events) {
         if (events == null || events.isEmpty()) return false;
-        return events.stream().anyMatch(ev ->
-                ev.getEventType() != null
-                        && "CITACION".equalsIgnoreCase(ev.getEventType().getCode())
-                        && (ev.getCitationType() == null
-                            || "PRIMERA_CITACION_PRIMERA_ENTREVISTA".equalsIgnoreCase(ev.getCitationType().getCode())));
+        return events.stream().anyMatch(this::isFirstCitationFirstInterview);
+    }
+
+    private boolean withoutFirstCitationInCurrentStage(EpisodeEntity episode) {
+        if (episode == null || episode.getId() == null) return true;
+        List<EpisodeEventEntity> events = eventRepository.findByEpisodeIdOrderByEventDateAscEventTimeAscIdAsc(episode.getId());
+        return !hasFirstCitationForDashboard(filterEventsByStage(events, resolveCurrentStageForRead(episode)));
+    }
+
+    private List<EpisodeEventEntity> filterEventsByStage(List<EpisodeEventEntity> events, EpisodeStageEntity stage) {
+        if (events == null || events.isEmpty() || stage == null || stage.getId() == null) {
+            return List.of();
+        }
+        Integer stageId = stage.getId();
+        return events.stream()
+                .filter(ev -> ev.getStage() != null && Objects.equals(ev.getStage().getId(), stageId))
+                .toList();
+    }
+
+    private boolean isFirstCitationFirstInterview(EpisodeEventEntity event) {
+        if (event == null || event.getEventType() == null || !"CITACION".equalsIgnoreCase(event.getEventType().getCode())) {
+            return false;
+        }
+        String citationTypeCode = event.getCitationType() != null ? normalizeCode(event.getCitationType().getCode()) : null;
+        return "PRIMERA_CITACION_PRIMERA_ENTREVISTA".equals(citationTypeCode)
+                || "FIRST_CITATION_FIRST_INTERVIEW".equals(citationTypeCode);
     }
 
     private boolean hasEventType(List<EpisodeEventEntity> events, String eventTypeCode) {
@@ -1641,13 +1668,9 @@ public class DemandService {
         String currentStageStateCode = currentStage != null ? currentStage.getStateCode() : e.getStateCode();
         String currentStageResultCode = currentStage != null ? currentStage.getResultCode() : e.getResultCode();
         Integer currentStageId = currentStage != null ? currentStage.getId() : null;
-        List<EpisodeEventEntity> currentStageEvents = events.stream()
-                .filter(ev -> currentStageId != null
-                        && ev.getStage() != null
-                        && Objects.equals(ev.getStage().getId(), currentStageId))
-                .toList();
+        List<EpisodeEventEntity> currentStageEvents = filterEventsByStage(events, currentStage);
         EpisodeEventEntity last = latestEvent(currentStageEvents);
-        boolean hasCitation = events.stream().anyMatch(ev -> ev.getEventType() != null && "CITACION".equalsIgnoreCase(ev.getEventType().getCode()));
+        boolean hasFirstCitationInCurrentStage = hasFirstCitationForDashboard(currentStageEvents);
         boolean hasFeedbackInCurrentStage = currentStageEvents.stream().anyMatch(ev ->
                 ev.getEventType() != null
                         && "RETROALIMENTACION".equalsIgnoreCase(ev.getEventType().getCode()));
@@ -1684,7 +1707,7 @@ public class DemandService {
                 .biopsychosocialCommitmentCode(feedback != null && feedback.getBiopsychosocialCommitmentLevel() != null
                         ? feedback.getBiopsychosocialCommitmentLevel().getCode()
                         : null)
-                .suggestedAction(suggestedAction(e, currentStage, hasCitation, hasFeedbackInCurrentStage))
+                .suggestedAction(suggestedAction(e, currentStage, hasFirstCitationInCurrentStage, hasFeedbackInCurrentStage))
                 .build();
     }
 
@@ -1824,7 +1847,7 @@ public class DemandService {
 
     private String suggestedAction(EpisodeEntity e, EpisodeStageEntity currentStage, boolean hasCitation, boolean hasFeedbackInCurrentStage) {
         String currentResultCode = currentStage != null ? currentStage.getResultCode() : (e != null ? e.getResultCode() : null);
-        if (!hasCitation) return "Registrar primera citación";
+        if (!hasCitation) return "Programar primera citación a primera entrevista";
         if (RESULT_WAITING_LIST.equalsIgnoreCase(Optional.ofNullable(currentResultCode).orElse(""))) return "Gestionar cupo / revisar prioridad";
         if (RESULT_REFERENCE.equalsIgnoreCase(Optional.ofNullable(currentResultCode).orElse(""))) return "Confirmar recepción en programa destino";
         if (RESULT_TREATMENT_ENTRY.equalsIgnoreCase(Optional.ofNullable(currentResultCode).orElse(""))) return "Registrar cierre cuando corresponda";
