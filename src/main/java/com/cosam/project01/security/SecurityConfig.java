@@ -64,7 +64,8 @@ public class SecurityConfig {
                         // y el controlador valida manualmente Bearer JWT antes de ejecutar la acción.
                         .requestMatchers(
                                 new AntPathRequestMatcher("/api/v1/demand/episodes/*/references", "POST"),
-                                new AntPathRequestMatcher("/api/v1/demand/episodes/*/close", "POST")
+                                new AntPathRequestMatcher("/api/v1/demand/episodes/*/close", "POST"),
+                                new AntPathRequestMatcher("/api/v1/demand/episodes/*/purge", "DELETE")
                         ).permitAll()
                         // Endpoints críticos de episodios usados por frontend.
                         .requestMatchers(

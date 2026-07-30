@@ -45,6 +45,16 @@ public class RequestTokenValidator {
         }
     }
 
+    public UserDetails requireAdminAccessToken(HttpServletRequest request) {
+        UserDetails user = requireValidAccessToken(request);
+        boolean admin = user.getAuthorities().stream()
+                .anyMatch(authority -> "ROLE_ADMIN".equalsIgnoreCase(authority.getAuthority()));
+        if (!admin) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Operación restringida a ROLE_ADMIN");
+        }
+        return user;
+    }
+
     private String firstNonBlank(String... values) {
         if (values == null) return null;
         for (String value : values) {

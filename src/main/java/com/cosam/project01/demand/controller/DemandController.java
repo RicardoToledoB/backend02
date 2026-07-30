@@ -2,6 +2,7 @@ package com.cosam.project01.demand.controller;
 
 import com.cosam.project01.demand.dto.*;
 import com.cosam.project01.demand.service.DemandService;
+import com.cosam.project01.demand.service.EpisodePurgeService;
 import com.cosam.project01.security.RequestTokenValidator;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -28,6 +29,7 @@ import java.util.List;
 public class DemandController {
 
     private final DemandService service;
+    private final EpisodePurgeService episodePurgeService;
     private final RequestTokenValidator requestTokenValidator;
 
     @GetMapping("/persons/rut/{rut}")
@@ -199,6 +201,12 @@ public class DemandController {
     @PutMapping("/documents/{documentId}")
     public ResponseEntity<EpisodeDocumentDTO> updateDocument(@PathVariable Integer documentId, @RequestBody UpdateDocumentRequest request) {
         return ResponseEntity.ok(service.updateDocument(documentId, request));
+    }
+
+    @DeleteMapping("/episodes/{episodeId}/purge")
+    public ResponseEntity<EpisodePurgeResponse> purgeEpisode(@PathVariable Integer episodeId, HttpServletRequest request) {
+        requestTokenValidator.requireAdminAccessToken(request);
+        return ResponseEntity.ok(episodePurgeService.purgeEpisode(episodeId));
     }
 
     @DeleteMapping("/documents/{documentId}")
