@@ -36,6 +36,8 @@ public class PrioritizedEpisodeDTO {
     private LocalDate secondCitationFirstInterviewDate;
     private LocalDate firstCitationSecondInterviewDate;
     private LocalDate secondCitationSecondInterviewDate;
+    private LocalDate firstCitationThirdInterviewDate;
+    private LocalDate secondCitationThirdInterviewDate;
     private LocalDate optionalInterviewDate;
     private LocalDate feedbackDate;
     private LocalDate closureDate;

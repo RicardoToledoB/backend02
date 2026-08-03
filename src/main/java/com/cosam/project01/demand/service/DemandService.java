@@ -1701,6 +1701,8 @@ public class DemandService {
                 .secondCitationFirstInterviewDate(firstEventDateByCitationType(events, "SEGUNDA_CITACION_PRIMERA_ENTREVISTA"))
                 .firstCitationSecondInterviewDate(firstEventDateByCitationType(events, "PRIMERA_CITACION_SEGUNDA_ENTREVISTA"))
                 .secondCitationSecondInterviewDate(firstEventDateByCitationType(events, "SEGUNDA_CITACION_SEGUNDA_ENTREVISTA"))
+                .firstCitationThirdInterviewDate(firstEventDateByCitationType(events, "PRIMERA_CITACION_TERCERA_ENTREVISTA"))
+                .secondCitationThirdInterviewDate(firstEventDateByCitationType(events, "SEGUNDA_CITACION_TERCERA_ENTREVISTA"))
                 .optionalInterviewDate(firstEventDateByCitationType(events, "ENTREVISTA_OPCIONAL"))
                 .feedbackDate(feedback != null ? feedback.getEventDate() : null)
                 .closureDate(e.getClosedAt() != null ? e.getClosedAt().toLocalDate() : null)
@@ -1796,6 +1798,8 @@ public class DemandService {
             case "secondcitationfirstinterviewdate" -> dto.getSecondCitationFirstInterviewDate();
             case "firstcitationsecondinterviewdate" -> dto.getFirstCitationSecondInterviewDate();
             case "secondcitationsecondinterviewdate" -> dto.getSecondCitationSecondInterviewDate();
+            case "firstcitationthirdinterviewdate" -> dto.getFirstCitationThirdInterviewDate();
+            case "secondcitationthirdinterviewdate" -> dto.getSecondCitationThirdInterviewDate();
             case "optionalinterviewdate" -> dto.getOptionalInterviewDate();
             case "feedbackdate" -> dto.getFeedbackDate();
             case "closuredate" -> dto.getClosureDate();
@@ -1847,12 +1851,145 @@ public class DemandService {
 
     private String suggestedAction(EpisodeEntity e, EpisodeStageEntity currentStage, boolean hasCitation, boolean hasFeedbackInCurrentStage) {
         String currentResultCode = currentStage != null ? currentStage.getResultCode() : (e != null ? e.getResultCode() : null);
-        if (!hasCitation) return "Programar primera citación a primera entrevista";
+        List<EpisodeEventEntity> currentStageEvents = List.of();
+        if (e != null && e.getId() != null) {
+            currentStageEvents = filterEventsByStage(
+                    eventRepository.findByEpisodeIdOrderByEventDateAscEventTimeAscIdAsc(e.getId()),
+                    currentStage
+            );
+        }
+
+        String workflowAction = suggestedInterviewWorkflowAction(currentStageEvents);
+        if (workflowAction != null) {
+            return workflowAction;
+        }
+
         if (RESULT_WAITING_LIST.equalsIgnoreCase(Optional.ofNullable(currentResultCode).orElse(""))) return "Gestionar cupo / revisar prioridad";
         if (RESULT_REFERENCE.equalsIgnoreCase(Optional.ofNullable(currentResultCode).orElse(""))) return "Confirmar recepción en programa destino";
         if (RESULT_TREATMENT_ENTRY.equalsIgnoreCase(Optional.ofNullable(currentResultCode).orElse(""))) return "Registrar cierre cuando corresponda";
-        if (RESULT_PENDING.equalsIgnoreCase(Optional.ofNullable(currentResultCode).orElse("")) && !hasFeedbackInCurrentStage) return "Registrar retroalimentación";
+        if (!hasFeedbackInCurrentStage) return "Registrar retroalimentación";
         return "Revisar caso y definir resultado";
+    }
+
+    private String suggestedInterviewWorkflowAction(List<EpisodeEventEntity> currentStageEvents) {
+        EpisodeEventEntity firstInterviewFirstCitation = latestCitationByType(currentStageEvents,
+                "PRIMERA_CITACION_PRIMERA_ENTREVISTA", "FIRST_CITATION_FIRST_INTERVIEW");
+        EpisodeEventEntity firstInterviewSecondCitation = latestCitationByType(currentStageEvents,
+                "SEGUNDA_CITACION_PRIMERA_ENTREVISTA", "SECOND_CITATION_FIRST_INTERVIEW");
+        EpisodeEventEntity secondInterviewFirstCitation = latestCitationByType(currentStageEvents,
+                "PRIMERA_CITACION_SEGUNDA_ENTREVISTA", "FIRST_CITATION_SECOND_INTERVIEW");
+        EpisodeEventEntity secondInterviewSecondCitation = latestCitationByType(currentStageEvents,
+                "SEGUNDA_CITACION_SEGUNDA_ENTREVISTA", "SECOND_CITATION_SECOND_INTERVIEW");
+        EpisodeEventEntity thirdInterviewFirstCitation = latestCitationByType(currentStageEvents,
+                "PRIMERA_CITACION_TERCERA_ENTREVISTA", "FIRST_CITATION_THIRD_INTERVIEW");
+        EpisodeEventEntity thirdInterviewSecondCitation = latestCitationByType(currentStageEvents,
+                "SEGUNDA_CITACION_TERCERA_ENTREVISTA", "SECOND_CITATION_THIRD_INTERVIEW");
+
+        if (!isInterviewCompleted(currentStageEvents, firstInterviewFirstCitation, firstInterviewSecondCitation)) {
+            if (firstInterviewFirstCitation == null) {
+                return "Programar primera citación a primera entrevista";
+            }
+            if (isCitationNoShow(currentStageEvents, firstInterviewFirstCitation) && firstInterviewSecondCitation == null) {
+                return "Programar segunda citación a primera entrevista";
+            }
+            if (isCitationPendingAttendance(currentStageEvents, firstInterviewFirstCitation, firstInterviewSecondCitation)) {
+                return "Registrar asistencia de primera entrevista";
+            }
+            return "Revisar caso y definir resultado";
+        }
+
+        if (!isInterviewCompleted(currentStageEvents, secondInterviewFirstCitation, secondInterviewSecondCitation)) {
+            if (secondInterviewFirstCitation == null) {
+                return "Programar primera citación a segunda entrevista";
+            }
+            if (isCitationNoShow(currentStageEvents, secondInterviewFirstCitation) && secondInterviewSecondCitation == null) {
+                return "Programar segunda citación a segunda entrevista";
+            }
+            if (isCitationPendingAttendance(currentStageEvents, secondInterviewFirstCitation, secondInterviewSecondCitation)) {
+                return "Registrar asistencia de segunda entrevista";
+            }
+            return "Revisar caso y definir resultado";
+        }
+
+        if (!isInterviewCompleted(currentStageEvents, thirdInterviewFirstCitation, thirdInterviewSecondCitation)) {
+            if (thirdInterviewFirstCitation == null) {
+                return "Programar primera citación a tercera entrevista";
+            }
+            if (isCitationNoShow(currentStageEvents, thirdInterviewFirstCitation) && thirdInterviewSecondCitation == null) {
+                return "Programar segunda citación a tercera entrevista";
+            }
+            if (isCitationPendingAttendance(currentStageEvents, thirdInterviewFirstCitation, thirdInterviewSecondCitation)) {
+                return "Registrar asistencia de tercera entrevista";
+            }
+            return "Revisar caso y definir resultado";
+        }
+
+        if (!hasEventType(currentStageEvents, "RETROALIMENTACION")) {
+            return "Registrar retroalimentación";
+        }
+        return null;
+    }
+
+    private EpisodeEventEntity latestCitationByType(List<EpisodeEventEntity> events, String... citationTypeCodes) {
+        if (events == null || events.isEmpty() || citationTypeCodes == null || citationTypeCodes.length == 0) return null;
+        Set<String> allowedCodes = Arrays.stream(citationTypeCodes)
+                .filter(this::hasText)
+                .map(this::normalizeCode)
+                .collect(Collectors.toSet());
+        if (allowedCodes.isEmpty()) return null;
+        for (int i = events.size() - 1; i >= 0; i--) {
+            EpisodeEventEntity event = events.get(i);
+            if (event == null || event.getEventType() == null || !"CITACION".equalsIgnoreCase(event.getEventType().getCode())) {
+                continue;
+            }
+            String eventCitationTypeCode = event.getCitationType() != null ? normalizeCode(event.getCitationType().getCode()) : null;
+            if (eventCitationTypeCode != null && allowedCodes.contains(eventCitationTypeCode)) {
+                return event;
+            }
+        }
+        return null;
+    }
+
+    private boolean isInterviewCompleted(List<EpisodeEventEntity> events, EpisodeEventEntity firstCitation, EpisodeEventEntity secondCitation) {
+        return isCitationPresented(events, firstCitation) || isCitationPresented(events, secondCitation);
+    }
+
+    private boolean isCitationPresented(List<EpisodeEventEntity> events, EpisodeEventEntity citation) {
+        return hasCitationAttendanceStatus(events, citation, "SE_PRESENTO");
+    }
+
+    private boolean isCitationNoShow(List<EpisodeEventEntity> events, EpisodeEventEntity citation) {
+        return hasCitationAttendanceStatus(events, citation, "NO_SE_PRESENTO");
+    }
+
+    private boolean isCitationPendingAttendance(List<EpisodeEventEntity> events, EpisodeEventEntity... citations) {
+        if (citations == null || citations.length == 0) return false;
+        for (EpisodeEventEntity citation : citations) {
+            if (citation == null) continue;
+            if (!isCitationPresented(events, citation) && !isCitationNoShow(events, citation)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasCitationAttendanceStatus(List<EpisodeEventEntity> events, EpisodeEventEntity citation, String attendanceStatusCode) {
+        if (citation == null || !hasText(attendanceStatusCode)) return false;
+        String expected = normalizeCode(attendanceStatusCode);
+        if (citation.getAttendanceStatus() != null && expected.equals(normalizeCode(citation.getAttendanceStatus().getCode()))) {
+            return true;
+        }
+        Integer citationId = citation.getId();
+        if (citationId == null || events == null || events.isEmpty()) return false;
+        return events.stream().anyMatch(event ->
+                event != null
+                        && event.getEventType() != null
+                        && "ASISTENCIA".equalsIgnoreCase(event.getEventType().getCode())
+                        && event.getRelatedEvent() != null
+                        && Objects.equals(event.getRelatedEvent().getId(), citationId)
+                        && event.getAttendanceStatus() != null
+                        && expected.equals(normalizeCode(event.getAttendanceStatus().getCode()))
+        );
     }
 
     private int accumulatedDays(EpisodeEntity e) {

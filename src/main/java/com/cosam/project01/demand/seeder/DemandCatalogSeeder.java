@@ -86,7 +86,9 @@ public class DemandCatalogSeeder implements CommandLineRunner {
         saveCitationType("SEGUNDA_CITACION_PRIMERA_ENTREVISTA", "Segunda citación a primera entrevista.", 2);
         saveCitationType("PRIMERA_CITACION_SEGUNDA_ENTREVISTA", "Primera citación a segunda entrevista.", 3);
         saveCitationType("SEGUNDA_CITACION_SEGUNDA_ENTREVISTA", "Segunda citación a segunda entrevista.", 4);
-        saveCitationType("ENTREVISTA_OPCIONAL", "Entrevista opcional.", 5);
+        saveCitationType("PRIMERA_CITACION_TERCERA_ENTREVISTA", "Primera citación a tercera entrevista.", 5);
+        saveCitationType("SEGUNDA_CITACION_TERCERA_ENTREVISTA", "Segunda citación a tercera entrevista.", 6);
+        saveCitationType("ENTREVISTA_OPCIONAL", "Entrevista opcional.", 7);
     }
 
     private void seedBiopsychosocialCommitmentLevels() {

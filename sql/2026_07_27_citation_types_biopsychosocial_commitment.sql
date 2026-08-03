@@ -26,7 +26,9 @@ INSERT INTO citation_types (code, name, sort_order, active) VALUES
 ('SEGUNDA_CITACION_PRIMERA_ENTREVISTA', 'Segunda citación a primera entrevista.', 2, 1),
 ('PRIMERA_CITACION_SEGUNDA_ENTREVISTA', 'Primera citación a segunda entrevista.', 3, 1),
 ('SEGUNDA_CITACION_SEGUNDA_ENTREVISTA', 'Segunda citación a segunda entrevista.', 4, 1),
-('ENTREVISTA_OPCIONAL', 'Entrevista opcional.', 5, 1)
+('PRIMERA_CITACION_TERCERA_ENTREVISTA', 'Primera citación a tercera entrevista.', 5, 1),
+('SEGUNDA_CITACION_TERCERA_ENTREVISTA', 'Segunda citación a tercera entrevista.', 6, 1),
+('ENTREVISTA_OPCIONAL', 'Entrevista opcional.', 7, 1)
 ON DUPLICATE KEY UPDATE
     name = VALUES(name),
     sort_order = VALUES(sort_order),
