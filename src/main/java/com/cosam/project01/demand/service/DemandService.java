@@ -1889,8 +1889,14 @@ public class DemandService {
             if (firstInterviewFirstCitation == null) {
                 return "Programar primera citación a primera entrevista";
             }
+            if (isCitationReprogrammingRequired(currentStageEvents, firstInterviewFirstCitation)) {
+                return "Reprogramar primera citación a primera entrevista";
+            }
             if (isCitationNoShow(currentStageEvents, firstInterviewFirstCitation) && firstInterviewSecondCitation == null) {
                 return "Programar segunda citación a primera entrevista";
+            }
+            if (isCitationReprogrammingRequired(currentStageEvents, firstInterviewSecondCitation)) {
+                return "Reprogramar segunda citación a primera entrevista";
             }
             if (isCitationPendingAttendance(currentStageEvents, firstInterviewFirstCitation, firstInterviewSecondCitation)) {
                 return "Registrar asistencia de primera entrevista";
@@ -1902,8 +1908,14 @@ public class DemandService {
             if (secondInterviewFirstCitation == null) {
                 return "Programar primera citación a segunda entrevista";
             }
+            if (isCitationReprogrammingRequired(currentStageEvents, secondInterviewFirstCitation)) {
+                return "Reprogramar primera citación a segunda entrevista";
+            }
             if (isCitationNoShow(currentStageEvents, secondInterviewFirstCitation) && secondInterviewSecondCitation == null) {
                 return "Programar segunda citación a segunda entrevista";
+            }
+            if (isCitationReprogrammingRequired(currentStageEvents, secondInterviewSecondCitation)) {
+                return "Reprogramar segunda citación a segunda entrevista";
             }
             if (isCitationPendingAttendance(currentStageEvents, secondInterviewFirstCitation, secondInterviewSecondCitation)) {
                 return "Registrar asistencia de segunda entrevista";
@@ -1915,8 +1927,14 @@ public class DemandService {
             if (thirdInterviewFirstCitation == null) {
                 return "Programar primera citación a tercera entrevista";
             }
+            if (isCitationReprogrammingRequired(currentStageEvents, thirdInterviewFirstCitation)) {
+                return "Reprogramar primera citación a tercera entrevista";
+            }
             if (isCitationNoShow(currentStageEvents, thirdInterviewFirstCitation) && thirdInterviewSecondCitation == null) {
                 return "Programar segunda citación a tercera entrevista";
+            }
+            if (isCitationReprogrammingRequired(currentStageEvents, thirdInterviewSecondCitation)) {
+                return "Reprogramar segunda citación a tercera entrevista";
             }
             if (isCitationPendingAttendance(currentStageEvents, thirdInterviewFirstCitation, thirdInterviewSecondCitation)) {
                 return "Registrar asistencia de tercera entrevista";
@@ -1962,11 +1980,20 @@ public class DemandService {
         return hasCitationAttendanceStatus(events, citation, "NO_SE_PRESENTO");
     }
 
+    private boolean isCitationReprogrammingRequired(List<EpisodeEventEntity> events, EpisodeEventEntity citation) {
+        String statusCode = latestAttendanceStatusCodeForCitation(events, citation);
+        return "CANCELA_PROGRAMA".equals(statusCode) || "REPROGRAMADA".equals(statusCode);
+    }
+
     private boolean isCitationPendingAttendance(List<EpisodeEventEntity> events, EpisodeEventEntity... citations) {
         if (citations == null || citations.length == 0) return false;
         for (EpisodeEventEntity citation : citations) {
             if (citation == null) continue;
-            if (!isCitationPresented(events, citation) && !isCitationNoShow(events, citation)) {
+            String statusCode = latestAttendanceStatusCodeForCitation(events, citation);
+            if ("CANCELA_PROGRAMA".equals(statusCode) || "REPROGRAMADA".equals(statusCode)) {
+                continue;
+            }
+            if (!"SE_PRESENTO".equals(statusCode) && !"NO_SE_PRESENTO".equals(statusCode)) {
                 return true;
             }
         }
@@ -1976,20 +2003,26 @@ public class DemandService {
     private boolean hasCitationAttendanceStatus(List<EpisodeEventEntity> events, EpisodeEventEntity citation, String attendanceStatusCode) {
         if (citation == null || !hasText(attendanceStatusCode)) return false;
         String expected = normalizeCode(attendanceStatusCode);
-        if (citation.getAttendanceStatus() != null && expected.equals(normalizeCode(citation.getAttendanceStatus().getCode()))) {
-            return true;
-        }
+        return expected.equals(latestAttendanceStatusCodeForCitation(events, citation));
+    }
+
+    private String latestAttendanceStatusCodeForCitation(List<EpisodeEventEntity> events, EpisodeEventEntity citation) {
+        if (citation == null) return null;
         Integer citationId = citation.getId();
-        if (citationId == null || events == null || events.isEmpty()) return false;
-        return events.stream().anyMatch(event ->
-                event != null
+        if (citationId != null && events != null && !events.isEmpty()) {
+            for (int i = events.size() - 1; i >= 0; i--) {
+                EpisodeEventEntity event = events.get(i);
+                if (event != null
                         && event.getEventType() != null
                         && "ASISTENCIA".equalsIgnoreCase(event.getEventType().getCode())
                         && event.getRelatedEvent() != null
                         && Objects.equals(event.getRelatedEvent().getId(), citationId)
-                        && event.getAttendanceStatus() != null
-                        && expected.equals(normalizeCode(event.getAttendanceStatus().getCode()))
-        );
+                        && event.getAttendanceStatus() != null) {
+                    return normalizeCode(event.getAttendanceStatus().getCode());
+                }
+            }
+        }
+        return citation.getAttendanceStatus() != null ? normalizeCode(citation.getAttendanceStatus().getCode()) : null;
     }
 
     private int accumulatedDays(EpisodeEntity e) {
