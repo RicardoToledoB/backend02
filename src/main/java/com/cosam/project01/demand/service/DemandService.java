@@ -1697,13 +1697,13 @@ public class DemandService {
                 .lastManagement(last != null && last.getEventType() != null ? last.getEventType().getName() : null)
                 .lastManagementDate(last != null ? last.getEventDate() : null)
                 .lastManagementTime(last != null ? last.getEventTime() : null)
-                .firstCitationFirstInterviewDate(firstEventDateByCitationType(events, "PRIMERA_CITACION_PRIMERA_ENTREVISTA"))
-                .secondCitationFirstInterviewDate(firstEventDateByCitationType(events, "SEGUNDA_CITACION_PRIMERA_ENTREVISTA"))
-                .firstCitationSecondInterviewDate(firstEventDateByCitationType(events, "PRIMERA_CITACION_SEGUNDA_ENTREVISTA"))
-                .secondCitationSecondInterviewDate(firstEventDateByCitationType(events, "SEGUNDA_CITACION_SEGUNDA_ENTREVISTA"))
-                .firstCitationThirdInterviewDate(firstEventDateByCitationType(events, "PRIMERA_CITACION_TERCERA_ENTREVISTA"))
-                .secondCitationThirdInterviewDate(firstEventDateByCitationType(events, "SEGUNDA_CITACION_TERCERA_ENTREVISTA"))
-                .optionalInterviewDate(firstEventDateByCitationType(events, "ENTREVISTA_OPCIONAL"))
+                .firstCitationFirstInterviewDate(latestCitationDateByType(currentStageEvents, "PRIMERA_CITACION_PRIMERA_ENTREVISTA", "FIRST_CITATION_FIRST_INTERVIEW"))
+                .secondCitationFirstInterviewDate(latestCitationDateByType(currentStageEvents, "SEGUNDA_CITACION_PRIMERA_ENTREVISTA", "SECOND_CITATION_FIRST_INTERVIEW"))
+                .firstCitationSecondInterviewDate(latestCitationDateByType(currentStageEvents, "PRIMERA_CITACION_SEGUNDA_ENTREVISTA", "FIRST_CITATION_SECOND_INTERVIEW"))
+                .secondCitationSecondInterviewDate(latestCitationDateByType(currentStageEvents, "SEGUNDA_CITACION_SEGUNDA_ENTREVISTA", "SECOND_CITATION_SECOND_INTERVIEW"))
+                .firstCitationThirdInterviewDate(latestCitationDateByType(currentStageEvents, "PRIMERA_CITACION_TERCERA_ENTREVISTA", "FIRST_CITATION_THIRD_INTERVIEW"))
+                .secondCitationThirdInterviewDate(latestCitationDateByType(currentStageEvents, "SEGUNDA_CITACION_TERCERA_ENTREVISTA", "SECOND_CITATION_THIRD_INTERVIEW"))
+                .optionalInterviewDate(latestCitationDateByType(currentStageEvents, "ENTREVISTA_OPCIONAL", "OPTIONAL_INTERVIEW"))
                 .feedbackDate(feedback != null ? feedback.getEventDate() : null)
                 .closureDate(e.getClosedAt() != null ? e.getClosedAt().toLocalDate() : null)
                 .biopsychosocialCommitmentCode(feedback != null && feedback.getBiopsychosocialCommitmentLevel() != null
@@ -1729,15 +1729,9 @@ public class DemandService {
         return null;
     }
 
-    private LocalDate firstEventDateByCitationType(List<EpisodeEventEntity> events, String citationTypeCode) {
-        if (events == null || !hasText(citationTypeCode)) return null;
-        return events.stream()
-                .filter(ev -> ev.getEventType() != null && "CITACION".equalsIgnoreCase(ev.getEventType().getCode()))
-                .filter(ev -> ev.getCitationType() != null && citationTypeCode.equalsIgnoreCase(ev.getCitationType().getCode()))
-                .map(EpisodeEventEntity::getEventDate)
-                .filter(Objects::nonNull)
-                .findFirst()
-                .orElse(null);
+    private LocalDate latestCitationDateByType(List<EpisodeEventEntity> events, String... citationTypeCodes) {
+        EpisodeEventEntity citation = latestCitationByType(events, citationTypeCodes);
+        return citation != null ? citation.getEventDate() : null;
     }
 
     private void applyPrioritizedSort(List<PrioritizedEpisodeDTO> rows, Sort sort) {
