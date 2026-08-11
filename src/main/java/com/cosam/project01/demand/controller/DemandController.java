@@ -243,8 +243,29 @@ public class DemandController {
         return ResponseEntity.ok(service.sendEmailNotification(request));
     }
 
+    @GetMapping("/episodes/{id}/substances")
+    public ResponseEntity<List<EpisodeSubstanceDTO>> listSubstances(@PathVariable Integer id) {
+        return ResponseEntity.ok(service.listSubstances(id));
+    }
+
     @PostMapping("/episodes/{id}/substances")
     public ResponseEntity<EpisodeSubstanceDTO> addSubstance(@PathVariable Integer id, @Valid @RequestBody CreateSubstanceRequest request) {
         return ResponseEntity.ok(service.addSubstance(id, request));
+    }
+
+    @PutMapping("/episodes/{episodeId}/substances/{substanceAssociationId}")
+    public ResponseEntity<EpisodeSubstanceDTO> updateSubstance(
+            @PathVariable Integer episodeId,
+            @PathVariable Integer substanceAssociationId,
+            @RequestBody UpdateSubstanceRequest request) {
+        return ResponseEntity.ok(service.updateSubstance(episodeId, substanceAssociationId, request));
+    }
+
+    @DeleteMapping("/episodes/{episodeId}/substances/{substanceAssociationId}")
+    public ResponseEntity<Void> deleteSubstance(
+            @PathVariable Integer episodeId,
+            @PathVariable Integer substanceAssociationId) {
+        service.deleteSubstance(episodeId, substanceAssociationId);
+        return ResponseEntity.noContent().build();
     }
 }

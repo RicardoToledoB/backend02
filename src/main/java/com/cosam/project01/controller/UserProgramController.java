@@ -12,7 +12,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/users_programs")
 //@CrossOrigin("*")
-@PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO')")
+@PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ADMINISTRATIVO','ROLE_SUPERVISOR','ROLE_PROFESIONAL','ROLE_EJECUTIVO')")
 public class UserProgramController {
 
     @Autowired

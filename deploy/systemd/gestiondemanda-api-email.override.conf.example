@@ -1,0 +1,3 @@
+# Guardar como: /etc/systemd/system/gestiondemanda-api.service.d/email.conf
+[Service]
+EnvironmentFile=-/etc/gestiondemanda-api/email.env

@@ -1,11 +1,14 @@
 package com.cosam.project01.demand.service;
 
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import com.cosam.project01.demand.dto.*;
 import com.cosam.project01.demand.entity.*;
 import com.cosam.project01.demand.repository.*;
 import com.cosam.project01.entity.*;
 import com.cosam.project01.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -15,6 +18,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -81,9 +86,22 @@ public class DemandService {
     private final ContactRepository contactRepository;
     private final UserRepository userRepository;
     private final SubstanceRepository substanceRepository;
+    private final ObjectProvider<JavaMailSender> mailSenderProvider;
 
     @Value("${app.documents.storage-dir:./storage/demand-documents}")
     private String documentStorageDir;
+
+    @Value("${app.email.enabled:false}")
+    private boolean emailEnabled;
+
+    @Value("${spring.mail.host:}")
+    private String smtpHost;
+
+    @Value("${app.email.from:no-reply@dssm.cl}")
+    private String emailFrom;
+
+    @Value("${app.email.from-name:Gestion Demanda DSSM}")
+    private String emailFromName;
 
     @Transactional(readOnly = true)
     public DemandCatalogsDTO getCatalogs() {
@@ -843,21 +861,114 @@ public class DemandService {
     @Transactional
     public EmailNotificationResponse sendEmailNotification(EmailNotificationRequest request) {
         EpisodeEntity episode = request.getEpisodeId() != null ? findEpisode(request.getEpisodeId()) : null;
-        EpisodeDocumentEntity document = request.getDocumentId() != null ? documentRepository.findById(request.getDocumentId()).orElseThrow(() -> notFound("Documento no encontrado")) : null;
+        EpisodeDocumentEntity document = request.getDocumentId() != null
+                ? documentRepository.findById(request.getDocumentId()).orElseThrow(() -> notFound("Documento no encontrado"))
+                : null;
         if (episode == null && document != null) episode = document.getEpisode();
+
         audit(episode, episode != null ? episode.getCurrentStage() : null, null, "SOLICITUD_ENVIO_CORREO", null, request.getTo(), request.getSubject(), currentUserOrNull(), null, null);
-        return EmailNotificationResponse.builder()
-                .sent(false)
-                .queued(false)
-                .result("EMAIL_SERVICE_NOT_CONFIGURED")
-                .message("Endpoint habilitado. El envío SMTP real queda pendiente de configuración institucional.")
-                .episodeId(episode != null ? episode.getId() : request.getEpisodeId())
-                .documentId(document != null ? document.getId() : request.getDocumentId())
-                .to(request.getTo())
-                .subject(request.getSubject())
-                .documentIds(request.getDocumentIds())
-                .sentAt(LocalDateTime.now())
-                .build();
+
+        Integer resolvedEpisodeId = episode != null ? episode.getId() : request.getEpisodeId();
+        Integer resolvedDocumentId = document != null ? document.getId() : request.getDocumentId();
+        List<Integer> requestedDocumentIds = normalizeDocumentIds(resolvedDocumentId, request.getDocumentIds());
+
+        JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
+        if (!emailEnabled || !hasText(smtpHost) || mailSender == null) {
+            return EmailNotificationResponse.builder()
+                    .sent(false)
+                    .queued(false)
+                    .result("EMAIL_SERVICE_NOT_CONFIGURED")
+                    .message("SMTP no configurado. Defina SMTP_HOST y, si corresponde, SMTP_USERNAME/SMTP_PASSWORD en el servicio systemd. El endpoint ya usa envio real cuando la configuracion existe.")
+                    .episodeId(resolvedEpisodeId)
+                    .documentId(resolvedDocumentId)
+                    .to(request.getTo())
+                    .subject(request.getSubject())
+                    .documentIds(requestedDocumentIds)
+                    .sentAt(LocalDateTime.now())
+                    .build();
+        }
+
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+            helper.setFrom(emailFrom, emailFromName);
+            helper.setTo(splitRecipients(request.getTo()));
+            if (hasText(request.getCc())) helper.setCc(splitRecipients(request.getCc()));
+            if (hasText(request.getBcc())) helper.setBcc(splitRecipients(request.getBcc()));
+            helper.setSubject(request.getSubject());
+            helper.setText(request.getMessage(), false);
+
+            for (Integer documentId : requestedDocumentIds) {
+                EpisodeDocumentEntity attachment = documentRepository.findById(documentId)
+                        .orElseThrow(() -> notFound("Documento no encontrado: " + documentId));
+                Path attachmentPath = resolveAttachmentPath(attachment);
+                helper.addAttachment(attachmentFilename(attachment), new FileSystemResource(attachmentPath));
+            }
+
+            mailSender.send(mimeMessage);
+
+            audit(episode, episode != null ? episode.getCurrentStage() : null, null, "ENVIO_CORREO_REALIZADO", null, request.getTo(), request.getSubject(), currentUserOrNull(), null, null);
+            return EmailNotificationResponse.builder()
+                    .sent(true)
+                    .queued(false)
+                    .result("EMAIL_SENT")
+                    .message("Correo enviado correctamente.")
+                    .episodeId(resolvedEpisodeId)
+                    .documentId(resolvedDocumentId)
+                    .to(request.getTo())
+                    .subject(request.getSubject())
+                    .documentIds(requestedDocumentIds)
+                    .sentAt(LocalDateTime.now())
+                    .build();
+        } catch (MessagingException | java.io.UnsupportedEncodingException ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "No fue posible preparar el correo: " + ex.getMessage());
+        } catch (org.springframework.mail.MailException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "No fue posible enviar el correo SMTP: " + ex.getMessage());
+        }
+    }
+
+    private List<Integer> normalizeDocumentIds(Integer documentId, List<Integer> documentIds) {
+        LinkedHashSet<Integer> ids = new LinkedHashSet<>();
+        if (documentId != null) ids.add(documentId);
+        if (documentIds != null) {
+            documentIds.stream().filter(Objects::nonNull).forEach(ids::add);
+        }
+        return new ArrayList<>(ids);
+    }
+
+    private String[] splitRecipients(String recipients) {
+        if (!hasText(recipients)) {
+            throw badRequest("Debe indicar al menos un destinatario.");
+        }
+        return Arrays.stream(recipients.split("[;,]"))
+                .map(String::trim)
+                .filter(this::hasText)
+                .toArray(String[]::new);
+    }
+
+    private Path resolveAttachmentPath(EpisodeDocumentEntity document) {
+        if (!hasText(document.getStoragePath())) {
+            throw badRequest("El documento " + document.getId() + " no tiene ruta fisica registrada.");
+        }
+        Path path = Paths.get(document.getStoragePath()).toAbsolutePath().normalize();
+        if (!Files.exists(path) || !Files.isRegularFile(path)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Archivo fisico no encontrado para documento " + document.getId());
+        }
+        return path;
+    }
+
+    private String attachmentFilename(EpisodeDocumentEntity document) {
+        if (hasText(document.getOriginalFilename())) return cleanFilename(document.getOriginalFilename());
+        if (hasText(document.getStoredFilename())) return cleanFilename(document.getStoredFilename());
+        return "documento-" + document.getId();
+    }
+
+    @Transactional(readOnly = true)
+    public List<EpisodeSubstanceDTO> listSubstances(Integer episodeId) {
+        findEpisode(episodeId);
+        return orderedSubstances(episodeId).stream()
+                .map(this::toSubstanceDTO)
+                .toList();
     }
 
     @Transactional
@@ -865,17 +976,180 @@ public class DemandService {
         EpisodeEntity episode = findEpisode(episodeId);
         SubstanceEntity substance = substanceRepository.findById(request.getSubstanceId())
                 .orElseThrow(() -> notFound("Sustancia no encontrada"));
+
+        ensureSubstanceNotDuplicated(episodeId, substance.getId(), null);
+
+        boolean primary = resolvePrimaryForCreate(episodeId, request.getPrimarySubstance(), request.getLevel(), request.getUseOrder());
+        Integer useOrder = resolveUseOrderForCreate(episodeId, primary, request.getUseOrder(), request.getLevel());
+
+        if (primary) {
+            demoteOtherPrimarySubstances(episodeId, null);
+        }
+
         EpisodeSubstanceEntity entity = EpisodeSubstanceEntity.builder()
                 .episode(episode)
                 .substance(substance)
                 .level(request.getLevel())
-                .primarySubstance(request.getPrimarySubstance() != null ? request.getPrimarySubstance() : isPrimaryLevel(request.getLevel(), request.getUseOrder()))
-                .useOrder(request.getUseOrder() != null ? request.getUseOrder() : parseLevelAsOrder(request.getLevel()))
+                .primarySubstance(primary)
+                .useOrder(useOrder)
                 .observation(request.getObservation())
                 .build();
         entity = episodeSubstanceRepository.save(entity);
         audit(episode, episode.getCurrentStage(), null, "REGISTRAR_SUSTANCIA", null, substance.getName(), request.getObservation(), currentUserOrNull(), null, null);
         return toSubstanceDTO(entity);
+    }
+
+    @Transactional
+    public EpisodeSubstanceDTO updateSubstance(Integer episodeId, Integer substanceAssociationId, UpdateSubstanceRequest request) {
+        EpisodeEntity episode = findEpisode(episodeId);
+        EpisodeSubstanceEntity entity = findEpisodeSubstance(episodeId, substanceAssociationId);
+
+        SubstanceEntity previousSubstance = entity.getSubstance();
+        if (request.getSubstanceId() != null) {
+            SubstanceEntity substance = substanceRepository.findById(request.getSubstanceId())
+                    .orElseThrow(() -> notFound("Sustancia no encontrada"));
+            ensureSubstanceNotDuplicated(episodeId, substance.getId(), entity.getId());
+            entity.setSubstance(substance);
+        }
+
+        if (request.getLevel() != null) {
+            entity.setLevel(request.getLevel());
+        }
+        if (request.getUseOrder() != null) {
+            validateUseOrder(request.getUseOrder());
+            entity.setUseOrder(request.getUseOrder());
+        } else if (entity.getUseOrder() == null) {
+            entity.setUseOrder(nextUseOrder(episodeId));
+        }
+
+        Boolean requestedPrimary = request.getPrimarySubstance();
+        if (requestedPrimary != null) {
+            if (Boolean.TRUE.equals(requestedPrimary)) {
+                demoteOtherPrimarySubstances(episodeId, entity.getId());
+                entity.setPrimarySubstance(true);
+                if (entity.getUseOrder() == null) entity.setUseOrder(1);
+            } else {
+                if (isOnlyPrimarySubstance(episodeId, entity.getId())) {
+                    throw badRequest("Debe existir una sustancia principal para el episodio. Marque otra sustancia como principal antes de desmarcar esta.");
+                }
+                entity.setPrimarySubstance(false);
+            }
+        }
+
+        if (request.getObservation() != null) {
+            entity.setObservation(request.getObservation());
+        }
+
+        entity = episodeSubstanceRepository.save(entity);
+        audit(episode, episode.getCurrentStage(), null, "MODIFICAR_SUSTANCIA",
+                previousSubstance != null ? previousSubstance.getName() : null,
+                entity.getSubstance() != null ? entity.getSubstance().getName() : null,
+                request.getObservation(), currentUserOrNull(), null, null);
+        return toSubstanceDTO(entity);
+    }
+
+    @Transactional
+    public void deleteSubstance(Integer episodeId, Integer substanceAssociationId) {
+        EpisodeEntity episode = findEpisode(episodeId);
+        EpisodeSubstanceEntity entity = findEpisodeSubstance(episodeId, substanceAssociationId);
+        boolean wasPrimary = Boolean.TRUE.equals(entity.getPrimarySubstance());
+        String substanceName = entity.getSubstance() != null ? entity.getSubstance().getName() : null;
+
+        episodeSubstanceRepository.delete(entity);
+        episodeSubstanceRepository.flush();
+
+        if (wasPrimary) {
+            promoteFirstRemainingSubstanceAsPrimary(episodeId);
+        }
+
+        audit(episode, episode.getCurrentStage(), null, "ELIMINAR_SUSTANCIA", substanceName, null, null, currentUserOrNull(), null, null);
+    }
+
+    private EpisodeSubstanceEntity findEpisodeSubstance(Integer episodeId, Integer substanceAssociationId) {
+        EpisodeSubstanceEntity entity = episodeSubstanceRepository.findById(substanceAssociationId)
+                .orElseThrow(() -> notFound("Sustancia asociada al episodio no encontrada"));
+        if (entity.getEpisode() == null || !Objects.equals(entity.getEpisode().getId(), episodeId)) {
+            throw badRequest("La sustancia indicada no pertenece al episodio solicitado.");
+        }
+        return entity;
+    }
+
+    private List<EpisodeSubstanceEntity> orderedSubstances(Integer episodeId) {
+        return episodeSubstanceRepository.findByEpisodeId(episodeId).stream()
+                .sorted(Comparator
+                        .comparing((EpisodeSubstanceEntity s) -> !Boolean.TRUE.equals(s.getPrimarySubstance()))
+                        .thenComparing(s -> s.getUseOrder() != null ? s.getUseOrder() : Integer.MAX_VALUE)
+                        .thenComparing(EpisodeSubstanceEntity::getId))
+                .toList();
+    }
+
+    private void ensureSubstanceNotDuplicated(Integer episodeId, Integer substanceId, Integer currentAssociationId) {
+        if (substanceId == null) {
+            throw badRequest("Debe indicar substanceId.");
+        }
+        boolean exists = currentAssociationId == null
+                ? episodeSubstanceRepository.findByEpisodeIdAndSubstanceId(episodeId, substanceId).isPresent()
+                : episodeSubstanceRepository.findByEpisodeIdAndSubstanceIdAndIdNot(episodeId, substanceId, currentAssociationId).isPresent();
+        if (exists) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "La sustancia ya se encuentra asociada al episodio.");
+        }
+    }
+
+    private boolean resolvePrimaryForCreate(Integer episodeId, Boolean requestedPrimary, String level, Integer useOrder) {
+        if (requestedPrimary != null) return requestedPrimary;
+        if (episodeSubstanceRepository.findByEpisodeId(episodeId).isEmpty()) return true;
+        return Boolean.TRUE.equals(isPrimaryLevel(level, useOrder));
+    }
+
+    private Integer resolveUseOrderForCreate(Integer episodeId, boolean primary, Integer requestedUseOrder, String level) {
+        Integer useOrder = requestedUseOrder != null ? requestedUseOrder : parseLevelAsOrder(level);
+        if (useOrder == null) useOrder = primary ? 1 : nextUseOrder(episodeId);
+        validateUseOrder(useOrder);
+        return useOrder;
+    }
+
+    private void validateUseOrder(Integer useOrder) {
+        if (useOrder == null || useOrder < 1) {
+            throw badRequest("useOrder debe ser un entero mayor o igual a 1.");
+        }
+    }
+
+    private Integer nextUseOrder(Integer episodeId) {
+        return episodeSubstanceRepository.findByEpisodeId(episodeId).stream()
+                .map(EpisodeSubstanceEntity::getUseOrder)
+                .filter(Objects::nonNull)
+                .max(Integer::compareTo)
+                .map(v -> v + 1)
+                .orElse(1);
+    }
+
+    private void demoteOtherPrimarySubstances(Integer episodeId, Integer keepAssociationId) {
+        List<EpisodeSubstanceEntity> primaries = episodeSubstanceRepository.findByEpisodeIdAndPrimarySubstanceTrue(episodeId);
+        for (EpisodeSubstanceEntity item : primaries) {
+            if (keepAssociationId == null || !Objects.equals(item.getId(), keepAssociationId)) {
+                item.setPrimarySubstance(false);
+                if (item.getUseOrder() == null || item.getUseOrder() == 1) {
+                    item.setUseOrder(nextUseOrder(episodeId));
+                }
+                episodeSubstanceRepository.save(item);
+            }
+        }
+    }
+
+    private boolean isOnlyPrimarySubstance(Integer episodeId, Integer associationId) {
+        return episodeSubstanceRepository.findByEpisodeIdAndPrimarySubstanceTrue(episodeId).stream()
+                .allMatch(s -> Objects.equals(s.getId(), associationId));
+    }
+
+    private void promoteFirstRemainingSubstanceAsPrimary(Integer episodeId) {
+        List<EpisodeSubstanceEntity> remaining = orderedSubstances(episodeId);
+        if (remaining.isEmpty()) return;
+        boolean hasPrimary = remaining.stream().anyMatch(s -> Boolean.TRUE.equals(s.getPrimarySubstance()));
+        if (hasPrimary) return;
+        EpisodeSubstanceEntity first = remaining.get(0);
+        first.setPrimarySubstance(true);
+        if (first.getUseOrder() == null) first.setUseOrder(1);
+        episodeSubstanceRepository.save(first);
     }
 
     private DemandSupervisorProgramDTO toSupervisorProgramDashboardDTO(ProgramEntity program, List<EpisodeEntity> episodes) {
