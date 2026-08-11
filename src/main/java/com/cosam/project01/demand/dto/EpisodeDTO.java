@@ -21,6 +21,9 @@ public class EpisodeDTO {
     private LocalDate originalRequestDate;
     private ProgramSummaryDTO initialProgram;
     private ProgramSummaryDTO currentProgram;
+    private OptionDTO contactType;
+    private OptionDTO sender;
+    private OptionDTO diverter;
     private Integer currentStageId;
     private String stateCode;
     private String resultCode;

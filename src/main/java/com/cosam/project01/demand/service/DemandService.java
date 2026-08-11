@@ -1704,6 +1704,9 @@ public class DemandService {
     private OptionDTO toOption(DocumentTypeEntity e) { return e == null ? null : OptionDTO.builder().id(e.getId()).code(e.getCode()).name(e.getName()).build(); }
     private OptionDTO toOption(RegionEntity e) { return e == null ? null : OptionDTO.builder().id(e.getId()).code(e.getCode()).name(e.getName()).build(); }
     private OptionDTO toOption(CityEntity e) { return e == null ? null : OptionDTO.builder().id(e.getId()).code(e.getCode()).name(e.getName()).build(); }
+    private OptionDTO toOption(ContactTypeEntity e) { return e == null ? null : OptionDTO.builder().id(e.getId()).code(null).name(e.getName()).build(); }
+    private OptionDTO toOption(SenderEntity e) { return e == null ? null : OptionDTO.builder().id(e.getId()).code(null).name(e.getName()).build(); }
+    private OptionDTO toOption(DiverterEntity e) { return e == null ? null : OptionDTO.builder().id(e.getId()).code(null).name(e.getName()).build(); }
 
     private UserSummaryDTO toUserDTO(UserEntity user) {
         if (user == null) return null;
@@ -1769,6 +1772,9 @@ public class DemandService {
                 .originalRequestDate(e.getOriginalRequestDate())
                 .initialProgram(toProgramDTO(e.getInitialProgram()))
                 .currentProgram(toProgramDTO(e.getCurrentProgram()))
+                .contactType(toOption(e.getContactType()))
+                .sender(toOption(e.getSender()))
+                .diverter(toOption(e.getDiverter()))
                 .currentStageId(e.getCurrentStage() != null ? e.getCurrentStage().getId() : null)
                 .stateCode(e.getStateCode())
                 .resultCode(e.getResultCode())
