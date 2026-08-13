@@ -111,7 +111,7 @@ public class DemandService {
                 .attendanceStatuses(attendanceStatusRepository.findAll().stream().map(this::toOption).toList())
                 .citationTypes(citationTypeRepository.findByActiveTrueOrderBySortOrderAscNameAsc().stream().map(this::toOption).toList())
                 .biopsychosocialCommitmentLevels(biopsychosocialCommitmentLevelRepository.findByActiveTrueOrderByNameAsc().stream().map(this::toOption).toList())
-                .closureReasons(closureReasonRepository.findAll().stream().map(this::toOption).toList())
+                .closureReasons(closureReasonRepository.findByActiveTrueOrderByNameAsc().stream().map(this::toOption).toList())
                 .programPopulations(populationRepository.findAll().stream().map(this::toOption).toList())
                 .programModalities(modalityRepository.findAll().stream().map(this::toOption).toList())
                 .programPlans(planRepository.findAll().stream().map(this::toOption).toList())

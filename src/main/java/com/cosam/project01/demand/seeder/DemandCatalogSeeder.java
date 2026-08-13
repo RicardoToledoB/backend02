@@ -98,15 +98,18 @@ public class DemandCatalogSeeder implements CommandLineRunner {
     }
 
     private void seedClosureReasons() {
-        saveClosureReason("EGRESO", "Egreso");
-        saveClosureReason("CIERRE_POR_INASISTENCIAS", "Cierre por inasistencias");
+        // Matriz vigente Gestión de Demanda: solo tres causales de cierre activas.
+        // Las causales históricas se conservan en BD para trazabilidad, pero no se exponen activas.
+        entityManager.createNativeQuery("""
+                UPDATE closure_reasons
+                SET active = false
+                WHERE deleted_at IS NULL
+                  AND UPPER(code) NOT IN ('REFERENCIA', 'INGRESO_TRATAMIENTO', 'ABANDONO')
+                """).executeUpdate();
+
+        saveClosureReason("REFERENCIA", "Referencia");
+        saveClosureReason("INGRESO_TRATAMIENTO", "Ingreso a tratamiento");
         saveClosureReason("ABANDONO", "Abandono");
-        saveClosureReason("NO_ES_PERFIL", "No es perfil");
-        saveClosureReason("NO_CORRESPONDE_JURISDICCION", "No corresponde por jurisdicción");
-        saveClosureReason("NO_CORRESPONDE_PREVISION", "No corresponde por previsión");
-        saveClosureReason("NO_CORRESPONDE_DIAGNOSTICO", "No corresponde por diagnóstico");
-        saveClosureReason("NO_CORRESPONDE_OTROS", "No corresponde - otros");
-        saveClosureReason("OTRO_CIERRE", "Otro cierre formal");
     }
 
 
