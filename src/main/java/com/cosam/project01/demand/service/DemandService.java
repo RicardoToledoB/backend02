@@ -555,17 +555,22 @@ public class DemandService {
 
     @Transactional
     public EpisodeReferenceDTO referenceEpisode(Integer episodeId, ReferenceEpisodeRequest request) {
-        requireConfirmation(request.getConfirmImpact(), "La referencia cerrará la etapa de origen, creará una etapa receptora y mantendrá los días acumulados.");
+        requireConfirmation(request.getConfirmImpact(), "La referencia creará una etapa receptora y actualizará la ubicación actual de la persona. La etapa de origen quedará abierta para su cierre formal posterior con causal REFERENCIA.");
         EpisodeEntity episode = findOpenEpisode(episodeId);
         EpisodeStageEntity originStage = resolveStage(episode, request.getOriginStageId());
         ProgramEntity destinationProgram = programRepository.findById(request.getDestinationProgramId())
                 .orElseThrow(() -> notFound("Programa receptor no encontrado"));
         UserEntity currentUser = currentUserOrNull();
+        EpisodeStageEntity previousCurrentStage = resolveCurrentStageForRead(episode);
+        if (previousCurrentStage != null && !Objects.equals(previousCurrentStage.getId(), originStage.getId())) {
+            previousCurrentStage.setCurrent(false);
+            stageRepository.save(previousCurrentStage);
+        }
 
         originStage.setCurrent(false);
-        originStage.setClosedAt(LocalDateTime.now());
+        originStage.setClosedAt(null);
         originStage.setResultCode(RESULT_REFERENCE);
-        originStage.setStateCode(STATE_CLOSED);
+        originStage.setStateCode(STATE_IN_PROGRESS);
         stageRepository.save(originStage);
 
         EpisodeStageEntity destinationStage = EpisodeStageEntity.builder()
@@ -584,7 +589,8 @@ public class DemandService {
         episode.setCurrentProgram(destinationProgram);
         episode.setCurrentStage(destinationStage);
         episode.setStateCode(STATE_IN_PROGRESS);
-        episode.setResultCode(RESULT_REFERENCE);
+        episode.setResultCode(RESULT_PENDING);
+        episode.setActive(true);
         episodeRepository.save(episode);
 
         EpisodeReferenceEntity reference = EpisodeReferenceEntity.builder()
@@ -600,7 +606,7 @@ public class DemandService {
         reference = referenceRepository.save(reference);
 
         EpisodeEventEntity event = createInternalEvent(episode, originStage, "REFERENCIA", null, null, originStage.getProgram(), currentUser, currentUser,
-                "Referencia a " + destinationProgram.getName(), null, request.getObservation(), null, null, RESULT_REFERENCE, STATE_CLOSED);
+                "Referencia a " + destinationProgram.getName(), null, request.getObservation(), null, null, RESULT_REFERENCE, STATE_IN_PROGRESS);
         audit(episode, originStage, event, "REFERENCIA", originStage.getProgram().getName(), destinationProgram.getName(), request.getReason(), currentUser, null, null);
         return toReferenceDTO(reference);
     }
@@ -646,21 +652,36 @@ public class DemandService {
     @Transactional
     public EpisodeDTO closeEpisode(Integer episodeId, CloseEpisodeRequest request) {
         EpisodeEntity episode = findOpenEpisode(episodeId);
-        EpisodeStageEntity stage = resolveStage(episode, null);
+        EpisodeStageEntity stage = resolveStage(episode, request.getStageId());
         UserEntity currentUser = currentUserOrNull();
         boolean explicitClosureReason = request.getClosureReasonId() != null || hasText(request.getClosureReasonCode());
         ClosureReasonEntity reason = resolveClosureReason(request.getClosureReasonId(), request.getClosureReasonCode());
         LocalDateTime closureAt = parseOptionalDateTime(request.getClosureDate());
+        String closureComment = firstText(request.getClosureComment(), request.getObservation(), request.getComment());
 
-        if (explicitClosureReason && reason.getCode() != null && reason.getCode().toUpperCase().contains("OTRO") && !hasText(request.getClosureComment())) {
+        if (explicitClosureReason && reason.getCode() != null && reason.getCode().toUpperCase().contains("OTRO") && !hasText(closureComment)) {
             throw badRequest("Cuando la causal es OTRO, la observación/comentario de cierre es obligatoria.");
         }
 
-        closeEpisodeInternal(episode, stage, reason, request.getClosureComment(), currentUser, RESULT_CLOSURE, closureAt);
+        String reasonCode = normalizeCode(reason.getCode());
+        boolean referenceClosure = RESULT_REFERENCE.equals(reasonCode);
+        String resultCode = hasText(reasonCode) ? reasonCode : RESULT_CLOSURE;
+
+        if (referenceClosure) {
+            closeStageOnly(stage, reason, closureComment, resultCode, closureAt);
+        } else {
+            closeEpisodeInternal(episode, stage, reason, closureComment, currentUser, resultCode, closureAt);
+            if (RESULT_TREATMENT_ENTRY.equals(reasonCode) && episode.getEntryToTreatmentAt() == null) {
+                episode.setEntryToTreatmentAt(closureAt != null ? closureAt : LocalDateTime.now());
+                episode.setWaitingStopped(true);
+                episodeRepository.save(episode);
+            }
+        }
+
         EpisodeEventEntity event = createInternalEvent(episode, stage, "CIERRE", null, null, stage.getProgram(), currentUser, currentUser,
-                "Cierre de episodio: " + reason.getName(), null, request.getClosureComment(), null, null, RESULT_CLOSURE, STATE_CLOSED);
-        audit(episode, stage, event, "CIERRE_EPISODIO", null, reason.getCode(), request.getClosureComment(), currentUser, null, null);
-        return toEpisodeDTO(episode);
+                "Cierre de etapa: " + reason.getName(), null, closureComment, null, null, resultCode, STATE_CLOSED);
+        audit(episode, stage, event, referenceClosure ? "CIERRE_ETAPA_REFERENCIA" : "CIERRE_EPISODIO", null, reason.getCode(), closureComment, currentUser, null, null);
+        return toEpisodeDTO(episodeRepository.findById(episode.getId()).orElse(episode));
     }
 
     @Transactional
@@ -1394,6 +1415,18 @@ public class DemandService {
                 .orElseThrow(() -> notFound("El episodio no tiene etapa activa"));
     }
 
+    private void closeStageOnly(EpisodeStageEntity stage, ClosureReasonEntity reason, String comment, String resultCode, LocalDateTime closureDate) {
+        if (stage == null) throw badRequest("Debe indicar una etapa válida para cerrar.");
+        LocalDateTime now = closureDate != null ? closureDate : LocalDateTime.now();
+        stage.setCurrent(false);
+        stage.setClosedAt(now);
+        stage.setStateCode(STATE_CLOSED);
+        stage.setResultCode(resultCode);
+        stage.setClosureReason(reason);
+        stage.setClosureComment(comment);
+        stageRepository.save(stage);
+    }
+
     private void closeEpisodeInternal(EpisodeEntity episode, EpisodeStageEntity stage, ClosureReasonEntity reason, String comment, UserEntity currentUser, String resultCode) {
         closeEpisodeInternal(episode, stage, reason, comment, currentUser, resultCode, null);
     }
@@ -1587,6 +1620,10 @@ public class DemandService {
 
     private String firstText(String preferred, String fallback) {
         return hasText(preferred) ? preferred : fallback;
+    }
+
+    private String firstText(String first, String second, String third) {
+        return firstText(first, firstText(second, third));
     }
 
     private <T> T findNullable(org.springframework.data.jpa.repository.JpaRepository<T, Integer> repository, Integer id) {
@@ -2123,7 +2160,17 @@ public class DemandService {
                 .replaceAll("\\s+", " ").trim();
     }
 
+    private boolean isEpisodeClosed(EpisodeEntity episode) {
+        if (episode == null) return false;
+        if (episode.getClosedAt() != null) return true;
+        if (Boolean.FALSE.equals(episode.getActive())) return true;
+        return STATE_CLOSED.equalsIgnoreCase(Optional.ofNullable(episode.getStateCode()).orElse(""));
+    }
+
     private String suggestedAction(EpisodeEntity e, EpisodeStageEntity currentStage, boolean hasCitation, boolean hasFeedbackInCurrentStage) {
+        if (isEpisodeClosed(e)) {
+            return null;
+        }
         String currentResultCode = currentStage != null ? currentStage.getResultCode() : (e != null ? e.getResultCode() : null);
         List<EpisodeEventEntity> currentStageEvents = List.of();
         if (e != null && e.getId() != null) {
