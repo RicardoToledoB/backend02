@@ -248,6 +248,33 @@ public class DemandService {
     }
 
     @Transactional(readOnly = true)
+    public List<EpisodeProgramContextDTO> getEpisodeProgramContexts(EpisodeProgramContextRequest request) {
+        if (request == null) {
+            throw badRequest("Debe enviar programId y episodeIds.");
+        }
+        Integer programId = request.getProgramId();
+        if (programId == null) {
+            throw badRequest("Debe indicar programId.");
+        }
+        List<Integer> episodeIds = request.getEpisodeIds() == null
+                ? List.of()
+                : request.getEpisodeIds().stream()
+                        .filter(Objects::nonNull)
+                        .distinct()
+                        .toList();
+        if (episodeIds.isEmpty()) {
+            throw badRequest("Debe indicar al menos un episodeId.");
+        }
+
+        ProgramEntity requestedProgram = programRepository.findById(programId)
+                .orElseThrow(() -> notFound("Programa no encontrado"));
+
+        return episodeIds.stream()
+                .map(episodeId -> buildProgramContext(episodeId, requestedProgram))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public DemandDashboardDTO getDashboard() {
         Page<PrioritizedEpisodeDTO> top = getPrioritized(null, null, null, PageRequest.of(0, 10));
         List<PrioritizedEpisodeDTO> active = getPrioritized(null, null, null, PageRequest.of(0, 1000)).getContent();
@@ -1376,6 +1403,44 @@ public class DemandService {
                 .alerts(alerts)
                 .documents(documents)
                 .auditLogs(auditLogs)
+                .build();
+    }
+
+    private EpisodeProgramContextDTO buildProgramContext(Integer episodeId, ProgramEntity requestedProgram) {
+        Integer programId = requestedProgram != null ? requestedProgram.getId() : null;
+        Optional<EpisodeStageEntity> stageOpt = (episodeId == null || programId == null)
+                ? Optional.empty()
+                : stageRepository.findFirstByEpisodeIdAndProgramIdOrderByStageOrderDescIdDesc(episodeId, programId);
+
+        if (stageOpt.isEmpty()) {
+            return EpisodeProgramContextDTO.builder()
+                    .episodeId(episodeId)
+                    .programId(programId)
+                    .programName(requestedProgram != null ? requestedProgram.getName() : null)
+                    .stageId(null)
+                    .stageStateCode(null)
+                    .stageResultCode(null)
+                    .receivedAt(null)
+                    .closureDate(null)
+                    .closed(null)
+                    .build();
+        }
+
+        EpisodeStageEntity stage = stageOpt.get();
+        String stateCode = stage.getStateCode();
+        LocalDateTime closureDate = stage.getClosedAt();
+        Boolean closed = closureDate != null || STATE_CLOSED.equalsIgnoreCase(stateCode);
+
+        return EpisodeProgramContextDTO.builder()
+                .episodeId(episodeId)
+                .programId(stage.getProgram() != null ? stage.getProgram().getId() : programId)
+                .programName(stage.getProgram() != null ? stage.getProgram().getName() : requestedProgram.getName())
+                .stageId(stage.getId())
+                .stageStateCode(stateCode)
+                .stageResultCode(stage.getResultCode())
+                .receivedAt(stage.getReceivedAt())
+                .closureDate(closureDate)
+                .closed(closed)
                 .build();
     }
 

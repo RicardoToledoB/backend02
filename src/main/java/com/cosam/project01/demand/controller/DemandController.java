@@ -98,6 +98,11 @@ public class DemandController {
         return ResponseEntity.ok(service.getPrioritized(programId, stateCode, resultCode, pageable));
     }
 
+    @PostMapping("/episodes/program-contexts")
+    public ResponseEntity<List<EpisodeProgramContextDTO>> programContexts(@Valid @RequestBody EpisodeProgramContextRequest request) {
+        return ResponseEntity.ok(service.getEpisodeProgramContexts(request));
+    }
+
     @GetMapping("/dashboard/supervisor")
     public ResponseEntity<DemandDashboardDTO> dashboard() {
         return ResponseEntity.ok(service.getDashboard());

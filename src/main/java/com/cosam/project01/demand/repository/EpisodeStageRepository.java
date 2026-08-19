@@ -11,6 +11,7 @@ import java.util.Optional;
 public interface EpisodeStageRepository extends JpaRepository<EpisodeStageEntity, Integer> {
     List<EpisodeStageEntity> findByEpisodeIdOrderByStageOrderAsc(Integer episodeId);
     Optional<EpisodeStageEntity> findFirstByEpisodeIdAndCurrentTrueOrderByStageOrderDesc(Integer episodeId);
+    Optional<EpisodeStageEntity> findFirstByEpisodeIdAndProgramIdOrderByStageOrderDescIdDesc(Integer episodeId, Integer programId);
 
     @Query("SELECT COALESCE(MAX(s.stageOrder), 0) FROM EpisodeStageEntity s WHERE s.episode.id = :episodeId")
     Integer findMaxStageOrder(@Param("episodeId") Integer episodeId);
