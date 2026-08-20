@@ -2,8 +2,11 @@ package com.cosam.project01.service.impl;
 
 import com.cosam.project01.dto.*;
 import com.cosam.project01.entity.*;
+import com.cosam.project01.repository.CommuneRepository;
 import com.cosam.project01.repository.ConvPrevRepository;
 import com.cosam.project01.repository.PostulantRepository;
+import com.cosam.project01.demand.entity.CityEntity;
+import com.cosam.project01.demand.repository.CityRepository;
 import com.cosam.project01.service.IPostulantService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -24,6 +28,12 @@ public class PostulantServiceImpl implements IPostulantService {
 
     @Autowired
     private ConvPrevRepository convPrevRepository;
+
+    @Autowired
+    private CommuneRepository communeRepository;
+
+    @Autowired
+    private CityRepository cityRepository;
 
     private PostulantDTO mapToDTO(PostulantEntity entity) {
         ConvPrevEntity convPrev = entity.getConvPrev();
@@ -55,7 +65,7 @@ public class PostulantServiceImpl implements IPostulantService {
         return PostulantEntity.builder()
                 .id(dto.getId())
                 .user(mapToUserEntity(dto.getUser()))
-                .commune(mapToCommuneEntity(dto.getCommune()))
+                .commune(resolveCommuneFromOfficialCityCatalog(dto.getCommune()))
                 .address(dto.getAddress())
                 .sex(mapToSexEntity(dto.getSex()))
                 .convPrev(resolveConvPrev(dto))
@@ -103,25 +113,91 @@ public class PostulantServiceImpl implements IPostulantService {
         if (entity == null) {
             return null;
         }
-        return CommuneDTO.builder()
-                .id(entity.getId())
-                .name(entity.getName())
-                .createdAt(entity.getCreatedAt())
-                .updatedAt(entity.getUpdatedAt())
-                .deletedAt(entity.getDeletedAt())
-                .build();
+
+        Integer id = null;
+        try {
+            id = entity.getId();
+            return CommuneDTO.builder()
+                    .id(id)
+                    .name(entity.getName())
+                    .createdAt(entity.getCreatedAt())
+                    .updatedAt(entity.getUpdatedAt())
+                    .deletedAt(entity.getDeletedAt())
+                    .build();
+        } catch (EntityNotFoundException ex) {
+            if (id == null) {
+                return null;
+            }
+            return cityRepository.findById(id)
+                    .filter(this::isActiveCity)
+                    .map(this::mapCityToCommuneDTO)
+                    .orElse(CommuneDTO.builder().id(id).build());
+        }
     }
 
-    private CommuneEntity mapToCommuneEntity(CommuneDTO dto) {
+    /**
+     * El frontend utiliza el catalogo oficial /api/v1/demand/maintainers/cities.
+     * La tabla historica postulants conserva la columna commune_id y la entidad CommuneEntity.
+     * Para evitar 500 cuando llega un id valido de cities que no existe en communes,
+     * sincronizamos la comuna historica desde cities antes de guardar el postulante.
+     */
+    private CommuneEntity resolveCommuneFromOfficialCityCatalog(CommuneDTO dto) {
         if (dto == null || dto.getId() == null) {
             return null;
         }
-        return CommuneEntity.builder()
-                .id(dto.getId())
-                .name(dto.getName())
-                .createdAt(dto.getCreatedAt())
-                .updatedAt(dto.getUpdatedAt())
-                .deletedAt(dto.getDeletedAt())
+
+        Integer id = dto.getId();
+
+        return communeRepository.findById(id)
+                .or(() -> restoreCommuneIfSoftDeleted(id))
+                .orElseGet(() -> createCommuneFromCity(id));
+    }
+
+    private java.util.Optional<CommuneEntity> restoreCommuneIfSoftDeleted(Integer id) {
+        return communeRepository.findAnyById(id)
+                .map(commune -> {
+                    commune.setDeletedAt(null);
+                    commune.setName(resolveCityName(id, commune.getName()));
+                    return communeRepository.save(commune);
+                });
+    }
+
+    private CommuneEntity createCommuneFromCity(Integer id) {
+        CityEntity city = cityRepository.findById(id)
+                .filter(this::isActiveCity)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Ciudad/comuna no encontrada o inactiva en catalogo oficial: " + id
+                ));
+
+        CommuneEntity commune = CommuneEntity.builder()
+                .id(city.getId())
+                .name(city.getName())
+                .deletedAt(null)
+                .build();
+        return communeRepository.save(commune);
+    }
+
+    private String resolveCityName(Integer id, String fallback) {
+        return cityRepository.findById(id)
+                .filter(this::isActiveCity)
+                .map(CityEntity::getName)
+                .orElse(fallback);
+    }
+
+    private boolean isActiveCity(CityEntity city) {
+        return city != null
+                && city.getDeletedAt() == null
+                && !Boolean.FALSE.equals(city.getActive());
+    }
+
+    private CommuneDTO mapCityToCommuneDTO(CityEntity city) {
+        return CommuneDTO.builder()
+                .id(city.getId())
+                .name(city.getName())
+                .createdAt(city.getCreatedAt())
+                .updatedAt(city.getUpdatedAt())
+                .deletedAt(city.getDeletedAt())
                 .build();
     }
 
@@ -221,12 +297,14 @@ public class PostulantServiceImpl implements IPostulantService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Convenio previsional no encontrado: " + convPrevId));
     }
 
+    @Transactional
     public PostulantDTO create(PostulantDTO dto) {
         PostulantEntity entity = repository.save(mapToEntity(dto));
         return mapToDTO(entity);
     }
 
     @Override
+    @Transactional
     public PostulantDTO update(Integer id, PostulantDTO dto) {
         PostulantEntity entity = repository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Postulante no encontrado: " + id));
@@ -239,7 +317,7 @@ public class PostulantServiceImpl implements IPostulantService {
         entity.setLastName(dto.getLastName());
         entity.setBirthdate(dto.getBirthdate());
         entity.setUser(mapToUserEntity(dto.getUser()));
-        entity.setCommune(mapToCommuneEntity(dto.getCommune()));
+        entity.setCommune(resolveCommuneFromOfficialCityCatalog(dto.getCommune()));
         entity.setFirstLastName(dto.getFirstLastName());
         entity.setSecondLastName(dto.getSecondLastName());
         entity.setSex(mapToSexEntity(dto.getSex()));
