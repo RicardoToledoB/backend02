@@ -28,6 +28,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
+import java.text.Normalizer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -227,12 +228,16 @@ public class DemandService {
     }
 
     @Transactional(readOnly = true)
-    public Page<PrioritizedEpisodeDTO> getPrioritized(Integer programId, String stateCode, String resultCode, Pageable pageable) {
+    public Page<PrioritizedEpisodeDTO> getPrioritized(Integer programId, String stateCode, String resultCode, String search, Pageable pageable) {
         Pageable requestedPageable = pageable != null ? pageable : Pageable.unpaged();
+        String normalizedSearch = normalizeSearchText(search);
+        String normalizedRutSearch = normalizeRutSearch(search);
+
         List<PrioritizedEpisodeDTO> rows = new ArrayList<>(episodeRepository
                 .findPrioritized(programId, stateCode, resultCode, Pageable.unpaged())
                 .getContent()
                 .stream()
+                .filter(episode -> matchesPrioritizedSearch(episode, normalizedSearch, normalizedRutSearch))
                 .map(this::toPrioritizedDTO)
                 .toList());
 
@@ -245,6 +250,75 @@ public class DemandService {
         int start = (int) Math.min(requestedPageable.getOffset(), rows.size());
         int end = Math.min(start + requestedPageable.getPageSize(), rows.size());
         return new PageImpl<>(rows.subList(start, end), requestedPageable, rows.size());
+    }
+
+    private boolean matchesPrioritizedSearch(EpisodeEntity episode, String normalizedSearch, String normalizedRutSearch) {
+        if ((normalizedSearch == null || normalizedSearch.isBlank())
+                && (normalizedRutSearch == null || normalizedRutSearch.isBlank())) {
+            return true;
+        }
+        if (episode == null || episode.getPostulant() == null) {
+            return false;
+        }
+
+        PostulantEntity postulant = episode.getPostulant();
+
+        if (normalizedRutSearch != null && !normalizedRutSearch.isBlank()) {
+            String rut = normalizeRutSearch(postulant.getRut());
+            if (rut != null && rut.contains(normalizedRutSearch)) {
+                return true;
+            }
+        }
+
+        if (normalizedSearch == null || normalizedSearch.isBlank()) {
+            return false;
+        }
+
+        List<String> searchableValues = List.of(
+                defaultString(postulant.getRut()),
+                defaultString(postulant.getFirstName()),
+                defaultString(postulant.getFirstLastName()),
+                defaultString(postulant.getSecondLastName()),
+                defaultString(postulant.getLastName()),
+                String.join(" ",
+                        defaultString(postulant.getFirstName()),
+                        defaultString(postulant.getFirstLastName()),
+                        defaultString(postulant.getSecondLastName())),
+                String.join(" ",
+                        defaultString(postulant.getFirstName()),
+                        defaultString(postulant.getLastName()),
+                        defaultString(postulant.getSecondLastName()))
+        );
+
+        return searchableValues.stream()
+                .map(this::normalizeSearchText)
+                .filter(Objects::nonNull)
+                .anyMatch(value -> value.contains(normalizedSearch));
+    }
+
+    private String normalizeSearchText(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        String withoutAccents = Normalizer.normalize(trimmed, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "");
+        return withoutAccents.toLowerCase(Locale.ROOT).replaceAll("\\s+", " ");
+    }
+
+    private String normalizeRutSearch(String value) {
+        if (value == null) {
+            return null;
+        }
+        String normalized = value.replaceAll("[^0-9kK]", "").toLowerCase(Locale.ROOT);
+        return normalized.isBlank() ? null : normalized;
+    }
+
+    private String defaultString(String value) {
+        return value == null ? "" : value;
     }
 
     @Transactional(readOnly = true)
@@ -276,8 +350,8 @@ public class DemandService {
 
     @Transactional(readOnly = true)
     public DemandDashboardDTO getDashboard() {
-        Page<PrioritizedEpisodeDTO> top = getPrioritized(null, null, null, PageRequest.of(0, 10));
-        List<PrioritizedEpisodeDTO> active = getPrioritized(null, null, null, PageRequest.of(0, 1000)).getContent();
+        Page<PrioritizedEpisodeDTO> top = getPrioritized(null, null, null, null, PageRequest.of(0, 10));
+        List<PrioritizedEpisodeDTO> active = getPrioritized(null, null, null, null, PageRequest.of(0, 1000)).getContent();
 
         Map<String, Long> semaphoreDistribution = active.stream()
                 .collect(Collectors.groupingBy(PrioritizedEpisodeDTO::getSemaphoreColor, LinkedHashMap::new, Collectors.counting()));

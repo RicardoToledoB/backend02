@@ -63,8 +63,9 @@ public class DemandController {
             @RequestParam(required = false) Integer programId,
             @RequestParam(required = false) String stateCode,
             @RequestParam(required = false) String resultCode,
+            @RequestParam(required = false) String search,
             @PageableDefault(size = 20, sort = "originalRequestDate", direction = Sort.Direction.ASC) Pageable pageable) {
-        return ResponseEntity.ok(service.getPrioritized(programId, stateCode, resultCode, pageable));
+        return ResponseEntity.ok(service.getPrioritized(programId, stateCode, resultCode, search, pageable));
     }
 
     @GetMapping("/episodes/{id}")
@@ -94,8 +95,9 @@ public class DemandController {
             @RequestParam(required = false) Integer programId,
             @RequestParam(required = false) String stateCode,
             @RequestParam(required = false) String resultCode,
+            @RequestParam(required = false) String search,
             @PageableDefault(size = 20, sort = "originalRequestDate", direction = Sort.Direction.ASC) Pageable pageable) {
-        return ResponseEntity.ok(service.getPrioritized(programId, stateCode, resultCode, pageable));
+        return ResponseEntity.ok(service.getPrioritized(programId, stateCode, resultCode, search, pageable));
     }
 
     @PostMapping("/episodes/program-contexts")
