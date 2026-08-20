@@ -1,33 +1,36 @@
-# Ajuste `search` en bandeja priorizada — 2026-08-20
+# Ajuste búsqueda bandeja priorizada - 2026-08-20
 
-## Endpoint modificado
+## Endpoint ajustado
 
 `GET /api/v1/demand/episodes/prioritized`
 
-Se agrega el parámetro opcional:
+Se incorpora el parámetro opcional `search`, combinable con:
 
-```http
-search=<texto>
-```
+- `page`
+- `size`
+- `programId`
+- `stateCode`
+- `resultCode`
+- `sort`
 
-## Alcance
+## Campos considerados
 
-El filtro permite consultar demandas desde una caja única, buscando sobre los datos del demandante/persona asociados al episodio:
+La búsqueda filtra demandas por datos del postulante asociado al episodio:
 
-- RUN/RUT, con o sin puntos y guion.
-- Nombre.
-- Primer apellido.
-- Segundo apellido.
-- Nombre completo.
+- RUN/RUT
+- nombre
+- primer apellido
+- segundo apellido
+- nombre completo
 
 ## Reglas
 
 - Búsqueda parcial.
-- Sin distinguir mayúsculas/minúsculas.
-- Tolerante a acentos en nombres y apellidos.
-- Tolerante al formato del RUN/RUT. Por ejemplo, `140368180` encuentra `14.036.818-0`.
-- Compatible con filtros existentes: `page`, `size`, `programId`, `stateCode`, `resultCode` y `sort`.
-- Mantiene la respuesta paginada actual.
+- No distingue mayúsculas/minúsculas.
+- Tolera acentos en nombres.
+- Tolera formato del RUN/RUT: `140368180` encuentra `14.036.818-0` y viceversa.
+- Mantiene la estructura paginada existente.
+- Se aplica antes de ordenar y paginar la respuesta.
 
 ## Ejemplos
 
@@ -36,5 +39,5 @@ GET /api/v1/demand/episodes/prioritized?search=Sofia
 GET /api/v1/demand/episodes/prioritized?search=14.036.818-0
 GET /api/v1/demand/episodes/prioritized?search=140368180
 GET /api/v1/demand/episodes/prioritized?search=Bustamante
-GET /api/v1/demand/episodes/prioritized?programId=2&stateCode=EN_TRAMITE&search=Sofia&sort=lastManagementDate,desc
+GET /api/v1/demand/episodes/prioritized?programId=2&stateCode=EN_TRAMITE&search=Sofia&page=0&size=20&sort=originalRequestDate,desc
 ```

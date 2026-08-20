@@ -253,8 +253,7 @@ public class DemandService {
     }
 
     private boolean matchesPrioritizedSearch(EpisodeEntity episode, String normalizedSearch, String normalizedRutSearch) {
-        if ((normalizedSearch == null || normalizedSearch.isBlank())
-                && (normalizedRutSearch == null || normalizedRutSearch.isBlank())) {
+        if (!hasText(normalizedSearch) && !hasText(normalizedRutSearch)) {
             return true;
         }
         if (episode == null || episode.getPostulant() == null) {
@@ -263,37 +262,39 @@ public class DemandService {
 
         PostulantEntity postulant = episode.getPostulant();
 
-        if (normalizedRutSearch != null && !normalizedRutSearch.isBlank()) {
-            String rut = normalizeRutSearch(postulant.getRut());
-            if (rut != null && rut.contains(normalizedRutSearch)) {
+        // RUN/RUT tolerante a formato: 140368180 encuentra 14.036.818-0 y viceversa.
+        if (hasText(normalizedRutSearch)) {
+            String postulantRut = normalizeRutSearch(postulant.getRut());
+            if (hasText(postulantRut) && postulantRut.contains(normalizedRutSearch)) {
                 return true;
             }
         }
 
-        if (normalizedSearch == null || normalizedSearch.isBlank()) {
+        if (!hasText(normalizedSearch)) {
             return false;
         }
 
-        List<String> searchableValues = List.of(
-                defaultString(postulant.getRut()),
-                defaultString(postulant.getFirstName()),
-                defaultString(postulant.getFirstLastName()),
-                defaultString(postulant.getSecondLastName()),
-                defaultString(postulant.getLastName()),
-                String.join(" ",
-                        defaultString(postulant.getFirstName()),
-                        defaultString(postulant.getFirstLastName()),
-                        defaultString(postulant.getSecondLastName())),
-                String.join(" ",
-                        defaultString(postulant.getFirstName()),
-                        defaultString(postulant.getLastName()),
-                        defaultString(postulant.getSecondLastName()))
-        );
+        String firstName = normalizeSearchText(postulant.getFirstName());
+        String firstLastName = normalizeSearchText(postulant.getFirstLastName());
+        String secondLastName = normalizeSearchText(postulant.getSecondLastName());
+        String legacyLastName = normalizeSearchText(postulant.getLastName());
+        String rutText = normalizeSearchText(postulant.getRut());
 
-        return searchableValues.stream()
-                .map(this::normalizeSearchText)
-                .filter(Objects::nonNull)
-                .anyMatch(value -> value.contains(normalizedSearch));
+        String fullName = joinNormalized(firstName, firstLastName, secondLastName);
+        String alternateFullName = joinNormalized(firstName, legacyLastName, secondLastName);
+        String searchableText = joinNormalized(rutText, firstName, firstLastName, secondLastName, legacyLastName, fullName, alternateFullName);
+
+        if (searchableText.contains(normalizedSearch)) {
+            return true;
+        }
+
+        // Soporta búsqueda por nombre completo escrita en más de una palabra,
+        // exigiendo que todos los términos estén presentes aunque haya espacios intermedios.
+        List<String> tokens = Arrays.stream(normalizedSearch.split("\\s+"))
+                .map(String::trim)
+                .filter(this::hasText)
+                .toList();
+        return !tokens.isEmpty() && tokens.stream().allMatch(searchableText::contains);
     }
 
     private String normalizeSearchText(String value) {
@@ -306,7 +307,11 @@ public class DemandService {
         }
         String withoutAccents = Normalizer.normalize(trimmed, Normalizer.Form.NFD)
                 .replaceAll("\\p{M}+", "");
-        return withoutAccents.toLowerCase(Locale.ROOT).replaceAll("\\s+", " ");
+        return withoutAccents
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9kñ\\s.-]", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
     }
 
     private String normalizeRutSearch(String value) {
@@ -317,8 +322,13 @@ public class DemandService {
         return normalized.isBlank() ? null : normalized;
     }
 
-    private String defaultString(String value) {
-        return value == null ? "" : value;
+    private String joinNormalized(String... values) {
+        if (values == null || values.length == 0) {
+            return "";
+        }
+        return Arrays.stream(values)
+                .filter(this::hasText)
+                .collect(Collectors.joining(" "));
     }
 
     @Transactional(readOnly = true)
