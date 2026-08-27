@@ -47,7 +47,8 @@ CREATE TABLE IF NOT EXISTS biopsychosocial_commitment_levels (
 INSERT INTO biopsychosocial_commitment_levels (code, name, active) VALUES
 ('LEVE', 'Leve', 1),
 ('MODERADO', 'Moderado', 1),
-('SEVERO', 'Severo', 1)
+('SEVERO', 'Severo', 1),
+('NO_EVALUADO', 'No fue evaluado', 1)
 ON DUPLICATE KEY UPDATE
     name = VALUES(name),
     active = 1;

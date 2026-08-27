@@ -2296,7 +2296,8 @@ public class DemandService {
             case "SEVERO" -> 1;
             case "MODERADO" -> 2;
             case "LEVE" -> 3;
-            default -> 4;
+            case "NO_EVALUADO" -> 4;
+            default -> 5;
         };
     }
 

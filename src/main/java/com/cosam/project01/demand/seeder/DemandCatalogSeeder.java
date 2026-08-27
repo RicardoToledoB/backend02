@@ -95,6 +95,7 @@ public class DemandCatalogSeeder implements CommandLineRunner {
         saveBiopsychosocialCommitmentLevel("LEVE", "Leve");
         saveBiopsychosocialCommitmentLevel("MODERADO", "Moderado");
         saveBiopsychosocialCommitmentLevel("SEVERO", "Severo");
+        saveBiopsychosocialCommitmentLevel("NO_EVALUADO", "No fue evaluado");
     }
 
     private void seedClosureReasons() {

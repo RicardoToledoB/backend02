@@ -47,6 +47,7 @@ Registros:
 - `LEVE` — Leve.
 - `MODERADO` — Moderado.
 - `SEVERO` — Severo.
+- `NO_EVALUADO` — No fue evaluado.
 
 ### Tabla modificada
 
