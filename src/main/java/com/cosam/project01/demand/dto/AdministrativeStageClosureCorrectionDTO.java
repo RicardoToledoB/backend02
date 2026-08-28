@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Corrección de cierre de una etapa/programa. Si closeEpisode=true, además cierra el episodio completo.")
+@Schema(description = "Corrección de cierre de una etapa/programa. Si closed=false, reabre explícitamente la etapa y limpia datos de cierre. Si closeEpisode=true, además cierra el episodio completo.")
 public class AdministrativeStageClosureCorrectionDTO {
     private Integer stageId;
     private Integer closureReasonId;
@@ -21,6 +21,10 @@ public class AdministrativeStageClosureCorrectionDTO {
     private String comment;
     private String stateCode;
     private String resultCode;
+
+    @Schema(description = "true cierra la etapa; false reabre la etapa, limpia closedAt/closureReason/closureComment y deja current=true.")
     private Boolean closed;
+
+    @Schema(description = "Solo cuando sea true se actualizan campos de cierre del episodio global.")
     private Boolean closeEpisode;
 }

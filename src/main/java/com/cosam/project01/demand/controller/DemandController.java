@@ -175,6 +175,16 @@ public class DemandController {
         return ResponseEntity.ok(administrativeCorrectionService.correctEpisode(id, correctionRequest, user.getUsername()));
     }
 
+    @PutMapping("/episodes/{episodeId}/programs/{programId}/received-at")
+    public ResponseEntity<ProgramReceivedAtCorrectionResponse> correctProgramReceivedAt(
+            @PathVariable Integer episodeId,
+            @PathVariable Integer programId,
+            @Valid @RequestBody ProgramReceivedAtCorrectionRequest correctionRequest,
+            HttpServletRequest httpRequest) {
+        var user = requestTokenValidator.requireAdminAccessToken(httpRequest);
+        return ResponseEntity.ok(administrativeCorrectionService.correctProgramReceivedAt(episodeId, programId, correctionRequest, user.getUsername()));
+    }
+
     @PostMapping("/episodes/{id}/alerts")
     public ResponseEntity<EpisodeAlertDTO> createAlert(@PathVariable Integer id, @RequestBody CreateAlertRequest request) {
         return ResponseEntity.ok(service.createAlert(id, request));

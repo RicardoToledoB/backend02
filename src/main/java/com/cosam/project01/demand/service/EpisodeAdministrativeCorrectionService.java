@@ -133,6 +133,83 @@ public class EpisodeAdministrativeCorrectionService {
         return response;
     }
 
+    @Transactional
+    public ProgramReceivedAtCorrectionResponse correctProgramReceivedAt(Integer episodeId,
+                                                                         Integer programId,
+                                                                         ProgramReceivedAtCorrectionRequest request,
+                                                                         String performedByEmail) {
+        if (request == null) {
+            throw badRequest("Debe enviar el cuerpo de la corrección de fecha de ingreso.");
+        }
+        if (programId == null) {
+            throw badRequest("Debe indicar programId.");
+        }
+        if (!hasText(request.getCorrectionReason())) {
+            throw badRequest("Debe indicar correctionReason para registrar la auditoría.");
+        }
+
+        LocalDateTime newReceivedAt = parseRequiredDateTime(request.getReceivedAt(), "receivedAt");
+        EpisodeEntity episode = episodeRepository.findById(episodeId)
+                .orElseThrow(() -> notFound("Episodio no encontrado"));
+        EpisodeStageEntity stage = request.getStageId() != null
+                ? resolveStage(episode, request.getStageId())
+                : stageRepository.findFirstByEpisodeIdAndProgramIdOrderByStageOrderDescIdDesc(episodeId, programId)
+                    .orElseThrow(() -> notFound("No existe una etapa del programa indicado dentro del episodio."));
+
+        if (stage.getProgram() == null || !Objects.equals(stage.getProgram().getId(), programId)) {
+            throw badRequest("La etapa indicada no corresponde al programId informado.");
+        }
+
+        UserEntity currentUser = currentUser(performedByEmail);
+        String beforeStage = snapshotStage(stage);
+        LocalDateTime previousReceivedAt = stage.getReceivedAt();
+        Integer previousDaysInStage = daysInStage(stage);
+
+        stage.setReceivedAt(newReceivedAt);
+        stage = stageRepository.save(stage);
+
+        boolean initialProgramStage = episode.getInitialProgram() != null
+                && Objects.equals(episode.getInitialProgram().getId(), programId)
+                && (stage.getStageOrder() == null || stage.getStageOrder() == 1);
+        LocalDate previousOriginalRequestDate = episode.getOriginalRequestDate();
+        boolean episodeDateUpdated = false;
+        if (initialProgramStage && episode.getInitialProgram() != null && Objects.equals(episode.getInitialProgram().getId(), programId)) {
+            LocalDate newOriginalRequestDate = newReceivedAt.toLocalDate();
+            if (!Objects.equals(previousOriginalRequestDate, newOriginalRequestDate)) {
+                String beforeEpisode = snapshotEpisode(episode);
+                episode.setOriginalRequestDate(newOriginalRequestDate);
+                episode = episodeRepository.save(episode);
+                audit(episode, stage, null, "CORRECCION_ADMINISTRATIVA_FECHA_SOLICITUD_ORIGINAL",
+                        beforeEpisode, snapshotEpisode(episode), request.getCorrectionReason(), currentUser);
+                episodeDateUpdated = true;
+            }
+        }
+
+        String afterStage = snapshotStage(stage);
+        audit(episode, stage, null, "CORRECCION_ADMINISTRATIVA_FECHA_INGRESO_PROGRAMA",
+                beforeStage, afterStage, request.getCorrectionReason(), currentUser);
+
+        Integer newDaysInStage = daysInStage(stage);
+        return ProgramReceivedAtCorrectionResponse.builder()
+                .episodeId(episode.getId())
+                .episodeCode(episode.getEpisodeCode())
+                .programId(stage.getProgram() != null ? stage.getProgram().getId() : programId)
+                .programName(stage.getProgram() != null ? stage.getProgram().getName() : null)
+                .stageId(stage.getId())
+                .previousReceivedAt(previousReceivedAt)
+                .receivedAt(stage.getReceivedAt())
+                .previousDaysInStage(previousDaysInStage)
+                .daysInStage(newDaysInStage)
+                .previousOriginalRequestDate(previousOriginalRequestDate)
+                .originalRequestDate(episode.getOriginalRequestDate())
+                .episodeOriginalRequestDateUpdated(episodeDateUpdated)
+                .correctionReason(request.getCorrectionReason())
+                .performedBy(performedByEmail)
+                .performedAt(LocalDateTime.now())
+                .auditRecords(episodeDateUpdated ? 2 : 1)
+                .build();
+    }
+
     private boolean applyEpisodePatch(EpisodeEntity episode, AdministrativeEpisodeCorrectionDTO patch) {
         boolean changed = false;
         if (patch.getEpisodeTypeId() != null || hasText(patch.getEpisodeTypeCode())) {
@@ -175,6 +252,23 @@ public class EpisodeAdministrativeCorrectionService {
                                            UserEntity currentUser) {
         if (stage == null) throw badRequest("Debe indicar stageId o programId para corregir el cierre de etapa.");
         boolean changed = false;
+
+        // Semántica explícita de reapertura administrativa: closed=false limpia SIEMPRE
+        // los datos del cierre anterior, sin depender de que el JSON envíe null.
+        if (Boolean.FALSE.equals(patch.getClosed())) {
+            stage.setClosedAt(null);
+            stage.setClosureReason(null);
+            stage.setClosureComment(null);
+            stage.setStateCode(hasText(patch.getStateCode()) ? patch.getStateCode().trim() : STATE_IN_PROGRESS);
+            stage.setResultCode(hasText(patch.getResultCode()) ? patch.getResultCode().trim() : RESULT_PENDING);
+            stage.setCurrent(true);
+            stageRepository.save(stage);
+
+            // No se modifica el episodio global salvo que el request lo indique expresamente
+            // por episode/closeEpisode. Esta operación solo reabre la etapa solicitada.
+            return true;
+        }
+
         LocalDateTime closedAt = firstNonNull(patch.getClosedAt(), parseOptionalDateTime(patch.getClosureDate()));
         ClosureReasonEntity reason = (patch.getClosureReasonId() != null || hasText(patch.getClosureReasonCode()))
                 ? resolveClosureReason(patch.getClosureReasonId(), patch.getClosureReasonCode())
@@ -186,6 +280,7 @@ public class EpisodeAdministrativeCorrectionService {
             LocalDateTime effectiveClosedAt = closedAt != null ? closedAt : LocalDateTime.now();
             stage.setClosedAt(effectiveClosedAt);
             stage.setStateCode(STATE_CLOSED);
+            stage.setCurrent(false);
             if (reason != null) stage.setClosureReason(reason);
             if (hasText(patch.getResultCode())) stage.setResultCode(patch.getResultCode().trim());
             else if (reason != null && hasText(reason.getCode())) stage.setResultCode(reason.getCode());
@@ -555,13 +650,31 @@ public class EpisodeAdministrativeCorrectionService {
         throw badRequest("action debe ser CREATE, UPDATE o DELETE.");
     }
 
+    private LocalDateTime parseRequiredDateTime(String value, String fieldName) {
+        if (!hasText(value)) {
+            throw badRequest(fieldName + " es obligatorio y debe tener formato YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss");
+        }
+        return parseDateTime(value, fieldName);
+    }
+
     private LocalDateTime parseOptionalDateTime(String value) {
         if (!hasText(value)) return null;
+        return parseDateTime(value, "closureDate");
+    }
+
+    private LocalDateTime parseDateTime(String value, String fieldName) {
         String trimmed = value.trim();
         try { return LocalDateTime.parse(trimmed); } catch (DateTimeParseException ignored) {}
         try { return LocalDate.parse(trimmed).atStartOfDay(); } catch (DateTimeParseException ex) {
-            throw badRequest("closureDate debe tener formato YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss");
+            throw badRequest(fieldName + " debe tener formato YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss");
         }
+    }
+
+    private Integer daysInStage(EpisodeStageEntity stage) {
+        if (stage == null || stage.getReceivedAt() == null) return 0;
+        LocalDate endDate = (stage.getClosedAt() != null ? stage.getClosedAt() : LocalDateTime.now()).toLocalDate();
+        long days = java.time.temporal.ChronoUnit.DAYS.between(stage.getReceivedAt().toLocalDate(), endDate);
+        return (int) Math.max(days, 0);
     }
 
     private void audit(EpisodeEntity episode, EpisodeStageEntity stage, EpisodeEventEntity event,
