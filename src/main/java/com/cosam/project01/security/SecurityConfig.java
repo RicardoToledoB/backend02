@@ -65,6 +65,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 new AntPathRequestMatcher("/api/v1/demand/episodes/*/references", "POST"),
                                 new AntPathRequestMatcher("/api/v1/demand/episodes/*/close", "POST"),
+                                new AntPathRequestMatcher("/api/v1/demand/episodes/*/administrative-correction", "PUT"),
                                 new AntPathRequestMatcher("/api/v1/demand/episodes/*/purge", "DELETE")
                         ).permitAll()
                         // Endpoints críticos de episodios usados por frontend.

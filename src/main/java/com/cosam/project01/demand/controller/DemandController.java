@@ -2,6 +2,7 @@ package com.cosam.project01.demand.controller;
 
 import com.cosam.project01.demand.dto.*;
 import com.cosam.project01.demand.service.DemandService;
+import com.cosam.project01.demand.service.EpisodeAdministrativeCorrectionService;
 import com.cosam.project01.demand.service.EpisodePurgeService;
 import com.cosam.project01.security.RequestTokenValidator;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,6 +30,7 @@ import java.util.List;
 public class DemandController {
 
     private final DemandService service;
+    private final EpisodeAdministrativeCorrectionService administrativeCorrectionService;
     private final EpisodePurgeService episodePurgeService;
     private final RequestTokenValidator requestTokenValidator;
 
@@ -162,6 +164,15 @@ public class DemandController {
     @PostMapping("/episodes/{id}/reverse")
     public ResponseEntity<EpisodeDTO> reverse(@PathVariable Integer id, @Valid @RequestBody ReverseEpisodeRequest request) {
         return ResponseEntity.ok(service.reverseEpisode(id, request));
+    }
+
+    @PutMapping("/episodes/{id}/administrative-correction")
+    public ResponseEntity<AdministrativeCorrectionResponse> administrativeCorrection(
+            @PathVariable Integer id,
+            @Valid @RequestBody AdministrativeCorrectionRequest correctionRequest,
+            HttpServletRequest httpRequest) {
+        var user = requestTokenValidator.requireAdminAccessToken(httpRequest);
+        return ResponseEntity.ok(administrativeCorrectionService.correctEpisode(id, correctionRequest, user.getUsername()));
     }
 
     @PostMapping("/episodes/{id}/alerts")
