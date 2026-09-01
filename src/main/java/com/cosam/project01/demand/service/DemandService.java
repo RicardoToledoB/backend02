@@ -179,7 +179,7 @@ public class DemandService {
                 .episode(episode)
                 .program(program)
                 .stageOrder(1)
-                .receivedAt(referenceAt)
+                .receivedAt(episode.getOriginalRequestDate().atStartOfDay())
                 .stateCode(STATE_IN_PROGRESS)
                 .resultCode(RESULT_PENDING)
                 .current(true)
