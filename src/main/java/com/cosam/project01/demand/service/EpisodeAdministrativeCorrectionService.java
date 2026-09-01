@@ -31,6 +31,7 @@ public class EpisodeAdministrativeCorrectionService {
     private final EpisodeRepository episodeRepository;
     private final EpisodeStageRepository stageRepository;
     private final EpisodeEventRepository eventRepository;
+    private final EpisodeReferenceRepository referenceRepository;
     private final EpisodeSubstanceRepository episodeSubstanceRepository;
     private final EpisodeAuditLogRepository auditLogRepository;
     private final EpisodeTypeRepository episodeTypeRepository;
@@ -109,6 +110,10 @@ public class EpisodeAdministrativeCorrectionService {
 
         for (AdministrativeSubstanceCorrectionDTO item : safeList(request.getSubstances())) {
             applySubstanceCorrection(episode, targetStage, item, request.getCorrectionReason(), currentUser, response);
+        }
+
+        for (AdministrativeReferenceCorrectionDTO item : safeList(request.getReferences())) {
+            applyReferenceCorrection(episode, targetStage, item, request.getCorrectionReason(), currentUser, response);
         }
 
         for (AdministrativeEventCorrectionDTO item : safeList(request.getEvents())) {
@@ -304,6 +309,269 @@ public class EpisodeAdministrativeCorrectionService {
         }
         if (changed) stageRepository.save(stage);
         return changed;
+    }
+
+
+    private void applyReferenceCorrection(EpisodeEntity episode, EpisodeStageEntity defaultStage,
+                                          AdministrativeReferenceCorrectionDTO item,
+                                          String correctionReason,
+                                          UserEntity currentUser,
+                                          AdministrativeCorrectionResponse response) {
+        if (item == null) return;
+        Integer referenceId = firstNonNull(item.getReferenceId(), item.getId());
+        String action = resolveAction(item.getAction(), referenceId);
+
+        if (ACTION_DELETE.equals(action)) {
+            if (referenceId == null) throw badRequest("Para eliminar referencia debe indicar id o referenceId.");
+            EpisodeReferenceEntity reference = findEpisodeReference(episode.getId(), referenceId);
+            String before = snapshotReference(reference);
+            EpisodeEventEntity referenceEvent = resolveReferenceEventForDelete(episode, reference, item.getEventId());
+            String beforeEvent = snapshotEvent(referenceEvent);
+
+            referenceRepository.delete(reference);
+            if (referenceEvent != null) {
+                eventRepository.delete(referenceEvent);
+            }
+            eventRepository.flush();
+
+            audit(episode, reference.getOriginStage() != null ? reference.getOriginStage() : defaultStage, null,
+                    "CORRECCION_ADMINISTRATIVA_ELIMINAR_REFERENCIA", before,
+                    beforeEvent != null ? "Evento REFERENCIA anulado: " + beforeEvent : null,
+                    correctionReason, currentUser);
+            inc(response, "deletedReferences");
+            if (referenceEvent != null) inc(response, "deletedEvents");
+            incAudit(response);
+            return;
+        }
+
+        if (ACTION_CREATE.equals(action)) {
+            EpisodeStageEntity originStage = item.getOriginStageId() != null ? resolveStage(episode, item.getOriginStageId()) : defaultStage;
+            if (originStage == null) throw badRequest("Para crear referencia debe indicar originStageId o stageId/programId en el request principal.");
+
+            LocalDateTime referenceAt = resolveReferenceDate(item.getReferenceDate(), null);
+            EpisodeStageEntity destinationStage = resolveOrCreateDestinationStage(episode, originStage, item, referenceAt, currentUser);
+            ProgramEntity destinationProgram = destinationStage.getProgram();
+            if (destinationProgram == null) throw badRequest("La etapa destino no tiene programa asociado.");
+
+            EpisodeReferenceEntity reference = EpisodeReferenceEntity.builder()
+                    .episode(episode)
+                    .originStage(originStage)
+                    .destinationStage(destinationStage)
+                    .originProgram(originStage.getProgram())
+                    .destinationProgram(destinationProgram)
+                    .referenceDate(referenceAt)
+                    .reason(item.getReason())
+                    .observation(item.getObservation())
+                    .createdByUser(currentUser)
+                    .build();
+            reference = referenceRepository.save(reference);
+
+            EpisodeEventEntity event = new EpisodeEventEntity();
+            syncReferenceEventFields(episode, reference, event, currentUser);
+            event = eventRepository.save(event);
+
+            if (Boolean.TRUE.equals(item.getMakeDestinationCurrent())) {
+                markDestinationAsCurrent(episode, destinationStage);
+            }
+
+            audit(episode, originStage, event, "CORRECCION_ADMINISTRATIVA_CREAR_REFERENCIA",
+                    null, snapshotReference(reference), correctionReason, currentUser);
+            inc(response, "createdReferences");
+            inc(response, "createdEvents");
+            incAudit(response);
+            return;
+        }
+
+        if (referenceId == null) throw badRequest("Para actualizar referencia debe indicar id o referenceId.");
+        EpisodeReferenceEntity reference = findEpisodeReference(episode.getId(), referenceId);
+        String before = snapshotReference(reference);
+        EpisodeEventEntity referenceEvent = resolveOrCreateReferenceEvent(episode, reference, item.getEventId(), currentUser);
+        String beforeEvent = snapshotEvent(referenceEvent);
+
+        EpisodeStageEntity originStage = item.getOriginStageId() != null ? resolveStage(episode, item.getOriginStageId()) : reference.getOriginStage();
+        if (originStage == null) throw badRequest("La referencia no tiene etapa origen asociada.");
+
+        EpisodeStageEntity destinationStage = item.getDestinationStageId() != null
+                ? resolveStage(episode, item.getDestinationStageId())
+                : reference.getDestinationStage();
+        if (destinationStage == null) {
+            destinationStage = resolveOrCreateDestinationStage(episode, originStage, item,
+                    resolveReferenceDate(item.getReferenceDate(), reference.getReferenceDate()), currentUser);
+        }
+
+        ProgramEntity destinationProgram = item.getDestinationProgramId() != null
+                ? program(item.getDestinationProgramId())
+                : destinationStage.getProgram();
+        if (destinationProgram == null) throw badRequest("Debe indicar destinationProgramId o una etapa destino con programa asociado.");
+
+        LocalDateTime referenceAt = resolveReferenceDate(item.getReferenceDate(), reference.getReferenceDate());
+        destinationStage.setProgram(destinationProgram);
+        destinationStage.setOriginStage(originStage);
+        destinationStage.setReceivedAt(referenceAt);
+        destinationStage = stageRepository.save(destinationStage);
+
+        reference.setOriginStage(originStage);
+        reference.setDestinationStage(destinationStage);
+        reference.setOriginProgram(originStage.getProgram());
+        reference.setDestinationProgram(destinationProgram);
+        reference.setReferenceDate(referenceAt);
+        if (item.getReason() != null) reference.setReason(item.getReason());
+        if (item.getObservation() != null) reference.setObservation(item.getObservation());
+        reference = referenceRepository.save(reference);
+
+        syncReferenceEventFields(episode, reference, referenceEvent, currentUser);
+        referenceEvent = eventRepository.save(referenceEvent);
+
+        if (Boolean.TRUE.equals(item.getMakeDestinationCurrent())) {
+            markDestinationAsCurrent(episode, destinationStage);
+        }
+
+        audit(episode, originStage, referenceEvent, "CORRECCION_ADMINISTRATIVA_ACTUALIZAR_REFERENCIA",
+                before + " | eventoAntes=" + beforeEvent, snapshotReference(reference) + " | eventoDespues=" + snapshotEvent(referenceEvent),
+                correctionReason, currentUser);
+        inc(response, "updatedReferences");
+        if (beforeEvent == null) inc(response, "createdEvents"); else inc(response, "updatedEvents");
+        incAudit(response);
+    }
+
+    private EpisodeStageEntity resolveOrCreateDestinationStage(EpisodeEntity episode, EpisodeStageEntity originStage,
+                                                               AdministrativeReferenceCorrectionDTO item,
+                                                               LocalDateTime referenceAt,
+                                                               UserEntity currentUser) {
+        if (item.getDestinationStageId() != null) {
+            EpisodeStageEntity destinationStage = resolveStage(episode, item.getDestinationStageId());
+            if (item.getDestinationProgramId() != null
+                    && destinationStage.getProgram() != null
+                    && !Objects.equals(destinationStage.getProgram().getId(), item.getDestinationProgramId())) {
+                throw badRequest("destinationStageId no corresponde al destinationProgramId informado.");
+            }
+            destinationStage.setReceivedAt(referenceAt);
+            return stageRepository.save(destinationStage);
+        }
+        if (item.getDestinationProgramId() == null) {
+            throw badRequest("Para crear referencia debe indicar destinationProgramId o destinationStageId.");
+        }
+        ProgramEntity destinationProgram = program(item.getDestinationProgramId());
+        EpisodeStageEntity destinationStage = EpisodeStageEntity.builder()
+                .episode(episode)
+                .program(destinationProgram)
+                .stageOrder(stageRepository.findMaxStageOrder(episode.getId()) + 1)
+                .originStage(originStage)
+                .receivedAt(referenceAt)
+                .stateCode(STATE_IN_PROGRESS)
+                .resultCode(RESULT_PENDING)
+                .current(Boolean.TRUE.equals(item.getMakeDestinationCurrent()))
+                .responsibleUser(currentUser)
+                .build();
+        return stageRepository.save(destinationStage);
+    }
+
+    private void syncReferenceEventFields(EpisodeEntity episode, EpisodeReferenceEntity reference,
+                                          EpisodeEventEntity event, UserEntity currentUser) {
+        if (reference == null) throw badRequest("Referencia no válida para sincronizar evento.");
+        if (event == null) event = new EpisodeEventEntity();
+        LocalDateTime referenceAt = reference.getReferenceDate() != null ? reference.getReferenceDate() : LocalDateTime.now();
+        EpisodeStageEntity originStage = reference.getOriginStage();
+        ProgramEntity destinationProgram = reference.getDestinationProgram();
+        String destinationName = destinationProgram != null && hasText(destinationProgram.getName())
+                ? destinationProgram.getName()
+                : "programa destino";
+
+        event.setEpisode(episode);
+        event.setStage(originStage);
+        event.setEventType(resolveEventType(null, "REFERENCIA"));
+        event.setEventDate(referenceAt.toLocalDate());
+        event.setEventTime(referenceAt.toLocalTime());
+        event.setProgram(originStage != null ? originStage.getProgram() : null);
+        if (event.getRegisteredByUser() == null) event.setRegisteredByUser(currentUser);
+        event.setComment("Referencia a " + destinationName);
+        event.setObservation(reference.getObservation());
+        event.setResultCode("REFERENCIA");
+        event.setStateCode(STATE_IN_PROGRESS);
+    }
+
+    private EpisodeEventEntity resolveReferenceEventForDelete(EpisodeEntity episode, EpisodeReferenceEntity reference, Integer eventId) {
+        if (eventId != null) {
+            EpisodeEventEntity event = findEpisodeEvent(episode.getId(), eventId);
+            ensureReferenceEventType(event);
+            return event;
+        }
+        return findReferenceEvent(reference).orElse(null);
+    }
+
+    private EpisodeEventEntity resolveOrCreateReferenceEvent(EpisodeEntity episode, EpisodeReferenceEntity reference,
+                                                             Integer eventId, UserEntity currentUser) {
+        if (eventId != null) {
+            EpisodeEventEntity event = findEpisodeEvent(episode.getId(), eventId);
+            ensureReferenceEventType(event);
+            return event;
+        }
+        return findReferenceEvent(reference).orElseGet(EpisodeEventEntity::new);
+    }
+
+    private void ensureReferenceEventType(EpisodeEventEntity event) {
+        if (event == null || event.getEventType() == null) return;
+        if (!"REFERENCIA".equalsIgnoreCase(event.getEventType().getCode())) {
+            throw badRequest("El eventId informado no corresponde a un evento REFERENCIA.");
+        }
+    }
+
+    private Optional<EpisodeEventEntity> findReferenceEvent(EpisodeReferenceEntity reference) {
+        if (reference == null || reference.getEpisode() == null || reference.getEpisode().getId() == null) return Optional.empty();
+        Integer originStageId = reference.getOriginStage() != null ? reference.getOriginStage().getId() : null;
+        LocalDateTime referenceAt = reference.getReferenceDate();
+        List<EpisodeEventEntity> candidates = eventRepository.findByEpisodeIdOrderByEventDateAscEventTimeAscIdAsc(reference.getEpisode().getId()).stream()
+                .filter(ev -> ev.getEventType() != null && "REFERENCIA".equalsIgnoreCase(ev.getEventType().getCode()))
+                .filter(ev -> originStageId == null || (ev.getStage() != null && Objects.equals(ev.getStage().getId(), originStageId)))
+                .toList();
+        if (candidates.isEmpty()) return Optional.empty();
+        if (referenceAt != null) {
+            Optional<EpisodeEventEntity> exact = candidates.stream()
+                    .filter(ev -> Objects.equals(ev.getEventDate(), referenceAt.toLocalDate()))
+                    .filter(ev -> Objects.equals(ev.getEventTime(), referenceAt.toLocalTime()))
+                    .max(eventDateTimeComparator());
+            if (exact.isPresent()) return exact;
+        }
+        return candidates.stream().max(eventDateTimeComparator());
+    }
+
+    private Comparator<EpisodeEventEntity> eventDateTimeComparator() {
+        return Comparator
+                .comparing((EpisodeEventEntity ev) -> Optional.ofNullable(ev.getEventDate()).orElse(LocalDate.MIN))
+                .thenComparing(ev -> Optional.ofNullable(ev.getEventTime()).orElse(java.time.LocalTime.MIN))
+                .thenComparing(ev -> Optional.ofNullable(ev.getId()).orElse(0));
+    }
+
+    private EpisodeReferenceEntity findEpisodeReference(Integer episodeId, Integer referenceId) {
+        EpisodeReferenceEntity reference = referenceRepository.findById(referenceId)
+                .orElseThrow(() -> notFound("Referencia no encontrada"));
+        if (reference.getEpisode() == null || !Objects.equals(reference.getEpisode().getId(), episodeId)) {
+            throw badRequest("La referencia indicada no pertenece al episodio solicitado.");
+        }
+        return reference;
+    }
+
+    private LocalDateTime resolveReferenceDate(String value, LocalDateTime currentValue) {
+        if (hasText(value)) return parseDateTime(value, "referenceDate");
+        return currentValue != null ? currentValue : LocalDateTime.now();
+    }
+
+    private void markDestinationAsCurrent(EpisodeEntity episode, EpisodeStageEntity destinationStage) {
+        if (episode == null || destinationStage == null) return;
+        for (EpisodeStageEntity stage : stageRepository.findByEpisodeIdOrderByStageOrderAsc(episode.getId())) {
+            if (!Objects.equals(stage.getId(), destinationStage.getId()) && Boolean.TRUE.equals(stage.getCurrent())) {
+                stage.setCurrent(false);
+                stageRepository.save(stage);
+            }
+        }
+        destinationStage.setCurrent(true);
+        stageRepository.save(destinationStage);
+        episode.setCurrentStage(destinationStage);
+        episode.setCurrentProgram(destinationStage.getProgram());
+        episode.setStateCode(destinationStage.getStateCode() != null ? destinationStage.getStateCode() : STATE_IN_PROGRESS);
+        episode.setResultCode(destinationStage.getResultCode() != null ? destinationStage.getResultCode() : RESULT_PENDING);
+        episode.setActive(true);
+        episodeRepository.save(episode);
     }
 
     private void applySubstanceCorrection(EpisodeEntity episode, EpisodeStageEntity stage,
@@ -720,6 +988,23 @@ public class EpisodeAdministrativeCorrectionService {
         m.put("closedAt", s.getClosedAt());
         m.put("closureReasonId", s.getClosureReason() != null ? s.getClosureReason().getId() : null);
         m.put("current", s.getCurrent());
+        return m.toString();
+    }
+
+
+    private String snapshotReference(EpisodeReferenceEntity r) {
+        if (r == null) return null;
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", r.getId());
+        m.put("episodeId", r.getEpisode() != null ? r.getEpisode().getId() : null);
+        m.put("originStageId", r.getOriginStage() != null ? r.getOriginStage().getId() : null);
+        m.put("destinationStageId", r.getDestinationStage() != null ? r.getDestinationStage().getId() : null);
+        m.put("originProgramId", r.getOriginProgram() != null ? r.getOriginProgram().getId() : null);
+        m.put("destinationProgramId", r.getDestinationProgram() != null ? r.getDestinationProgram().getId() : null);
+        m.put("referenceDate", r.getReferenceDate());
+        m.put("destinationReceivedAt", r.getDestinationStage() != null ? r.getDestinationStage().getReceivedAt() : null);
+        m.put("reason", r.getReason());
+        m.put("observation", r.getObservation());
         return m.toString();
     }
 

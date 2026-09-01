@@ -34,6 +34,11 @@ public class AdministrativeCorrectionRequest {
     @Schema(description = "Correcciones de sustancias asociadas al episodio. action puede ser CREATE, UPDATE o DELETE.")
     private List<AdministrativeSubstanceCorrectionDTO> substances = new ArrayList<>();
 
+
+    @Builder.Default
+    @Schema(description = "Correcciones de referencias entre etapas/programas. action puede ser CREATE, UPDATE o DELETE. Mantiene sincronizados referenceDate, evento REFERENCIA y receivedAt de la etapa destino.")
+    private List<AdministrativeReferenceCorrectionDTO> references = new ArrayList<>();
+
     @Builder.Default
     @Schema(description = "Correcciones genéricas de eventos. action puede ser CREATE, UPDATE o DELETE.")
     private List<AdministrativeEventCorrectionDTO> events = new ArrayList<>();

@@ -179,7 +179,7 @@ public class DemandService {
                 .episode(episode)
                 .program(program)
                 .stageOrder(1)
-                .receivedAt(LocalDateTime.now())
+                .receivedAt(referenceAt)
                 .stateCode(STATE_IN_PROGRESS)
                 .resultCode(RESULT_PENDING)
                 .current(true)
@@ -672,6 +672,8 @@ public class DemandService {
         ProgramEntity destinationProgram = programRepository.findById(request.getDestinationProgramId())
                 .orElseThrow(() -> notFound("Programa receptor no encontrado"));
         UserEntity currentUser = currentUserOrNull();
+        LocalDateTime referenceAt = parseOptionalDateTime(request.getReferenceDate());
+        if (referenceAt == null) referenceAt = LocalDateTime.now();
         EpisodeStageEntity previousCurrentStage = resolveCurrentStageForRead(episode);
         if (previousCurrentStage != null && !Objects.equals(previousCurrentStage.getId(), originStage.getId())) {
             previousCurrentStage.setCurrent(false);
@@ -689,7 +691,7 @@ public class DemandService {
                 .program(destinationProgram)
                 .stageOrder(stageRepository.findMaxStageOrder(episode.getId()) + 1)
                 .originStage(originStage)
-                .receivedAt(LocalDateTime.now())
+                .receivedAt(referenceAt)
                 .stateCode(STATE_IN_PROGRESS)
                 .resultCode(RESULT_PENDING)
                 .current(true)
@@ -710,6 +712,7 @@ public class DemandService {
                 .destinationStage(destinationStage)
                 .originProgram(originStage.getProgram())
                 .destinationProgram(destinationProgram)
+                .referenceDate(referenceAt)
                 .reason(request.getReason())
                 .observation(request.getObservation())
                 .createdByUser(currentUser)
@@ -718,6 +721,9 @@ public class DemandService {
 
         EpisodeEventEntity event = createInternalEvent(episode, originStage, "REFERENCIA", null, null, originStage.getProgram(), currentUser, currentUser,
                 "Referencia a " + destinationProgram.getName(), null, request.getObservation(), null, null, RESULT_REFERENCE, STATE_IN_PROGRESS);
+        event.setEventDate(referenceAt.toLocalDate());
+        event.setEventTime(referenceAt.toLocalTime());
+        eventRepository.save(event);
         audit(episode, originStage, event, "REFERENCIA", originStage.getProgram().getName(), destinationProgram.getName(), request.getReason(), currentUser, null, null);
         return toReferenceDTO(reference);
     }
@@ -2127,7 +2133,6 @@ public class DemandService {
     private PrioritizedEpisodeDTO toPrioritizedDTO(EpisodeEntity e) {
         int days = accumulatedDays(e);
         List<EpisodeEventEntity> events = eventRepository.findByEpisodeIdOrderByEventDateAscEventTimeAscIdAsc(e.getId());
-        EpisodeEventEntity feedback = latestEventByType(events, "RETROALIMENTACION");
         EpisodeStageEntity currentStage = resolveCurrentStageForRead(e);
         EpisodeStageEntity originStage = currentStage != null ? currentStage.getOriginStage() : null;
         ProgramEntity originProgram = originStage != null ? originStage.getProgram() : null;
@@ -2135,7 +2140,8 @@ public class DemandService {
         String currentStageResultCode = currentStage != null ? currentStage.getResultCode() : e.getResultCode();
         Integer currentStageId = currentStage != null ? currentStage.getId() : null;
         List<EpisodeEventEntity> currentStageEvents = filterEventsByStage(events, currentStage);
-        EpisodeEventEntity last = latestEvent(currentStageEvents);
+        EpisodeEventEntity feedback = latestEventByType(currentStageEvents, "RETROALIMENTACION");
+        EpisodeEventEntity last = latestManagementEvent(currentStageEvents, currentStage);
         boolean hasFirstCitationInCurrentStage = hasFirstCitationForDashboard(currentStageEvents);
         boolean hasFeedbackInCurrentStage = currentStageEvents.stream().anyMatch(ev ->
                 ev.getEventType() != null
@@ -2175,13 +2181,31 @@ public class DemandService {
                 .biopsychosocialCommitmentCode(feedback != null && feedback.getBiopsychosocialCommitmentLevel() != null
                         ? feedback.getBiopsychosocialCommitmentLevel().getCode()
                         : null)
-                .suggestedAction(suggestedAction(e, currentStage, hasFirstCitationInCurrentStage, hasFeedbackInCurrentStage))
+                .feedbackResultCode(feedback != null ? feedback.getResultCode() : null)
+                .suggestedAction(suggestedAction(e, currentStage, feedback, hasFirstCitationInCurrentStage, hasFeedbackInCurrentStage))
                 .build();
     }
 
     private EpisodeEventEntity latestEvent(List<EpisodeEventEntity> events) {
         if (events == null || events.isEmpty()) return null;
         return events.get(events.size() - 1);
+    }
+
+    private EpisodeEventEntity latestManagementEvent(List<EpisodeEventEntity> events, EpisodeStageEntity stage) {
+        if (events == null || events.isEmpty()) return null;
+        boolean stageOpen = stage != null
+                && stage.getClosedAt() == null
+                && !STATE_CLOSED.equalsIgnoreCase(Optional.ofNullable(stage.getStateCode()).orElse(""));
+        for (int i = events.size() - 1; i >= 0; i--) {
+            EpisodeEventEntity event = events.get(i);
+            if (event == null || event.getEventType() == null) continue;
+            String typeCode = normalizeCode(event.getEventType().getCode());
+            // Una etapa reabierta puede conservar eventos históricos de CIERRE.
+            // Si la etapa está abierta, ese cierre histórico no debe mostrarse como última gestión vigente.
+            if (stageOpen && RESULT_CLOSURE.equals(typeCode)) continue;
+            return event;
+        }
+        return null;
     }
 
     private EpisodeEventEntity latestEventByType(List<EpisodeEventEntity> events, String eventTypeCode) {
@@ -2262,6 +2286,7 @@ public class DemandService {
             case "secondcitationthirdinterviewdate" -> dto.getSecondCitationThirdInterviewDate();
             case "optionalinterviewdate" -> dto.getOptionalInterviewDate();
             case "feedbackdate" -> dto.getFeedbackDate();
+            case "feedbackresultcode" -> normalizeSortText(dto.getFeedbackResultCode());
             case "closuredate" -> dto.getClosureDate();
             case "suggestedaction" -> normalizeSortText(dto.getSuggestedAction());
             default -> dto.getEpisodeId();
@@ -2317,10 +2342,22 @@ public class DemandService {
         return STATE_CLOSED.equalsIgnoreCase(Optional.ofNullable(episode.getStateCode()).orElse(""));
     }
 
-    private String suggestedAction(EpisodeEntity e, EpisodeStageEntity currentStage, boolean hasCitation, boolean hasFeedbackInCurrentStage) {
+    private String suggestedAction(EpisodeEntity e, EpisodeStageEntity currentStage, EpisodeEventEntity feedback, boolean hasCitation, boolean hasFeedbackInCurrentStage) {
         if (isEpisodeClosed(e)) {
             return null;
         }
+
+        // Si ya existe retroalimentación vigente en la etapa actual, la acción se define
+        // desde el resultado de esa retroalimentación y no vuelve a proponer citaciones.
+        if (feedback != null) {
+            String feedbackResultCode = normalizeCode(feedback.getResultCode());
+            if (RESULT_REFERENCE.equals(feedbackResultCode)) return "Referir a otro programa";
+            if (RESULT_WAITING_LIST.equals(feedbackResultCode)) return "Gestionar cupo / revisar prioridad";
+            if (RESULT_TREATMENT_ENTRY.equals(feedbackResultCode)) return "Registrar cierre cuando corresponda";
+            if ("ABANDONO".equals(feedbackResultCode) || RESULT_CLOSURE.equals(feedbackResultCode)) return "Registrar cierre cuando corresponda";
+            return "Revisar caso y definir resultado";
+        }
+
         String currentResultCode = currentStage != null ? currentStage.getResultCode() : (e != null ? e.getResultCode() : null);
         List<EpisodeEventEntity> currentStageEvents = List.of();
         if (e != null && e.getId() != null) {
@@ -2336,7 +2373,7 @@ public class DemandService {
         }
 
         if (RESULT_WAITING_LIST.equalsIgnoreCase(Optional.ofNullable(currentResultCode).orElse(""))) return "Gestionar cupo / revisar prioridad";
-        if (RESULT_REFERENCE.equalsIgnoreCase(Optional.ofNullable(currentResultCode).orElse(""))) return "Confirmar recepción en programa destino";
+        if (RESULT_REFERENCE.equalsIgnoreCase(Optional.ofNullable(currentResultCode).orElse(""))) return "Referir a otro programa";
         if (RESULT_TREATMENT_ENTRY.equalsIgnoreCase(Optional.ofNullable(currentResultCode).orElse(""))) return "Registrar cierre cuando corresponda";
         if (!hasFeedbackInCurrentStage) return "Registrar retroalimentación";
         return "Revisar caso y definir resultado";

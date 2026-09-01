@@ -42,6 +42,7 @@ public class PrioritizedEpisodeDTO {
     private LocalDate feedbackDate;
     private LocalDate closureDate;
     private String biopsychosocialCommitmentCode;
+    private String feedbackResultCode;
 
     private String suggestedAction;
 }
