@@ -1,6 +1,8 @@
 package com.cosam.project01.demand.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.cosam.project01.demand.jackson.FlexibleLocalTimeDeserializer;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
@@ -18,6 +20,7 @@ public class CreateCitationRequest {
     private LocalDate citationDate;
 
     @NotNull
+    @JsonDeserialize(using = FlexibleLocalTimeDeserializer.class)
     private LocalTime citationTime;
 
     @Schema(description = "Código del tipo de citación seleccionado. Se guarda en episode_events.citation_type_id y se usa solo en eventos CITACION.", example = "PRIMERA_CITACION_PRIMERA_ENTREVISTA")

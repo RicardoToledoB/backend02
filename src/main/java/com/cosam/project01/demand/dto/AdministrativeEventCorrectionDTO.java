@@ -1,6 +1,8 @@
 package com.cosam.project01.demand.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.cosam.project01.demand.jackson.FlexibleLocalTimeDeserializer;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -22,6 +24,7 @@ public class AdministrativeEventCorrectionDTO {
     private String citationTypeCode;
     private String biopsychosocialCommitmentCode;
     private LocalDate eventDate;
+    @JsonDeserialize(using = FlexibleLocalTimeDeserializer.class)
     private LocalTime eventTime;
     private Integer attendanceStatusId;
     private String attendanceStatusCode;

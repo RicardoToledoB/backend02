@@ -783,6 +783,11 @@ public class EpisodeAdministrativeCorrectionService {
             if (event.getEventDate() == null) event.setEventDate(LocalDate.now());
             if (event.getEventTime() == null) event.setEventTime(java.time.LocalTime.now());
             if (event.getEventType() == null) throw badRequest("Debe indicar eventTypeCode/eventTypeId para crear el evento.");
+            if ("CITACION".equalsIgnoreCase(event.getEventType().getCode()) && event.getAttendanceStatus() == null) {
+                event.setAttendanceStatus(attendanceStatusRepository.findByCodeIgnoreCase("AGENDADO").orElse(null));
+            }
+            if (event.getStateCode() == null) event.setStateCode(STATE_IN_PROGRESS);
+            if (event.getResultCode() == null) event.setResultCode(episode.getResultCode());
         }
     }
 

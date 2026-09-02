@@ -1,5 +1,7 @@
 package com.cosam.project01.demand.dto;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.cosam.project01.demand.jackson.FlexibleLocalTimeDeserializer;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
@@ -14,6 +16,7 @@ public class RegisterAttendanceRequest {
     private Integer stageId;
     private Integer relatedEventId;
     private LocalDate eventDate;
+    @JsonDeserialize(using = FlexibleLocalTimeDeserializer.class)
     private LocalTime eventTime;
     private Integer professionalUserId;
     private Long programProfessionalId;
