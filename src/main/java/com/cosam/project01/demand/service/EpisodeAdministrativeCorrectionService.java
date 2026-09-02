@@ -116,21 +116,7 @@ public class EpisodeAdministrativeCorrectionService {
             applyReferenceCorrection(episode, targetStage, item, request.getCorrectionReason(), currentUser, response);
         }
 
-        for (AdministrativeEventCorrectionDTO item : safeList(request.getEvents())) {
-            applyEventCorrection(episode, targetStage, item, null, request.getCorrectionReason(), currentUser, response);
-        }
-        for (AdministrativeEventCorrectionDTO item : safeList(request.getCitations())) {
-            applyEventCorrection(episode, targetStage, item, "CITACION", request.getCorrectionReason(), currentUser, response);
-        }
-        for (AdministrativeEventCorrectionDTO item : safeList(request.getAttendances())) {
-            applyEventCorrection(episode, targetStage, item, "ASISTENCIA", request.getCorrectionReason(), currentUser, response);
-        }
-        for (AdministrativeEventCorrectionDTO item : safeList(request.getFeedbacks())) {
-            applyEventCorrection(episode, targetStage, item, "RETROALIMENTACION", request.getCorrectionReason(), currentUser, response);
-        }
-        for (AdministrativeEventCorrectionDTO item : safeList(request.getObservations())) {
-            applyEventCorrection(episode, targetStage, item, "OBSERVACION", request.getCorrectionReason(), currentUser, response);
-        }
+        applyEventCorrectionsInSafeOrder(episode, targetStage, request, request.getCorrectionReason(), currentUser, response);
 
         response.setProgramId(targetStage != null && targetStage.getProgram() != null ? targetStage.getProgram().getId() : response.getProgramId());
         response.setProgramName(targetStage != null && targetStage.getProgram() != null ? targetStage.getProgram().getName() : response.getProgramName());
@@ -638,6 +624,78 @@ public class EpisodeAdministrativeCorrectionService {
         audit(episode, stage, null, "CORRECCION_ADMINISTRATIVA_ACTUALIZAR_SUSTANCIA", before, snapshotSubstance(entity), correctionReason, currentUser);
         inc(response, "updatedSubstances");
         incAudit(response);
+    }
+
+    private void applyEventCorrectionsInSafeOrder(EpisodeEntity episode,
+                                                  EpisodeStageEntity targetStage,
+                                                  AdministrativeCorrectionRequest request,
+                                                  String correctionReason,
+                                                  UserEntity currentUser,
+                                                  AdministrativeCorrectionResponse response) {
+        List<EventCorrectionWorkItem> workItems = new ArrayList<>();
+        addEventWorkItems(workItems, request.getEvents(), null);
+        addEventWorkItems(workItems, request.getCitations(), "CITACION");
+        addEventWorkItems(workItems, request.getAttendances(), "ASISTENCIA");
+        addEventWorkItems(workItems, request.getFeedbacks(), "RETROALIMENTACION");
+        addEventWorkItems(workItems, request.getObservations(), "OBSERVACION");
+
+        // Primero se procesan las eliminaciones/anulaciones lógicas, pero en orden seguro:
+        // ASISTENCIA antes que CITACION. De lo contrario, al anular una citación y luego
+        // intentar anular su asistencia relacionada en la misma transacción, Hibernate puede
+        // intentar resolver relatedEvent hacia una citación ya filtrada por @Where(deleted_at IS NULL).
+        workItems.stream()
+                .filter(workItem -> isDeleteAction(workItem.item))
+                .sorted(Comparator.comparingInt(workItem -> deleteEventPriority(episode.getId(), workItem)))
+                .forEach(workItem -> applyEventCorrection(episode, targetStage, workItem.item,
+                        workItem.defaultEventTypeCode, correctionReason, currentUser, response));
+
+        // Luego se procesan CREATE/UPDATE manteniendo el orden lógico de las colecciones del request.
+        workItems.stream()
+                .filter(workItem -> !isDeleteAction(workItem.item))
+                .forEach(workItem -> applyEventCorrection(episode, targetStage, workItem.item,
+                        workItem.defaultEventTypeCode, correctionReason, currentUser, response));
+    }
+
+    private void addEventWorkItems(List<EventCorrectionWorkItem> workItems,
+                                   List<AdministrativeEventCorrectionDTO> items,
+                                   String defaultEventTypeCode) {
+        for (AdministrativeEventCorrectionDTO item : safeList(items)) {
+            if (item != null) {
+                workItems.add(new EventCorrectionWorkItem(item, defaultEventTypeCode));
+            }
+        }
+    }
+
+    private boolean isDeleteAction(AdministrativeEventCorrectionDTO item) {
+        return item != null && hasText(item.getAction())
+                && ACTION_DELETE.equalsIgnoreCase(item.getAction().trim());
+    }
+
+    private int deleteEventPriority(Integer episodeId, EventCorrectionWorkItem workItem) {
+        String eventTypeCode = eventTypeCodeForDeleteOrdering(episodeId, workItem);
+        if ("ASISTENCIA".equalsIgnoreCase(eventTypeCode)) return 0;
+        if ("CITACION".equalsIgnoreCase(eventTypeCode)) return 2;
+        return 1;
+    }
+
+    private String eventTypeCodeForDeleteOrdering(Integer episodeId, EventCorrectionWorkItem workItem) {
+        if (workItem == null || workItem.item == null) return null;
+        String explicitCode = firstText(workItem.item.getEventTypeCode(), workItem.defaultEventTypeCode);
+        if (hasText(explicitCode)) return explicitCode.trim();
+        Integer eventId = firstNonNull(workItem.item.getEventId(), workItem.item.getId());
+        if (eventId == null) return null;
+        EpisodeEventEntity event = findEpisodeEvent(episodeId, eventId);
+        return event.getEventType() != null ? event.getEventType().getCode() : null;
+    }
+
+    private static final class EventCorrectionWorkItem {
+        private final AdministrativeEventCorrectionDTO item;
+        private final String defaultEventTypeCode;
+
+        private EventCorrectionWorkItem(AdministrativeEventCorrectionDTO item, String defaultEventTypeCode) {
+            this.item = item;
+            this.defaultEventTypeCode = defaultEventTypeCode;
+        }
     }
 
     private void applyEventCorrection(EpisodeEntity episode, EpisodeStageEntity defaultStage,
