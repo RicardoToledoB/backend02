@@ -43,7 +43,7 @@ public class FlexibleLocalTimeDeserializer extends JsonDeserializer<LocalTime> {
             return parseArray(parser, context);
         }
 
-        return (LocalTime) context.handleUnexpectedToken(LocalTime.class, parser,
+        return (LocalTime) context.handleUnexpectedToken(LocalTime.class, token, parser,
                 "La hora debe venir como string HH:mm[:ss] o como objeto {hour, minute, second, nano}.");
     }
 
@@ -88,7 +88,7 @@ public class FlexibleLocalTimeDeserializer extends JsonDeserializer<LocalTime> {
         }
 
         if (hour == null) {
-            return (LocalTime) context.handleUnexpectedToken(LocalTime.class, parser,
+            return (LocalTime) context.handleUnexpectedToken(LocalTime.class, JsonToken.START_OBJECT, parser,
                     "El objeto de hora debe incluir hour.");
         }
 
