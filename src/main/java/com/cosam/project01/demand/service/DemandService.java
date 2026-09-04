@@ -237,7 +237,7 @@ public class DemandService {
                 .findPrioritized(programId, stateCode, resultCode, Pageable.unpaged())
                 .getContent()
                 .stream()
-                .filter(episode -> matchesPrioritizedSearch(episode, normalizedSearch, normalizedRutSearch))
+                .filter(episode -> matchesPrioritizedSearch(episode, search, normalizedSearch, normalizedRutSearch))
                 .map(this::toPrioritizedDTO)
                 .toList());
 
@@ -252,11 +252,39 @@ public class DemandService {
         return new PageImpl<>(rows.subList(start, end), requestedPageable, rows.size());
     }
 
-    private boolean matchesPrioritizedSearch(EpisodeEntity episode, String normalizedSearch, String normalizedRutSearch) {
+    private boolean matchesPrioritizedSearch(EpisodeEntity episode, String rawSearch, String normalizedSearch, String normalizedRutSearch) {
         if (!hasText(normalizedSearch) && !hasText(normalizedRutSearch)) {
             return true;
         }
-        if (episode == null || episode.getPostulant() == null) {
+        if (episode == null) {
+            return false;
+        }
+
+        String searchCompact = normalizeCompactSearchText(rawSearch);
+        String episodeCodeText = normalizeSearchText(episode.getEpisodeCode());
+        String episodeCodeCompact = normalizeCompactSearchText(episode.getEpisodeCode());
+
+        // Búsqueda explícita por código de episodio.
+        // Ejemplos: DEM-000011, dem-000011 o DEM000011.
+        if (hasText(searchCompact) && searchCompact.startsWith("dem")) {
+            return hasText(episodeCodeCompact) && episodeCodeCompact.contains(searchCompact);
+        }
+
+        // Cuando el usuario escribe un número corto, se interpreta como búsqueda operativa
+        // por episodeId / correlativo de episodeCode. Esto evita que search=11 devuelva
+        // preferentemente personas cuyos RUN contienen "11".
+        Integer requestedEpisodeId = parseShortEpisodeIdSearch(rawSearch, normalizedRutSearch);
+        if (requestedEpisodeId != null) {
+            if (episode.getId() != null && episode.getId().equals(requestedEpisodeId)) {
+                return true;
+            }
+            String episodeCodeDigits = normalizeRutSearch(episode.getEpisodeCode());
+            String requestedDigits = stripLeadingZeros(normalizedRutSearch);
+            String episodeDigits = stripLeadingZeros(episodeCodeDigits);
+            return hasText(requestedDigits) && hasText(episodeDigits) && episodeDigits.equals(requestedDigits);
+        }
+
+        if (episode.getPostulant() == null) {
             return false;
         }
 
@@ -274,15 +302,36 @@ public class DemandService {
             return false;
         }
 
+        if (hasText(episodeCodeText) && episodeCodeText.contains(normalizedSearch)) {
+            return true;
+        }
+        if (hasText(searchCompact) && hasText(episodeCodeCompact) && episodeCodeCompact.contains(searchCompact)) {
+            return true;
+        }
+
         String firstName = normalizeSearchText(postulant.getFirstName());
         String firstLastName = normalizeSearchText(postulant.getFirstLastName());
         String secondLastName = normalizeSearchText(postulant.getSecondLastName());
         String legacyLastName = normalizeSearchText(postulant.getLastName());
         String rutText = normalizeSearchText(postulant.getRut());
+        String rutCompact = normalizeRutSearch(postulant.getRut());
+        String episodeIdText = episode.getId() != null ? String.valueOf(episode.getId()) : null;
 
         String fullName = joinNormalized(firstName, firstLastName, secondLastName);
         String alternateFullName = joinNormalized(firstName, legacyLastName, secondLastName);
-        String searchableText = joinNormalized(rutText, firstName, firstLastName, secondLastName, legacyLastName, fullName, alternateFullName);
+        String searchableText = joinNormalized(
+                episodeIdText,
+                episodeCodeText,
+                episodeCodeCompact,
+                rutText,
+                rutCompact,
+                firstName,
+                firstLastName,
+                secondLastName,
+                legacyLastName,
+                fullName,
+                alternateFullName
+        );
 
         if (searchableText.contains(normalizedSearch)) {
             return true;
@@ -295,6 +344,33 @@ public class DemandService {
                 .filter(this::hasText)
                 .toList();
         return !tokens.isEmpty() && tokens.stream().allMatch(searchableText::contains);
+    }
+
+    private Integer parseShortEpisodeIdSearch(String rawSearch, String normalizedRutSearch) {
+        if (!hasText(rawSearch) || !hasText(normalizedRutSearch)) {
+            return null;
+        }
+        String raw = rawSearch.trim();
+        if (!raw.matches("\\d{1,6}")) {
+            return null;
+        }
+        String withoutLeadingZeros = stripLeadingZeros(normalizedRutSearch);
+        if (!hasText(withoutLeadingZeros)) {
+            return null;
+        }
+        try {
+            return Integer.valueOf(withoutLeadingZeros);
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    private String stripLeadingZeros(String value) {
+        if (!hasText(value)) {
+            return null;
+        }
+        String stripped = value.replaceFirst("^0+(?!$)", "");
+        return stripped.isBlank() ? "0" : stripped;
     }
 
     private String normalizeSearchText(String value) {
@@ -320,6 +396,15 @@ public class DemandService {
         }
         String normalized = value.replaceAll("[^0-9kK]", "").toLowerCase(Locale.ROOT);
         return normalized.isBlank() ? null : normalized;
+    }
+
+    private String normalizeCompactSearchText(String value) {
+        String normalized = normalizeSearchText(value);
+        if (!hasText(normalized)) {
+            return null;
+        }
+        String compact = normalized.replaceAll("[^a-z0-9kñ]", "");
+        return compact.isBlank() ? null : compact;
     }
 
     private String joinNormalized(String... values) {
@@ -2152,6 +2237,7 @@ public class DemandService {
                 .episodeCode(e.getEpisodeCode())
                 .rut(e.getPostulant() != null ? e.getPostulant().getRut() : null)
                 .personName(personName(e.getPostulant()))
+                .createdByUser(toUserDTO(e.getCreatedByUser()))
                 .currentProgram(toProgramDTO(e.getCurrentProgram()))
                 .currentStageId(currentStageId)
                 .currentStageStateCode(currentStageStateCode)

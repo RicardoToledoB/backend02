@@ -14,6 +14,7 @@ public class PrioritizedEpisodeDTO {
     private String episodeCode;
     private String rut;
     private String personName;
+    private UserSummaryDTO createdByUser;
     private ProgramSummaryDTO currentProgram;
     private Integer currentStageId;
     private String currentStageStateCode;
