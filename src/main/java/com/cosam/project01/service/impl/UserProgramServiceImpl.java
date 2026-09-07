@@ -77,6 +77,13 @@ public class UserProgramServiceImpl implements IUserProgramService {
                 .isActive(entity.getIsActive())
                 .isSupervisor(entity.getIsSupervisor())
                 .canReceiveReferences(entity.getCanReceiveReferences())
+                .canManageCommunications(entity.getCanManageCommunications())
+                .canReceiveCitations(entity.getCanReceiveCitations())
+                .canReceiveAttendances(entity.getCanReceiveAttendances())
+                .canReceiveFeedback(entity.getCanReceiveFeedback())
+                .canReceiveClosures(entity.getCanReceiveClosures())
+                .canReceiveDocuments(entity.getCanReceiveDocuments())
+                .canReceiveObservations(entity.getCanReceiveObservations())
                 .canManageDemands(entity.getCanManageDemands())
                 .canViewDashboard(entity.getCanViewDashboard())
                 .roleInProgram(entity.getRoleInProgram())
@@ -94,10 +101,17 @@ public class UserProgramServiceImpl implements IUserProgramService {
                 .program(programRepository.findById(dto.getProgram().getId())
                         .orElseThrow(() -> new RuntimeException("Program not found")))
                 .isActive(dto.getIsActive())
-                .isSupervisor(dto.getIsSupervisor())
-                .canReceiveReferences(dto.getCanReceiveReferences())
-                .canManageDemands(dto.getCanManageDemands())
-                .canViewDashboard(dto.getCanViewDashboard())
+                .isSupervisor(valueOrDefault(dto.getIsSupervisor(), false))
+                .canReceiveReferences(valueOrDefault(dto.getCanReceiveReferences(), false))
+                .canManageCommunications(valueOrDefault(dto.getCanManageCommunications(), false))
+                .canReceiveCitations(valueOrDefault(dto.getCanReceiveCitations(), false))
+                .canReceiveAttendances(valueOrDefault(dto.getCanReceiveAttendances(), false))
+                .canReceiveFeedback(valueOrDefault(dto.getCanReceiveFeedback(), false))
+                .canReceiveClosures(valueOrDefault(dto.getCanReceiveClosures(), false))
+                .canReceiveDocuments(valueOrDefault(dto.getCanReceiveDocuments(), false))
+                .canReceiveObservations(valueOrDefault(dto.getCanReceiveObservations(), false))
+                .canManageDemands(valueOrDefault(dto.getCanManageDemands(), false))
+                .canViewDashboard(valueOrDefault(dto.getCanViewDashboard(), false))
                 .roleInProgram(dto.getRoleInProgram())
                 .createdAt(dto.getCreatedAt())
                 .updatedAt(dto.getUpdatedAt())
@@ -119,11 +133,18 @@ public class UserProgramServiceImpl implements IUserProgramService {
                 .orElseThrow(() -> new RuntimeException("User not found")));
         entity.setProgram(programRepository.findById(dto.getProgram().getId())
                 .orElseThrow(() -> new RuntimeException("Program not found")));
-        entity.setIsActive(dto.getIsActive());
-        entity.setIsSupervisor(dto.getIsSupervisor());
-        entity.setCanReceiveReferences(dto.getCanReceiveReferences());
-        entity.setCanManageDemands(dto.getCanManageDemands());
-        entity.setCanViewDashboard(dto.getCanViewDashboard());
+        entity.setIsActive(valueOrExisting(dto.getIsActive(), entity.getIsActive()));
+        entity.setIsSupervisor(valueOrExisting(dto.getIsSupervisor(), entity.getIsSupervisor()));
+        entity.setCanReceiveReferences(valueOrExisting(dto.getCanReceiveReferences(), entity.getCanReceiveReferences()));
+        entity.setCanManageCommunications(valueOrExisting(dto.getCanManageCommunications(), entity.getCanManageCommunications()));
+        entity.setCanReceiveCitations(valueOrExisting(dto.getCanReceiveCitations(), entity.getCanReceiveCitations()));
+        entity.setCanReceiveAttendances(valueOrExisting(dto.getCanReceiveAttendances(), entity.getCanReceiveAttendances()));
+        entity.setCanReceiveFeedback(valueOrExisting(dto.getCanReceiveFeedback(), entity.getCanReceiveFeedback()));
+        entity.setCanReceiveClosures(valueOrExisting(dto.getCanReceiveClosures(), entity.getCanReceiveClosures()));
+        entity.setCanReceiveDocuments(valueOrExisting(dto.getCanReceiveDocuments(), entity.getCanReceiveDocuments()));
+        entity.setCanReceiveObservations(valueOrExisting(dto.getCanReceiveObservations(), entity.getCanReceiveObservations()));
+        entity.setCanManageDemands(valueOrExisting(dto.getCanManageDemands(), entity.getCanManageDemands()));
+        entity.setCanViewDashboard(valueOrExisting(dto.getCanViewDashboard(), entity.getCanViewDashboard()));
         entity.setRoleInProgram(dto.getRoleInProgram());
         return mapToDTO(repository.save(entity));
     }
@@ -194,6 +215,14 @@ public class UserProgramServiceImpl implements IUserProgramService {
                 .orElseThrow(() -> new RuntimeException("La relación usuario-programa no existe o ya fue eliminada."));
         entity.setDeletedAt(LocalDateTime.now());
         repository.save(entity);
+    }
+
+    private Boolean valueOrDefault(Boolean value, Boolean defaultValue) {
+        return value != null ? value : defaultValue;
+    }
+
+    private Boolean valueOrExisting(Boolean value, Boolean existingValue) {
+        return value != null ? value : valueOrDefault(existingValue, false);
     }
 
 }

@@ -21,6 +21,13 @@ public record AuthProgramDTO(
         Boolean isActive,
         Boolean isSupervisor,
         Boolean canReceiveReferences,
+        Boolean canManageCommunications,
+        Boolean canReceiveCitations,
+        Boolean canReceiveAttendances,
+        Boolean canReceiveFeedback,
+        Boolean canReceiveClosures,
+        Boolean canReceiveDocuments,
+        Boolean canReceiveObservations,
         Boolean canManageDemands,
         Boolean canViewDashboard,
         String roleInProgram

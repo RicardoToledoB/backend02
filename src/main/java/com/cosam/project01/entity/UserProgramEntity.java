@@ -35,6 +35,13 @@ public class UserProgramEntity {
     private Boolean isActive;
     private Boolean isSupervisor;
     private Boolean canReceiveReferences;
+    private Boolean canManageCommunications;
+    private Boolean canReceiveCitations;
+    private Boolean canReceiveAttendances;
+    private Boolean canReceiveFeedback;
+    private Boolean canReceiveClosures;
+    private Boolean canReceiveDocuments;
+    private Boolean canReceiveObservations;
     private Boolean canManageDemands;
     private Boolean canViewDashboard;
     private String roleInProgram;
@@ -48,13 +55,27 @@ public class UserProgramEntity {
         this.createdAt = LocalDateTime.now();
         if (this.isActive == null) this.isActive = true;
         if (this.isSupervisor == null) this.isSupervisor = false;
-        if (this.canReceiveReferences == null) this.canReceiveReferences = false;
-        if (this.canManageDemands == null) this.canManageDemands = false;
-        if (this.canViewDashboard == null) this.canViewDashboard = false;
+        applyBooleanDefaults();
     }
 
     @PreUpdate
     private void updatedAt(){
         this.updatedAt = LocalDateTime.now();
+        applyBooleanDefaults();
+    }
+
+    private void applyBooleanDefaults() {
+        if (this.isActive == null) this.isActive = true;
+        if (this.isSupervisor == null) this.isSupervisor = false;
+        if (this.canReceiveReferences == null) this.canReceiveReferences = false;
+        if (this.canManageCommunications == null) this.canManageCommunications = false;
+        if (this.canReceiveCitations == null) this.canReceiveCitations = false;
+        if (this.canReceiveAttendances == null) this.canReceiveAttendances = false;
+        if (this.canReceiveFeedback == null) this.canReceiveFeedback = false;
+        if (this.canReceiveClosures == null) this.canReceiveClosures = false;
+        if (this.canReceiveDocuments == null) this.canReceiveDocuments = false;
+        if (this.canReceiveObservations == null) this.canReceiveObservations = false;
+        if (this.canManageDemands == null) this.canManageDemands = false;
+        if (this.canViewDashboard == null) this.canViewDashboard = false;
     }
 }

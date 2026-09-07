@@ -176,6 +176,13 @@ public class AuthController {
             p.put("name", program.name());
             p.put("isSupervisor", Boolean.TRUE.equals(program.isSupervisor()));
             p.put("canReceiveReferences", Boolean.TRUE.equals(program.canReceiveReferences()));
+            p.put("canManageCommunications", Boolean.TRUE.equals(program.canManageCommunications()));
+            p.put("canReceiveCitations", Boolean.TRUE.equals(program.canReceiveCitations()));
+            p.put("canReceiveAttendances", Boolean.TRUE.equals(program.canReceiveAttendances()));
+            p.put("canReceiveFeedback", Boolean.TRUE.equals(program.canReceiveFeedback()));
+            p.put("canReceiveClosures", Boolean.TRUE.equals(program.canReceiveClosures()));
+            p.put("canReceiveDocuments", Boolean.TRUE.equals(program.canReceiveDocuments()));
+            p.put("canReceiveObservations", Boolean.TRUE.equals(program.canReceiveObservations()));
             p.put("canManageDemands", Boolean.TRUE.equals(program.canManageDemands()));
             p.put("canViewDashboard", Boolean.TRUE.equals(program.canViewDashboard()));
             p.put("roleInProgram", program.roleInProgram());
@@ -244,6 +251,13 @@ public class AuthController {
                 userProgram.getIsActive(),
                 userProgram.getIsSupervisor(),
                 userProgram.getCanReceiveReferences(),
+                userProgram.getCanManageCommunications(),
+                userProgram.getCanReceiveCitations(),
+                userProgram.getCanReceiveAttendances(),
+                userProgram.getCanReceiveFeedback(),
+                userProgram.getCanReceiveClosures(),
+                userProgram.getCanReceiveDocuments(),
+                userProgram.getCanReceiveObservations(),
                 userProgram.getCanManageDemands(),
                 userProgram.getCanViewDashboard(),
                 userProgram.getRoleInProgram()

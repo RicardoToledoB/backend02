@@ -18,6 +18,13 @@ public class UserProgramDTO {
     private Boolean isActive;
     private Boolean isSupervisor;
     private Boolean canReceiveReferences;
+    private Boolean canManageCommunications;
+    private Boolean canReceiveCitations;
+    private Boolean canReceiveAttendances;
+    private Boolean canReceiveFeedback;
+    private Boolean canReceiveClosures;
+    private Boolean canReceiveDocuments;
+    private Boolean canReceiveObservations;
     private Boolean canManageDemands;
     private Boolean canViewDashboard;
     private String roleInProgram;
