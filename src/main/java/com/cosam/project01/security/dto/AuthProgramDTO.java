@@ -30,5 +30,6 @@ public record AuthProgramDTO(
         Boolean canReceiveObservations,
         Boolean canManageDemands,
         Boolean canViewDashboard,
+        Boolean transversal,
         String roleInProgram
 ) {}

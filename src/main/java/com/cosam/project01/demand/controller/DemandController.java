@@ -70,6 +70,17 @@ public class DemandController {
         return ResponseEntity.ok(service.getPrioritized(programId, stateCode, resultCode, search, pageable));
     }
 
+
+    @GetMapping("/episodes/prioritized/stages")
+    public ResponseEntity<Page<PrioritizedEpisodeStageDTO>> prioritizedStages(
+            @RequestParam(required = false) Integer programId,
+            @RequestParam(required = false) String stateCode,
+            @RequestParam(required = false) String resultCode,
+            @RequestParam(required = false) String search,
+            @PageableDefault(size = 20, sort = "originalRequestDate", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(service.getPrioritizedStages(programId, stateCode, resultCode, search, pageable));
+    }
+
     @GetMapping("/episodes/{id}")
     public ResponseEntity<EpisodeDTO> getEpisode(@PathVariable Integer id) {
         return ResponseEntity.ok(service.getEpisode(id));

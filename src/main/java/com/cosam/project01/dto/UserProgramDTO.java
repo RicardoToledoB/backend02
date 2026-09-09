@@ -13,8 +13,12 @@ import java.time.LocalDateTime;
 @Builder
 public class UserProgramDTO {
     private Integer id;
+    private Integer userId;
+    private Integer programId;
     private UserDTO user;
     private ProgramDTO program;
+    private Boolean transversal;
+    private String communicationScope;
     private Boolean isActive;
     private Boolean isSupervisor;
     private Boolean canReceiveReferences;

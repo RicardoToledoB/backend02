@@ -3,7 +3,6 @@ package com.cosam.project01.service.impl;
 import com.cosam.project01.dto.ProgramDTO;
 import com.cosam.project01.dto.UserDTO;
 import com.cosam.project01.dto.UserProgramDTO;
-import com.cosam.project01.dto.UserRoleDTO;
 import com.cosam.project01.entity.ProgramEntity;
 import com.cosam.project01.entity.UserEntity;
 import com.cosam.project01.entity.UserProgramEntity;
@@ -15,10 +14,15 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,6 +38,7 @@ public class UserProgramServiceImpl implements IUserProgramService {
     private ProgramRepository programRepository;
 
     private UserDTO mapUserToDTO(UserEntity user) {
+        if (user == null) return null;
         return UserDTO.builder()
                 .id(user.getId())
                 .firstName(user.getFirstName())
@@ -50,6 +55,7 @@ public class UserProgramServiceImpl implements IUserProgramService {
     }
 
     private ProgramDTO mapProgramToDTO(ProgramEntity program) {
+        if (program == null) return null;
         return ProgramDTO.builder()
                 .id(program.getId())
                 .name(program.getName())
@@ -70,10 +76,16 @@ public class UserProgramServiceImpl implements IUserProgramService {
     }
 
     private UserProgramDTO mapToDTO(UserProgramEntity entity) {
+        ProgramEntity program = entity.getProgram();
+        boolean transversal = program == null;
         return UserProgramDTO.builder()
                 .id(entity.getId())
+                .userId(entity.getUser() != null ? entity.getUser().getId() : null)
+                .programId(program != null ? program.getId() : null)
                 .user(mapUserToDTO(entity.getUser()))
-                .program(mapProgramToDTO(entity.getProgram()))
+                .program(mapProgramToDTO(program))
+                .transversal(transversal)
+                .communicationScope(transversal ? "TRANSVERSAL" : "PROGRAM")
                 .isActive(entity.getIsActive())
                 .isSupervisor(entity.getIsSupervisor())
                 .canReceiveReferences(entity.getCanReceiveReferences())
@@ -96,11 +108,9 @@ public class UserProgramServiceImpl implements IUserProgramService {
     private UserProgramEntity mapToEntity(UserProgramDTO dto) {
         return UserProgramEntity.builder()
                 .id(dto.getId())
-                .user(userRepository.findById(dto.getUser().getId())
-                        .orElseThrow(() -> new RuntimeException("User not found")))
-                .program(programRepository.findById(dto.getProgram().getId())
-                        .orElseThrow(() -> new RuntimeException("Program not found")))
-                .isActive(dto.getIsActive())
+                .user(resolveUser(dto))
+                .program(resolveProgramForCreate(dto))
+                .isActive(valueOrDefault(dto.getIsActive(), true))
                 .isSupervisor(valueOrDefault(dto.getIsSupervisor(), false))
                 .canReceiveReferences(valueOrDefault(dto.getCanReceiveReferences(), false))
                 .canManageCommunications(valueOrDefault(dto.getCanManageCommunications(), false))
@@ -129,10 +139,21 @@ public class UserProgramServiceImpl implements IUserProgramService {
     public UserProgramDTO update(Integer id, UserProgramDTO dto) {
         UserProgramEntity entity = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Relation not found"));
-        entity.setUser(userRepository.findById(dto.getUser().getId())
-                .orElseThrow(() -> new RuntimeException("User not found")));
-        entity.setProgram(programRepository.findById(dto.getProgram().getId())
-                .orElseThrow(() -> new RuntimeException("Program not found")));
+
+        if (hasUserReference(dto)) {
+            entity.setUser(resolveUser(dto));
+        }
+
+        if (Boolean.TRUE.equals(dto.getTransversal())) {
+            entity.setProgram(null);
+        } else {
+            Integer programId = extractProgramId(dto);
+            if (programId != null) {
+                entity.setProgram(programRepository.findById(programId)
+                        .orElseThrow(() -> new RuntimeException("Program not found")));
+            }
+        }
+
         entity.setIsActive(valueOrExisting(dto.getIsActive(), entity.getIsActive()));
         entity.setIsSupervisor(valueOrExisting(dto.getIsSupervisor(), entity.getIsSupervisor()));
         entity.setCanReceiveReferences(valueOrExisting(dto.getCanReceiveReferences(), entity.getCanReceiveReferences()));
@@ -204,6 +225,33 @@ public class UserProgramServiceImpl implements IUserProgramService {
                 .collect(Collectors.toList());
     }
 
+    public List<UserProgramDTO> getCommunicationConfigurations(Integer programId, String communicationType) {
+        String normalizedType = normalizeCommunicationType(communicationType, false);
+        return repository.findActiveCommunicationConfigurations(programId).stream()
+                .filter(entity -> matchesCommunicationType(entity, normalizedType))
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<UserProgramDTO> getCommunicationRecipients(Integer programId, String communicationType) {
+        String normalizedType = normalizeCommunicationType(communicationType, true);
+        Map<Integer, UserProgramDTO> byUser = new LinkedHashMap<>();
+
+        repository.findActiveCommunicationConfigurations(programId).stream()
+                .filter(entity -> matchesCommunicationType(entity, normalizedType))
+                .map(this::mapToDTO)
+                .forEach(dto -> {
+                    Integer userId = dto.getUserId();
+                    if (userId == null) return;
+                    UserProgramDTO previous = byUser.get(userId);
+                    if (previous == null || Boolean.TRUE.equals(previous.getTransversal())) {
+                        byUser.put(userId, dto);
+                    }
+                });
+
+        return byUser.values().stream().collect(Collectors.toList());
+    }
+
     @Transactional
     public void deleteByUserId(Integer userId) {
         repository.deleteByUserId(userId);
@@ -215,6 +263,86 @@ public class UserProgramServiceImpl implements IUserProgramService {
                 .orElseThrow(() -> new RuntimeException("La relación usuario-programa no existe o ya fue eliminada."));
         entity.setDeletedAt(LocalDateTime.now());
         repository.save(entity);
+    }
+
+    @Transactional
+    public void deleteTransversalByUser(Integer userId) {
+        UserProgramEntity entity = repository.findTransversalByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("La configuración transversal del usuario no existe o ya fue eliminada."));
+        entity.setDeletedAt(LocalDateTime.now());
+        repository.save(entity);
+    }
+
+    private UserEntity resolveUser(UserProgramDTO dto) {
+        Integer userId = dto.getUserId();
+        if (userId == null && dto.getUser() != null) {
+            userId = dto.getUser().getId();
+        }
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debe indicar userId o user.id.");
+        }
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    private boolean hasUserReference(UserProgramDTO dto) {
+        return dto.getUserId() != null || (dto.getUser() != null && dto.getUser().getId() != null);
+    }
+
+    private ProgramEntity resolveProgramForCreate(UserProgramDTO dto) {
+        Integer programId = extractProgramId(dto);
+        if (programId == null) {
+            return null;
+        }
+        return programRepository.findById(programId)
+                .orElseThrow(() -> new RuntimeException("Program not found"));
+    }
+
+    private Integer extractProgramId(UserProgramDTO dto) {
+        if (dto.getProgramId() != null) return dto.getProgramId();
+        if (dto.getProgram() != null) return dto.getProgram().getId();
+        return null;
+    }
+
+    private String normalizeCommunicationType(String communicationType, boolean required) {
+        if (communicationType == null || communicationType.isBlank()) {
+            if (required) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debe indicar type para resolver destinatarios.");
+            }
+            return null;
+        }
+
+        String value = communicationType.trim().toUpperCase(Locale.ROOT)
+                .replace('-', '_')
+                .replace(' ', '_');
+
+        return switch (value) {
+            case "REFERENCE", "REFERENCES", "REFERENCIA", "REFERENCIAS" -> "REFERENCES";
+            case "CITATION", "CITATIONS", "CITACION", "CITACIONES" -> "CITATIONS";
+            case "ATTENDANCE", "ATTENDANCES", "ASISTENCIA", "ASISTENCIAS" -> "ATTENDANCES";
+            case "FEEDBACK", "RETROALIMENTACION", "RETROALIMENTACIONES" -> "FEEDBACK";
+            case "CLOSURE", "CLOSURES", "CIERRE", "CIERRES" -> "CLOSURES";
+            case "DOCUMENT", "DOCUMENTS", "DOCUMENTO", "DOCUMENTOS" -> "DOCUMENTS";
+            case "OBSERVATION", "OBSERVATIONS", "OBSERVACION", "OBSERVACIONES" -> "OBSERVATIONS";
+            case "MANAGE_COMMUNICATIONS", "ADMINISTRAR_COMUNICACIONES", "ADMIN_COMUNICACIONES" -> "MANAGE_COMMUNICATIONS";
+            default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Tipo de comunicación no soportado: " + communicationType);
+        };
+    }
+
+    private boolean matchesCommunicationType(UserProgramEntity entity, String normalizedType) {
+        if (normalizedType == null) return true;
+        return switch (normalizedType) {
+            case "REFERENCES" -> Boolean.TRUE.equals(entity.getCanReceiveReferences());
+            case "CITATIONS" -> Boolean.TRUE.equals(entity.getCanReceiveCitations());
+            case "ATTENDANCES" -> Boolean.TRUE.equals(entity.getCanReceiveAttendances());
+            case "FEEDBACK" -> Boolean.TRUE.equals(entity.getCanReceiveFeedback());
+            case "CLOSURES" -> Boolean.TRUE.equals(entity.getCanReceiveClosures());
+            case "DOCUMENTS" -> Boolean.TRUE.equals(entity.getCanReceiveDocuments());
+            case "OBSERVATIONS" -> Boolean.TRUE.equals(entity.getCanReceiveObservations());
+            case "MANAGE_COMMUNICATIONS" -> Boolean.TRUE.equals(entity.getCanManageCommunications());
+            default -> false;
+        };
     }
 
     private Boolean valueOrDefault(Boolean value, Boolean defaultValue) {

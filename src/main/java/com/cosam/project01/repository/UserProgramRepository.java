@@ -1,7 +1,6 @@
 package com.cosam.project01.repository;
 
 import com.cosam.project01.entity.UserProgramEntity;
-import com.cosam.project01.entity.UserRoleEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -46,7 +45,7 @@ public interface UserProgramRepository extends JpaRepository<UserProgramEntity, 
 
     @Query("""
            SELECT up FROM UserProgramEntity up
-           JOIN FETCH up.program p
+           LEFT JOIN FETCH up.program p
            LEFT JOIN FETCH p.populationType
            LEFT JOIN FETCH p.modality
            LEFT JOIN FETCH p.plan
@@ -55,9 +54,26 @@ public interface UserProgramRepository extends JpaRepository<UserProgramEntity, 
            WHERE up.user.id = :userId
              AND up.deletedAt IS NULL
              AND (up.isActive IS NULL OR up.isActive = true)
-             AND (p.active IS NULL OR p.active = true)
+             AND (p IS NULL OR p.active IS NULL OR p.active = true)
            """)
     List<UserProgramEntity> findActiveProgramsWithProgramByUserId(@Param("userId") Integer userId);
+
+    @Query("""
+           SELECT DISTINCT up FROM UserProgramEntity up
+           JOIN FETCH up.user u
+           LEFT JOIN FETCH up.program p
+           LEFT JOIN FETCH p.populationType
+           LEFT JOIN FETCH p.modality
+           LEFT JOIN FETCH p.plan
+           LEFT JOIN FETCH p.region
+           LEFT JOIN FETCH p.city
+           WHERE up.deletedAt IS NULL
+             AND (up.isActive IS NULL OR up.isActive = true)
+             AND (:programId IS NULL OR p IS NULL OR p.id = :programId)
+             AND (p IS NULL OR p.active IS NULL OR p.active = true)
+           ORDER BY p.id ASC, u.firstLastName ASC, u.firstName ASC
+           """)
+    List<UserProgramEntity> findActiveCommunicationConfigurations(@Param("programId") Integer programId);
 
 
     // Busca todos los UserRoleEntity por el ID del usuario
@@ -72,9 +88,17 @@ public interface UserProgramRepository extends JpaRepository<UserProgramEntity, 
     @Query("SELECT up FROM UserProgramEntity up WHERE up.user.id = :userId AND up.program.id = :programId AND up.deletedAt IS NULL")
     Optional<UserProgramEntity> findByUserIdAndProgramId(@Param("userId") Integer userId, @Param("programId") Integer programId);
 
+    @Query("SELECT up FROM UserProgramEntity up WHERE up.user.id = :userId AND up.program IS NULL AND up.deletedAt IS NULL")
+    Optional<UserProgramEntity> findTransversalByUserId(@Param("userId") Integer userId);
+
     @Transactional
     @Modifying
     @Query("UPDATE UserProgramEntity up SET up.deletedAt = CURRENT_TIMESTAMP WHERE up.user.id = :userId AND up.program.id = :programId")
     void softDeleteByUserAndProgram(@Param("userId") Integer userId, @Param("programId") Integer programId);
+
+    @Transactional
+    @Modifying
+    @Query("UPDATE UserProgramEntity up SET up.deletedAt = CURRENT_TIMESTAMP WHERE up.user.id = :userId AND up.program IS NULL")
+    void softDeleteTransversalByUser(@Param("userId") Integer userId);
 
 }

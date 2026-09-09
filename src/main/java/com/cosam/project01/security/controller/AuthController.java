@@ -174,6 +174,8 @@ public class AuthController {
             Map<String, Object> p = new LinkedHashMap<>();
             p.put("id", program.id());
             p.put("name", program.name());
+            p.put("transversal", Boolean.TRUE.equals(program.transversal()));
+            p.put("communicationScope", Boolean.TRUE.equals(program.transversal()) ? "TRANSVERSAL" : "PROGRAM");
             p.put("isSupervisor", Boolean.TRUE.equals(program.isSupervisor()));
             p.put("canReceiveReferences", Boolean.TRUE.equals(program.canReceiveReferences()));
             p.put("canManageCommunications", Boolean.TRUE.equals(program.canManageCommunications()));
@@ -260,6 +262,7 @@ public class AuthController {
                 userProgram.getCanReceiveObservations(),
                 userProgram.getCanManageDemands(),
                 userProgram.getCanViewDashboard(),
+                program == null,
                 userProgram.getRoleInProgram()
         );
     }

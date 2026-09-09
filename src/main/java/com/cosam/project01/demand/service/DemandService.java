@@ -252,6 +252,34 @@ public class DemandService {
         return new PageImpl<>(rows.subList(start, end), requestedPageable, rows.size());
     }
 
+
+    @Transactional(readOnly = true)
+    public Page<PrioritizedEpisodeStageDTO> getPrioritizedStages(Integer programId, String stateCode, String resultCode, String search, Pageable pageable) {
+        Pageable requestedPageable = pageable != null ? pageable : Pageable.unpaged();
+        String normalizedStateCode = hasText(stateCode) ? normalizeCode(stateCode) : null;
+        String normalizedResultCode = hasText(resultCode) ? normalizeCode(resultCode) : null;
+        String normalizedSearch = normalizeSearchText(search);
+        String normalizedRutSearch = normalizeRutSearch(search);
+
+        List<PrioritizedEpisodeStageDTO> rows = new ArrayList<>(stageRepository
+                .findPrioritizedStageRows(programId, normalizedStateCode, normalizedResultCode)
+                .stream()
+                .filter(stage -> stage != null && stage.getEpisode() != null)
+                .filter(stage -> matchesPrioritizedSearch(stage.getEpisode(), search, normalizedSearch, normalizedRutSearch))
+                .map(this::toPrioritizedStageDTO)
+                .toList());
+
+        applyPrioritizedStageSort(rows, requestedPageable.getSort());
+
+        if (!requestedPageable.isPaged()) {
+            return new PageImpl<>(rows);
+        }
+
+        int start = (int) Math.min(requestedPageable.getOffset(), rows.size());
+        int end = Math.min(start + requestedPageable.getPageSize(), rows.size());
+        return new PageImpl<>(rows.subList(start, end), requestedPageable, rows.size());
+    }
+
     private boolean matchesPrioritizedSearch(EpisodeEntity episode, String rawSearch, String normalizedSearch, String normalizedRutSearch) {
         if (!hasText(normalizedSearch) && !hasText(normalizedRutSearch)) {
             return true;
@@ -2272,6 +2300,70 @@ public class DemandService {
                 .build();
     }
 
+
+    private PrioritizedEpisodeStageDTO toPrioritizedStageDTO(EpisodeStageEntity stage) {
+        if (stage == null) return null;
+        EpisodeEntity e = stage.getEpisode();
+        int accumulated = accumulatedDays(e);
+        List<EpisodeEventEntity> stageEvents = stage.getId() != null
+                ? eventRepository.findByStageIdOrderByEventDateAscEventTimeAscIdAsc(stage.getId())
+                : List.of();
+        EpisodeEventEntity feedback = latestEventByType(stageEvents, "RETROALIMENTACION");
+        EpisodeEventEntity last = latestManagementEvent(stageEvents, stage);
+        boolean hasFirstCitation = hasFirstCitationForDashboard(stageEvents);
+        boolean hasFeedback = stageEvents.stream().anyMatch(ev -> ev.getEventType() != null
+                && "RETROALIMENTACION".equalsIgnoreCase(ev.getEventType().getCode()));
+        ProgramEntity stageProgram = stage.getProgram();
+        boolean closed = isStageClosed(stage);
+
+        return PrioritizedEpisodeStageDTO.builder()
+                .episodeId(e != null ? e.getId() : null)
+                .episodeCode(e != null ? e.getEpisodeCode() : null)
+                .rut(e != null && e.getPostulant() != null ? e.getPostulant().getRut() : null)
+                .personName(e != null ? personName(e.getPostulant()) : null)
+                .createdByUser(e != null ? toUserDTO(e.getCreatedByUser()) : null)
+                .currentProgram(e != null ? toProgramDTO(e.getCurrentProgram()) : null)
+                .currentStageId(e != null && e.getCurrentStage() != null ? e.getCurrentStage().getId() : null)
+                .program(toProgramDTO(stageProgram))
+                .programId(stageProgram != null ? stageProgram.getId() : null)
+                .programName(stageProgram != null ? stageProgram.getName() : null)
+                .stageId(stage.getId())
+                .stageOrder(stage.getStageOrder())
+                .originStageId(stage.getOriginStage() != null ? stage.getOriginStage().getId() : null)
+                .receivedAt(stage.getReceivedAt())
+                .closedAt(stage.getClosedAt())
+                .closureDate(stage.getClosedAt() != null ? stage.getClosedAt().toLocalDate() : null)
+                .daysInStage(daysInStage(stage))
+                .stageStateCode(stage.getStateCode())
+                .stageResultCode(stage.getResultCode())
+                .closed(closed)
+                .current(stage.getCurrent())
+                .closureReason(toOption(stage.getClosureReason()))
+                .closureComment(stage.getClosureComment())
+                .responsibleUser(toUserDTO(stage.getResponsibleUser()))
+                .originalRequestDate(e != null ? e.getOriginalRequestDate() : null)
+                .accumulatedDays(accumulated)
+                .semaphoreColor(resolveSemaphore(accumulated))
+                .lastManagement(last != null && last.getEventType() != null ? last.getEventType().getName() : null)
+                .lastManagementDate(last != null ? last.getEventDate() : null)
+                .lastManagementTime(last != null ? last.getEventTime() : null)
+                .firstCitationFirstInterviewDate(latestCitationDateByType(stageEvents, "PRIMERA_CITACION_PRIMERA_ENTREVISTA", "FIRST_CITATION_FIRST_INTERVIEW"))
+                .secondCitationFirstInterviewDate(latestCitationDateByType(stageEvents, "SEGUNDA_CITACION_PRIMERA_ENTREVISTA", "SECOND_CITATION_FIRST_INTERVIEW"))
+                .firstCitationSecondInterviewDate(latestCitationDateByType(stageEvents, "PRIMERA_CITACION_SEGUNDA_ENTREVISTA", "FIRST_CITATION_SECOND_INTERVIEW"))
+                .secondCitationSecondInterviewDate(latestCitationDateByType(stageEvents, "SEGUNDA_CITACION_SEGUNDA_ENTREVISTA", "SECOND_CITATION_SECOND_INTERVIEW"))
+                .firstCitationThirdInterviewDate(latestCitationDateByType(stageEvents, "PRIMERA_CITACION_TERCERA_ENTREVISTA", "FIRST_CITATION_THIRD_INTERVIEW"))
+                .secondCitationThirdInterviewDate(latestCitationDateByType(stageEvents, "SEGUNDA_CITACION_TERCERA_ENTREVISTA", "SECOND_CITATION_THIRD_INTERVIEW"))
+                .optionalInterviewDate(latestCitationDateByType(stageEvents, "ENTREVISTA_OPCIONAL", "OPTIONAL_INTERVIEW"))
+                .feedbackDate(feedback != null ? feedback.getEventDate() : null)
+                .feedbackResultCode(feedback != null ? feedback.getResultCode() : null)
+                .biopsychosocialCommitmentCode(feedback != null && feedback.getBiopsychosocialCommitmentLevel() != null
+                        ? feedback.getBiopsychosocialCommitmentLevel().getCode()
+                        : null)
+                .suggestedAction(closed ? null : suggestedAction(e, stage, feedback, hasFirstCitation, hasFeedback))
+                .events(stageEvents.stream().map(this::toEventDTO).toList())
+                .build();
+    }
+
     private EpisodeEventEntity latestEvent(List<EpisodeEventEntity> events) {
         if (events == null || events.isEmpty()) return null;
         return events.get(events.size() - 1);
@@ -2379,6 +2471,82 @@ public class DemandService {
         };
     }
 
+
+    private void applyPrioritizedStageSort(List<PrioritizedEpisodeStageDTO> rows, Sort sort) {
+        if (rows == null || rows.size() < 2 || sort == null || sort.isUnsorted()) return;
+
+        Comparator<PrioritizedEpisodeStageDTO> comparator = null;
+        for (Sort.Order order : sort) {
+            Comparator<PrioritizedEpisodeStageDTO> fieldComparator = (left, right) ->
+                    comparePrioritizedStageField(left, right, order.getProperty(), order.isAscending());
+            comparator = comparator == null ? fieldComparator : comparator.thenComparing(fieldComparator);
+        }
+
+        if (comparator != null) {
+            rows.sort(comparator
+                    .thenComparing(PrioritizedEpisodeStageDTO::getEpisodeId, Comparator.nullsLast(Integer::compareTo))
+                    .thenComparing(PrioritizedEpisodeStageDTO::getStageOrder, Comparator.nullsLast(Integer::compareTo))
+                    .thenComparing(PrioritizedEpisodeStageDTO::getStageId, Comparator.nullsLast(Integer::compareTo)));
+        }
+    }
+
+    private int comparePrioritizedStageField(PrioritizedEpisodeStageDTO left, PrioritizedEpisodeStageDTO right, String property, boolean ascending) {
+        String key = Optional.ofNullable(property).orElse("originalRequestDate")
+                .replace("_", "")
+                .replace(".", "")
+                .toLowerCase(Locale.ROOT);
+
+        if ("biopsychosocialcommitmentcode".equals(key) || "biopsychosocialcommitmentlevel".equals(key)) {
+            return compareBiopsychosocialCommitment(left.getBiopsychosocialCommitmentCode(), right.getBiopsychosocialCommitmentCode(), ascending);
+        }
+
+        return compareNullableComparable(prioritizedStageSortValue(left, key), prioritizedStageSortValue(right, key), ascending);
+    }
+
+    private Comparable<?> prioritizedStageSortValue(PrioritizedEpisodeStageDTO dto, String key) {
+        if (dto == null) return null;
+        return switch (key) {
+            case "episodeid", "id" -> dto.getEpisodeId();
+            case "episodecode" -> normalizeSortText(dto.getEpisodeCode());
+            case "rut" -> normalizeSortText(dto.getRut());
+            case "personname", "name", "patientname" -> normalizeSortText(dto.getPersonName());
+            case "currentprogram", "currentprogramname" ->
+                    dto.getCurrentProgram() != null ? normalizeSortText(dto.getCurrentProgram().getName()) : null;
+            case "currentprogramid" -> dto.getCurrentProgram() != null ? dto.getCurrentProgram().getId() : null;
+            case "currentstageid" -> dto.getCurrentStageId();
+            case "program", "programname" -> normalizeSortText(dto.getProgramName());
+            case "programid" -> dto.getProgramId();
+            case "stageid" -> dto.getStageId();
+            case "stageorder" -> dto.getStageOrder();
+            case "originstageid" -> dto.getOriginStageId();
+            case "receivedat", "stagereceivedat", "currentstagereceivedat" -> dto.getReceivedAt();
+            case "closedat" -> dto.getClosedAt();
+            case "closuredate" -> dto.getClosureDate();
+            case "daysinstage", "stagedays", "currentstagedays" -> dto.getDaysInStage();
+            case "stagestatecode", "statecode", "currentstagestatecode" -> normalizeSortText(dto.getStageStateCode());
+            case "stageresultcode", "resultcode", "currentstageresultcode" -> normalizeSortText(dto.getStageResultCode());
+            case "closed" -> dto.getClosed();
+            case "current" -> dto.getCurrent();
+            case "originalrequestdate" -> dto.getOriginalRequestDate();
+            case "accumulateddays" -> dto.getAccumulatedDays();
+            case "semaphorecolor" -> normalizeSortText(dto.getSemaphoreColor());
+            case "lastmanagement" -> normalizeSortText(dto.getLastManagement());
+            case "lastmanagementdate" -> dto.getLastManagementDate();
+            case "lastmanagementtime" -> dto.getLastManagementTime();
+            case "firstcitationfirstinterviewdate" -> dto.getFirstCitationFirstInterviewDate();
+            case "secondcitationfirstinterviewdate" -> dto.getSecondCitationFirstInterviewDate();
+            case "firstcitationsecondinterviewdate" -> dto.getFirstCitationSecondInterviewDate();
+            case "secondcitationsecondinterviewdate" -> dto.getSecondCitationSecondInterviewDate();
+            case "firstcitationthirdinterviewdate" -> dto.getFirstCitationThirdInterviewDate();
+            case "secondcitationthirdinterviewdate" -> dto.getSecondCitationThirdInterviewDate();
+            case "optionalinterviewdate" -> dto.getOptionalInterviewDate();
+            case "feedbackdate" -> dto.getFeedbackDate();
+            case "feedbackresultcode" -> normalizeSortText(dto.getFeedbackResultCode());
+            case "suggestedaction" -> normalizeSortText(dto.getSuggestedAction());
+            default -> dto.getOriginalRequestDate();
+        };
+    }
+
     private String normalizeSortText(String value) {
         return value == null ? null : value.trim().toUpperCase(Locale.ROOT);
     }
@@ -2419,6 +2587,13 @@ public class DemandService {
                         Optional.ofNullable(p.getFirstLastName()).orElse(""),
                         Optional.ofNullable(p.getSecondLastName()).orElse("")))
                 .replaceAll("\\s+", " ").trim();
+    }
+
+
+    private boolean isStageClosed(EpisodeStageEntity stage) {
+        if (stage == null) return false;
+        if (stage.getClosedAt() != null) return true;
+        return STATE_CLOSED.equalsIgnoreCase(Optional.ofNullable(stage.getStateCode()).orElse(""));
     }
 
     private boolean isEpisodeClosed(EpisodeEntity episode) {
