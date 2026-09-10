@@ -785,18 +785,20 @@ public class DemandService {
         ProgramEntity destinationProgram = programRepository.findById(request.getDestinationProgramId())
                 .orElseThrow(() -> notFound("Programa receptor no encontrado"));
         UserEntity currentUser = currentUserOrNull();
-        LocalDateTime referenceAt = parseOptionalDateTime(request.getReferenceDate());
-        if (referenceAt == null) referenceAt = LocalDateTime.now();
+        LocalDateTime referenceAt = resolveFunctionalReferenceDate(request.getReferenceDate(), originStage);
         EpisodeStageEntity previousCurrentStage = resolveCurrentStageForRead(episode);
         if (previousCurrentStage != null && !Objects.equals(previousCurrentStage.getId(), originStage.getId())) {
             previousCurrentStage.setCurrent(false);
             stageRepository.save(previousCurrentStage);
         }
 
+        boolean originWasAlreadyClosed = isStageClosed(originStage);
         originStage.setCurrent(false);
-        originStage.setClosedAt(null);
-        originStage.setResultCode(RESULT_REFERENCE);
-        originStage.setStateCode(STATE_IN_PROGRESS);
+        if (!originWasAlreadyClosed) {
+            originStage.setClosedAt(null);
+            originStage.setResultCode(RESULT_REFERENCE);
+            originStage.setStateCode(STATE_IN_PROGRESS);
+        }
         stageRepository.save(originStage);
 
         EpisodeStageEntity destinationStage = EpisodeStageEntity.builder()
@@ -899,6 +901,7 @@ public class DemandService {
 
         if (referenceClosure) {
             closeStageOnly(stage, reason, closureComment, resultCode, closureAt);
+            syncOutboundReferencesWithFunctionalDate(episode, stage, stage.getClosedAt(), currentUser);
         } else {
             closeEpisodeInternal(episode, stage, reason, closureComment, currentUser, resultCode, closureAt);
             if (RESULT_TREATMENT_ENTRY.equals(reasonCode) && episode.getEntryToTreatmentAt() == null) {
@@ -910,6 +913,10 @@ public class DemandService {
 
         EpisodeEventEntity event = createInternalEvent(episode, stage, "CIERRE", null, null, stage.getProgram(), currentUser, currentUser,
                 "Cierre de etapa: " + reason.getName(), null, closureComment, null, null, resultCode, STATE_CLOSED);
+        LocalDateTime effectiveClosureAt = stage.getClosedAt() != null ? stage.getClosedAt() : (closureAt != null ? closureAt : LocalDateTime.now());
+        event.setEventDate(effectiveClosureAt.toLocalDate());
+        event.setEventTime(effectiveClosureAt.toLocalTime());
+        eventRepository.save(event);
         audit(episode, stage, event, referenceClosure ? "CIERRE_ETAPA_REFERENCIA" : "CIERRE_EPISODIO", null, reason.getCode(), closureComment, currentUser, null, null);
         return toEpisodeDTO(episodeRepository.findById(episode.getId()).orElse(episode));
     }
@@ -1683,6 +1690,86 @@ public class DemandService {
                 .orElseThrow(() -> notFound("El episodio no tiene etapa activa"));
     }
 
+    private LocalDateTime resolveFunctionalReferenceDate(String requestedReferenceDate, EpisodeStageEntity originStage) {
+        LocalDateTime parsed = parseOptionalDateTime(requestedReferenceDate);
+        if (parsed != null) return parsed;
+        LocalDateTime stageFunctionalClosure = functionalReferenceClosureDate(originStage);
+        return stageFunctionalClosure != null ? stageFunctionalClosure : LocalDateTime.now();
+    }
+
+    private LocalDateTime functionalReferenceClosureDate(EpisodeStageEntity stage) {
+        if (stage == null || stage.getClosedAt() == null) return null;
+        String closureReasonCode = stage.getClosureReason() != null ? normalizeCode(stage.getClosureReason().getCode()) : null;
+        String resultCode = normalizeCode(stage.getResultCode());
+        if (RESULT_REFERENCE.equals(closureReasonCode) || RESULT_REFERENCE.equals(resultCode)) {
+            return stage.getClosedAt();
+        }
+        return null;
+    }
+
+    private void syncOutboundReferencesWithFunctionalDate(EpisodeEntity episode, EpisodeStageEntity originStage, LocalDateTime functionalReferenceAt, UserEntity currentUser) {
+        if (episode == null || originStage == null || originStage.getId() == null || functionalReferenceAt == null) return;
+        List<EpisodeReferenceEntity> references = referenceRepository.findByEpisodeIdAndOriginStageIdOrderByReferenceDateAsc(episode.getId(), originStage.getId());
+        for (EpisodeReferenceEntity reference : references) {
+            String before = snapshotReferenceDateSync(reference);
+            reference.setReferenceDate(functionalReferenceAt);
+            reference = referenceRepository.save(reference);
+
+            EpisodeStageEntity destinationStage = reference.getDestinationStage();
+            if (destinationStage != null) {
+                destinationStage.setReceivedAt(functionalReferenceAt);
+                stageRepository.save(destinationStage);
+            }
+
+            Optional<EpisodeEventEntity> referenceEvent = findReferenceEvent(reference);
+            referenceEvent.ifPresent(event -> {
+                event.setEventDate(functionalReferenceAt.toLocalDate());
+                event.setEventTime(functionalReferenceAt.toLocalTime());
+                eventRepository.save(event);
+            });
+
+            String after = snapshotReferenceDateSync(reference);
+            audit(episode, originStage, referenceEvent.orElse(null), "SINCRONIZAR_FECHA_FUNCIONAL_REFERENCIA", before, after,
+                    "Sincronización automática al cierre formal por REFERENCIA", currentUser, null, null);
+        }
+    }
+
+    private Optional<EpisodeEventEntity> findReferenceEvent(EpisodeReferenceEntity reference) {
+        if (reference == null || reference.getEpisode() == null || reference.getEpisode().getId() == null) return Optional.empty();
+        Integer originStageId = reference.getOriginStage() != null ? reference.getOriginStage().getId() : null;
+        LocalDateTime referenceAt = reference.getReferenceDate();
+        List<EpisodeEventEntity> candidates = eventRepository.findByEpisodeIdOrderByEventDateAscEventTimeAscIdAsc(reference.getEpisode().getId()).stream()
+                .filter(ev -> ev.getEventType() != null && "REFERENCIA".equalsIgnoreCase(ev.getEventType().getCode()))
+                .filter(ev -> originStageId == null || (ev.getStage() != null && Objects.equals(ev.getStage().getId(), originStageId)))
+                .toList();
+        if (candidates.isEmpty()) return Optional.empty();
+        if (referenceAt != null) {
+            Optional<EpisodeEventEntity> exact = candidates.stream()
+                    .filter(ev -> Objects.equals(ev.getEventDate(), referenceAt.toLocalDate()))
+                    .filter(ev -> Objects.equals(ev.getEventTime(), referenceAt.toLocalTime()))
+                    .max(eventDateTimeComparator());
+            if (exact.isPresent()) return exact;
+        }
+        return candidates.stream().max(eventDateTimeComparator());
+    }
+
+    private Comparator<EpisodeEventEntity> eventDateTimeComparator() {
+        return Comparator
+                .comparing((EpisodeEventEntity ev) -> Optional.ofNullable(ev.getEventDate()).orElse(LocalDate.MIN))
+                .thenComparing(ev -> Optional.ofNullable(ev.getEventTime()).orElse(LocalTime.MIN))
+                .thenComparing(ev -> Optional.ofNullable(ev.getId()).orElse(0));
+    }
+
+    private String snapshotReferenceDateSync(EpisodeReferenceEntity reference) {
+        if (reference == null) return null;
+        EpisodeStageEntity destinationStage = reference.getDestinationStage();
+        return "referenceId=" + reference.getId()
+                + ", referenceDate=" + reference.getReferenceDate()
+                + ", destinationStageId=" + (destinationStage != null ? destinationStage.getId() : null)
+                + ", destinationReceivedAt=" + (destinationStage != null ? destinationStage.getReceivedAt() : null)
+                + ", referenceCreatedAt=" + reference.getCreatedAt();
+    }
+
     private void closeStageOnly(EpisodeStageEntity stage, ClosureReasonEntity reason, String comment, String resultCode, LocalDateTime closureDate) {
         if (stage == null) throw badRequest("Debe indicar una etapa válida para cerrar.");
         LocalDateTime now = closureDate != null ? closureDate : LocalDateTime.now();
@@ -2110,6 +2197,8 @@ public class DemandService {
                 .program(toProgramDTO(s.getProgram()))
                 .originStageId(s.getOriginStage() != null ? s.getOriginStage().getId() : null)
                 .receivedAt(s.getReceivedAt())
+                .createdAt(s.getCreatedAt())
+                .updatedAt(s.getUpdatedAt())
                 .closedAt(s.getClosedAt())
                 .stateCode(s.getStateCode())
                 .resultCode(s.getResultCode())
@@ -2161,6 +2250,8 @@ public class DemandService {
                 .originProgram(toProgramDTO(r.getOriginProgram()))
                 .destinationProgram(toProgramDTO(r.getDestinationProgram()))
                 .referenceDate(r.getReferenceDate())
+                .createdAt(r.getCreatedAt())
+                .updatedAt(r.getUpdatedAt())
                 .reason(r.getReason())
                 .observation(r.getObservation())
                 .createdByUser(toUserDTO(r.getCreatedByUser()))
@@ -2315,6 +2406,9 @@ public class DemandService {
                 && "RETROALIMENTACION".equalsIgnoreCase(ev.getEventType().getCode()));
         ProgramEntity stageProgram = stage.getProgram();
         boolean closed = isStageClosed(stage);
+        EpisodeReferenceEntity inboundReference = stage.getId() != null
+                ? referenceRepository.findFirstByDestinationStageIdOrderByReferenceDateDesc(stage.getId()).orElse(null)
+                : null;
 
         return PrioritizedEpisodeStageDTO.builder()
                 .episodeId(e != null ? e.getId() : null)
@@ -2331,6 +2425,11 @@ public class DemandService {
                 .stageOrder(stage.getStageOrder())
                 .originStageId(stage.getOriginStage() != null ? stage.getOriginStage().getId() : null)
                 .receivedAt(stage.getReceivedAt())
+                .stageCreatedAt(stage.getCreatedAt())
+                .stageUpdatedAt(stage.getUpdatedAt())
+                .inboundReferenceId(inboundReference != null ? inboundReference.getId() : null)
+                .inboundReferenceDate(inboundReference != null ? inboundReference.getReferenceDate() : null)
+                .inboundReferenceCreatedAt(inboundReference != null ? inboundReference.getCreatedAt() : null)
                 .closedAt(stage.getClosedAt())
                 .closureDate(stage.getClosedAt() != null ? stage.getClosedAt().toLocalDate() : null)
                 .daysInStage(daysInStage(stage))

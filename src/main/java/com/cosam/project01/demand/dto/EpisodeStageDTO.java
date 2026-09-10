@@ -12,7 +12,12 @@ public class EpisodeStageDTO {
     private Integer stageOrder;
     private ProgramSummaryDTO program;
     private Integer originStageId;
+    /** Fecha funcional de ingreso a la etapa/programa. */
     private LocalDateTime receivedAt;
+    /** Fecha real de registro de la etapa en el sistema. */
+    private LocalDateTime createdAt;
+    /** Fecha real de última actualización de la etapa en el sistema. */
+    private LocalDateTime updatedAt;
     private LocalDateTime closedAt;
     private String stateCode;
     private String resultCode;

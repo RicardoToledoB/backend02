@@ -29,7 +29,18 @@ public class PrioritizedEpisodeStageDTO {
     private Integer stageId;
     private Integer stageOrder;
     private Integer originStageId;
+    /** Fecha funcional de ingreso al programa/etapa. */
     private LocalDateTime receivedAt;
+    /** Fecha real de registro de la etapa en el sistema. */
+    private LocalDateTime stageCreatedAt;
+    /** Fecha real de última actualización de la etapa en el sistema. */
+    private LocalDateTime stageUpdatedAt;
+    /** Referencia que originó esta etapa, si existe. */
+    private Integer inboundReferenceId;
+    /** Fecha funcional de la referencia que originó esta etapa, si existe. */
+    private LocalDateTime inboundReferenceDate;
+    /** Fecha real de registro/auditoría de esa referencia, si existe. */
+    private LocalDateTime inboundReferenceCreatedAt;
     private LocalDateTime closedAt;
     private LocalDate closureDate;
     private Integer daysInStage;

@@ -27,6 +27,7 @@ public class EpisodeAdministrativeCorrectionService {
     private static final String STATE_CLOSED = "CERRADO";
     private static final String RESULT_PENDING = "AUN_SIN_RESULTADO";
     private static final String RESULT_TREATMENT_ENTRY = "INGRESO_TRATAMIENTO";
+    private static final String RESULT_REFERENCE = "REFERENCIA";
 
     private final EpisodeRepository episodeRepository;
     private final EpisodeStageRepository stageRepository;
@@ -293,7 +294,12 @@ public class EpisodeAdministrativeCorrectionService {
             if (hasText(patch.getResultCode())) { stage.setResultCode(patch.getResultCode().trim()); changed = true; }
             if (comment != null) { stage.setClosureComment(comment); changed = true; }
         }
-        if (changed) stageRepository.save(stage);
+        if (changed) {
+            stageRepository.save(stage);
+            if (markClosed && isReferenceClosure(stage)) {
+                syncOutboundReferencesWithFunctionalDate(episode, stage, stage.getClosedAt(), currentUser);
+            }
+        }
         return changed;
     }
 
@@ -334,7 +340,7 @@ public class EpisodeAdministrativeCorrectionService {
             EpisodeStageEntity originStage = item.getOriginStageId() != null ? resolveStage(episode, item.getOriginStageId()) : defaultStage;
             if (originStage == null) throw badRequest("Para crear referencia debe indicar originStageId o stageId/programId en el request principal.");
 
-            LocalDateTime referenceAt = resolveReferenceDate(item.getReferenceDate(), null);
+            LocalDateTime referenceAt = resolveReferenceDate(item.getReferenceDate(), null, originStage);
             EpisodeStageEntity destinationStage = resolveOrCreateDestinationStage(episode, originStage, item, referenceAt, currentUser);
             ProgramEntity destinationProgram = destinationStage.getProgram();
             if (destinationProgram == null) throw badRequest("La etapa destino no tiene programa asociado.");
@@ -382,7 +388,7 @@ public class EpisodeAdministrativeCorrectionService {
                 : reference.getDestinationStage();
         if (destinationStage == null) {
             destinationStage = resolveOrCreateDestinationStage(episode, originStage, item,
-                    resolveReferenceDate(item.getReferenceDate(), reference.getReferenceDate()), currentUser);
+                    resolveReferenceDate(item.getReferenceDate(), reference.getReferenceDate(), originStage), currentUser);
         }
 
         ProgramEntity destinationProgram = item.getDestinationProgramId() != null
@@ -390,7 +396,7 @@ public class EpisodeAdministrativeCorrectionService {
                 : destinationStage.getProgram();
         if (destinationProgram == null) throw badRequest("Debe indicar destinationProgramId o una etapa destino con programa asociado.");
 
-        LocalDateTime referenceAt = resolveReferenceDate(item.getReferenceDate(), reference.getReferenceDate());
+        LocalDateTime referenceAt = resolveReferenceDate(item.getReferenceDate(), reference.getReferenceDate(), originStage);
         destinationStage.setProgram(destinationProgram);
         destinationStage.setOriginStage(originStage);
         destinationStage.setReceivedAt(referenceAt);
@@ -537,9 +543,57 @@ public class EpisodeAdministrativeCorrectionService {
         return reference;
     }
 
-    private LocalDateTime resolveReferenceDate(String value, LocalDateTime currentValue) {
+    private LocalDateTime resolveReferenceDate(String value, LocalDateTime currentValue, EpisodeStageEntity originStage) {
         if (hasText(value)) return parseDateTime(value, "referenceDate");
-        return currentValue != null ? currentValue : LocalDateTime.now();
+        if (currentValue != null) return currentValue;
+        LocalDateTime originFunctionalClosure = functionalReferenceClosureDate(originStage);
+        return originFunctionalClosure != null ? originFunctionalClosure : LocalDateTime.now();
+    }
+
+    private LocalDateTime functionalReferenceClosureDate(EpisodeStageEntity stage) {
+        if (stage == null || stage.getClosedAt() == null) return null;
+        String closureReasonCode = stage.getClosureReason() != null ? normalizeCode(stage.getClosureReason().getCode()) : null;
+        String resultCode = normalizeCode(stage.getResultCode());
+        if (RESULT_REFERENCE.equals(closureReasonCode) || RESULT_REFERENCE.equals(resultCode)) {
+            return stage.getClosedAt();
+        }
+        return null;
+    }
+
+    private boolean isReferenceClosure(EpisodeStageEntity stage) {
+        if (stage == null) return false;
+        String closureReasonCode = stage.getClosureReason() != null ? normalizeCode(stage.getClosureReason().getCode()) : null;
+        String resultCode = normalizeCode(stage.getResultCode());
+        return RESULT_REFERENCE.equals(closureReasonCode) || RESULT_REFERENCE.equals(resultCode);
+    }
+
+    private void syncOutboundReferencesWithFunctionalDate(EpisodeEntity episode, EpisodeStageEntity originStage,
+                                                          LocalDateTime functionalReferenceAt, UserEntity currentUser) {
+        if (episode == null || originStage == null || originStage.getId() == null || functionalReferenceAt == null) return;
+        List<EpisodeReferenceEntity> references = referenceRepository.findByEpisodeIdAndOriginStageIdOrderByReferenceDateAsc(episode.getId(), originStage.getId());
+        for (EpisodeReferenceEntity reference : references) {
+            String before = snapshotReference(reference);
+            reference.setReferenceDate(functionalReferenceAt);
+            reference = referenceRepository.save(reference);
+
+            EpisodeStageEntity destinationStage = reference.getDestinationStage();
+            if (destinationStage != null) {
+                destinationStage.setReceivedAt(functionalReferenceAt);
+                stageRepository.save(destinationStage);
+            }
+
+            Optional<EpisodeEventEntity> referenceEvent = findReferenceEvent(reference);
+            referenceEvent.ifPresent(event -> {
+                event.setEventDate(functionalReferenceAt.toLocalDate());
+                event.setEventTime(functionalReferenceAt.toLocalTime());
+                eventRepository.save(event);
+            });
+
+            audit(episode, originStage, referenceEvent.orElse(null),
+                    "CORRECCION_ADMINISTRATIVA_SINCRONIZAR_FECHA_FUNCIONAL_REFERENCIA",
+                    before, snapshotReference(reference),
+                    "Sincronización automática al cierre administrativo por REFERENCIA", currentUser);
+        }
     }
 
     private void markDestinationAsCurrent(EpisodeEntity episode, EpisodeStageEntity destinationStage) {
@@ -1129,6 +1183,11 @@ public class EpisodeAdministrativeCorrectionService {
 
     private boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
+    }
+
+
+    private String normalizeCode(String code) {
+        return hasText(code) ? code.trim().toUpperCase(Locale.ROOT) : null;
     }
 
     private String truncate(String value, int max) {
