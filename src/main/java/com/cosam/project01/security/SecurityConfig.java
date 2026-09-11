@@ -81,6 +81,12 @@ public class SecurityConfig {
                         // Se deja como authenticated() para eliminar 403 por diferencias entre ROLE_*, hasRole/hasAuthority,
                         // y validaciones de programa/permisos. La validación funcional se mantiene en servicios cuando aplique.
                         .requestMatchers("/api/v1/demand/**").authenticated()
+                        // Relaciones usuario-rol: lectura habilitada para SUPERVISOR para Directorio,
+                        // manteniendo escritura solo para ADMIN y ADMINISTRATIVO mediante @PreAuthorize.
+                        .requestMatchers(HttpMethod.GET, "/api/v1/users_roles", "/api/v1/users_roles/**")
+                        .hasAnyAuthority("ROLE_ADMIN", "ROLE_ADMINISTRATIVO", "ROLE_SUPERVISOR")
+                        .requestMatchers("/api/v1/users_roles", "/api/v1/users_roles/**")
+                        .hasAnyAuthority("ROLE_ADMIN", "ROLE_ADMINISTRATIVO")
                         .requestMatchers("/api/v1/professions/**", "/api/v1/int_prevs/**", "/api/v1/conv_prevs/**", "/api/v1/program_professionals/**", "/api/v1/results/**", "/api/v1/contacts/**")
                         .hasAnyAuthority("ROLE_ADMIN", "ROLE_ADMINISTRATIVO", "ROLE_SUPERVISOR", "ROLE_PROFESIONAL")
                         .requestMatchers("/api/v1/postulants/searchByRut")
