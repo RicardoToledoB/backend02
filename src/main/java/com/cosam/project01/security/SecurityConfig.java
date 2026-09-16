@@ -68,6 +68,15 @@ public class SecurityConfig {
                                 new AntPathRequestMatcher("/api/v1/demand/episodes/*/administrative-correction", "PUT"),
                                 new AntPathRequestMatcher("/api/v1/demand/episodes/*/purge", "DELETE")
                         ).permitAll()
+                        // Endpoint público para envío de correo usado en recuperación de contraseña.
+                        // Se habilita explícitamente para evitar 403 desde Angular/localhost y permitir preflight CORS.
+                        .requestMatchers(
+                                new AntPathRequestMatcher("/api/v1/demand/notifications/email", "POST")
+                        ).permitAll()
+                        // Catálogo states: lectura habilitada para SUPERVISOR; escritura se mantiene restringida
+                        // por @PreAuthorize en StateController.
+                        .requestMatchers(HttpMethod.GET, "/api/v1/states", "/api/v1/states/**")
+                        .hasAnyAuthority("ROLE_ADMIN", "ROLE_ADMINISTRATIVO", "ROLE_SUPERVISOR")
                         // Endpoints críticos de episodios usados por frontend.
                         .requestMatchers(
                                 new AntPathRequestMatcher("/api/v1/demand/episodes", "GET"),

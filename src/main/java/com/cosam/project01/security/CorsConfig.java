@@ -15,10 +15,10 @@ import java.util.stream.Collectors;
 @Configuration
 public class CorsConfig {
 
-    @Value("${app.cors.allowed-origin-patterns:http://localhost:4200,http://127.0.0.1:4200,http://192.168.*:*,https://gestiondemanda.dssm.cl,https://gestiondemanda-api.dssm.cl}")
+    @Value("${app.cors.allowed-origin-patterns:http://localhost:*,https://localhost:*,http://127.0.0.1:*,https://127.0.0.1:*,http://[::1]:*,http://192.168.*:*,https://gestiondemanda.dssm.cl,https://gestiondemanda-api.dssm.cl}")
     private String allowedOriginPatterns;
 
-    @Value("${app.cors.allow-credentials:false}")
+    @Value("${app.cors.allow-credentials:true}")
     private boolean allowCredentials;
 
     @Bean
@@ -32,16 +32,8 @@ public class CorsConfig {
 
         config.setAllowedOriginPatterns(origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"));
-        config.setAllowedHeaders(List.of(
-                "Authorization",
-                "Content-Type",
-                "Accept",
-                "Origin",
-                "X-Requested-With",
-                "Access-Control-Request-Method",
-                "Access-Control-Request-Headers"
-        ));
-        config.setExposedHeaders(List.of("Authorization"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setExposedHeaders(List.of("Authorization", "Location", "Content-Disposition"));
         config.setAllowCredentials(allowCredentials);
         config.setMaxAge(Duration.ofHours(1));
 

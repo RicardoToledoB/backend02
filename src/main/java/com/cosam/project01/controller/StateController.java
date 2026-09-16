@@ -15,39 +15,47 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/states")
-@PreAuthorize("hasAnyRole('ADMIN','ADMINISTRATIVO')")
 public class StateController {
+
+    private static final String READ_ROLES = "hasAnyRole('ADMIN','ADMINISTRATIVO','SUPERVISOR')";
+    private static final String WRITE_ROLES = "hasAnyRole('ADMIN','ADMINISTRATIVO')";
 
     @Autowired
     private StateServiceImpl service;
 
     @PostMapping
+    @PreAuthorize(WRITE_ROLES)
     public ResponseEntity<StateDTO> create(@RequestBody StateDTO dto) {
         return ResponseEntity.ok(service.create(dto));
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize(READ_ROLES)
     public ResponseEntity<StateDTO> getById(@PathVariable Integer id) {
         return ResponseEntity.ok(service.getById(id));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize(WRITE_ROLES)
     public ResponseEntity<StateDTO> update(@PathVariable Integer id, @RequestBody StateDTO dto) {
         return ResponseEntity.ok(service.update(id, dto));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize(WRITE_ROLES)
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         service.delete(id);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/all")
+    @PreAuthorize(READ_ROLES)
     public ResponseEntity<List<StateDTO>> getAll() {
         return ResponseEntity.ok(service.listAll());
     }
 
     @GetMapping("/getAllPaginated")
+    @PreAuthorize(READ_ROLES)
     public ResponseEntity<Page<StateDTO>> getAllPaginated(
             @RequestParam(required = false) String search,
             @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
@@ -55,16 +63,19 @@ public class StateController {
     }
 
     @GetMapping
+    @PreAuthorize(READ_ROLES)
     public ResponseEntity<List<StateDTO>> listActive() {
         return ResponseEntity.ok(service.listActive());
     }
 
     @GetMapping("/deleted")
+    @PreAuthorize(READ_ROLES)
     public ResponseEntity<List<StateDTO>> listDeleted() {
         return ResponseEntity.ok(service.listDeleted());
     }
 
     @PostMapping("/{id}/restore")
+    @PreAuthorize(WRITE_ROLES)
     public ResponseEntity<Void> restore(@PathVariable Integer id) {
         service.restore(id);
         return ResponseEntity.noContent().build();
