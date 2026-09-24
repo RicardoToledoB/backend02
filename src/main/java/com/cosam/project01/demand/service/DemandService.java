@@ -2683,6 +2683,7 @@ public class DemandService {
         if (p == null) return null;
         return String.join(" ", Arrays.asList(
                         Optional.ofNullable(p.getFirstName()).orElse(""),
+                        Optional.ofNullable(p.getLastName()).orElse(""),
                         Optional.ofNullable(p.getFirstLastName()).orElse(""),
                         Optional.ofNullable(p.getSecondLastName()).orElse("")))
                 .replaceAll("\\s+", " ").trim();
